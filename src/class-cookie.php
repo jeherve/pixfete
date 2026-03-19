@@ -1,30 +1,42 @@
 <?php
 /**
- * Manage cookies set when guests visit an event page.
+ * HMAC-signed cookie management for guest authentication.
  *
- * - The cookie is set when the guest first visits the upload page.
- * - The cookie can only be set if the upload page's URL includes:
- *     - a secret query string, `access_key`.
- *     - a valid album ID, `album_id`.
- * - The cookie is set for a month.
- * - The cookie includes the following data:
- *   - album_id
- *   - user_nicename
- *   - user_nickname
- *   - registration_date (when the cookie was set)
+ * Provides stateless utilities for creating, signing, verifying, and
+ * managing per-event-page guest cookies. Every REST endpoint depends
+ * on this class for authentication.
+ *
+ * Cookie format: {base64url-encoded JSON payload}.{HMAC-SHA256 hex}
  *
  * @package Jeherve\Event_Guest_Photos_Sharing
  */
 
 declare( strict_types=1 );
 
-defined( 'ABSPATH' ) || exit;
-
 namespace Jeherve\Event_Guest_Photos_Sharing;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
- * Manage cookies used throughout the plugin
+ * Static utility class for HMAC-signed guest cookie operations.
  */
 class Cookie {
 
+	/**
+	 * Sign a payload array into a cookie value string.
+	 *
+	 * JSON-encodes the payload, base64url-encodes it, then computes an
+	 * HMAC-SHA256 signature using the WordPress auth salt. Returns the
+	 * two parts joined by a dot: `{base64url}.{hmac_hex}`.
+	 *
+	 * @param array<string, mixed> $payload The cookie payload data.
+	 * @return string Signed cookie value in `{base64url}.{hmac_hex}` format.
+	 */
+	public static function sign( array $payload ): string {
+		$json      = wp_json_encode( $payload );
+		$base64url = rtrim( strtr( base64_encode( $json ), '+/', '-_' ), '=' );
+		$hmac      = hash_hmac( 'sha256', $base64url, wp_salt( 'auth' ) );
+
+		return $base64url . '.' . $hmac;
+	}
 }
