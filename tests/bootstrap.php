@@ -25,3 +25,4 @@ require_once __DIR__ . '/stubs/setcookie-stub.php';
 
 // Load source files (no autoloader for src/).
 require_once dirname( __DIR__ ) . '/src/class-cookie.php';
+require_once dirname( __DIR__ ) . '/src/class-upload.php';
