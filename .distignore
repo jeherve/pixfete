@@ -1,14 +1,21 @@
 # Directories
-/.wordpress-org
-/.git
 /.github
+/.git
 /tests
-/wordpress
+/node_modules
+/docs
+/.superpowers
 
 # Files
+.wp-env.json
 .distignore
 .gitignore
 .phpcs.xml.dist
-phpunit.xml.dist
+.prettierrc.js
+.prettierignore
 .editorconfig
+phpunit.xml.dist
+composer.json
 composer.lock
+package.json
+package-lock.json

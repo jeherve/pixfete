@@ -1,10 +1,15 @@
 # Folders
 vendor/
+node_modules/
+build/
 wordpress/
-.github/actions/triage/dist/
-.github/actions/triage/node_modules/
 
-# Files
+# Cache & test artifacts
 .phpunit.cache/
 .phpunit.result.cache
+
+# OS
 **/.DS_Store
+
+# Tools
+.superpowers/

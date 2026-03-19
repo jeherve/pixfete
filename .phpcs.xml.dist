@@ -36,9 +36,10 @@
 		<exclude name="Jetpack.PHPUnit.Attributes.AttributeFoundMissingAnnotation" />
 	</rule>
 
-	<!-- Check all PHP files in directory tree by default. -->
+	<!-- Check src/ and the main plugin file. -->
 	<arg name="extensions" value="php"/>
-	<file>.</file>
+	<file>src/</file>
+	<file>event-guest-photos-sharing.php</file>
 
 	<!-- Show sniff codes in all reports -->
 	<arg value="s"/>
@@ -48,8 +49,9 @@
 	<!-- Ignore git, in case someone created a branch ending in ".php" or something -->
 	<exclude-pattern>/.git/*</exclude-pattern>
 
-	<!-- Ignore external libraries -->
+	<!-- Ignore external libraries and build artifacts -->
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/build/*</exclude-pattern>
 	<exclude-pattern>/wordpress/*</exclude-pattern>
 </ruleset>
