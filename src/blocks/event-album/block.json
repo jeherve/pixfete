@@ -37,6 +37,6 @@
     "editorScript": "file:./edit.js",
     "viewScriptModule": "file:./view.js",
     "style": "file:./style-edit.css",
-    "viewStyle": "file:./view.scss",
+    "viewStyle": "file:./view.css",
     "render": "file:./render.php"
 }
