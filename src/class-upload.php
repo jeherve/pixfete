@@ -69,6 +69,82 @@ class Upload {
 	}
 
 	/**
+	 * Create a WordPress attachment for an uploaded photo with guest metadata.
+	 *
+	 * Inserts the attachment post, generates its metadata, and stores
+	 * guest-specific post meta for tracking and optional moderation.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $file_path  Absolute path to the uploaded file.
+	 * @param string $filename   Original filename from the upload.
+	 * @param string $mime_type  MIME type of the uploaded file.
+	 * @param int    $page_id    The event page ID (becomes post_parent).
+	 * @param array  $guest_data {
+	 *     Guest identification data.
+	 *
+	 *     @type string $guest_name Pre-sanitized display name of the guest.
+	 *     @type string $table_name Pre-sanitized table/group name.
+	 *     @type string $guest_id   Pre-computed hash identifying the guest.
+	 * }
+	 * @return int The newly created attachment ID.
+	 *
+	 * @filter egps_photo_requires_moderation
+	 * @since  1.0.0
+	 * @param  bool $requires_moderation Whether the photo requires moderation. Default false.
+	 * @param  int  $attachment_id       The attachment post ID.
+	 * @param  int  $page_id             The event page ID.
+	 *
+	 * @action egps_after_photo_upload
+	 * @since  1.0.0
+	 * @param  int $attachment_id The attachment post ID.
+	 * @param  int $page_id       The event page ID.
+	 */
+	public function create_attachment( string $file_path, string $filename, string $mime_type, int $page_id, array $guest_data ): int {
+		$attachment_args = array(
+			'post_mime_type' => $mime_type,
+			'post_title'     => sanitize_file_name( $filename ),
+			'post_status'    => 'inherit',
+			'post_parent'    => $page_id,
+		);
+
+		$attachment_id = wp_insert_attachment( $attachment_args, $file_path );
+
+		$metadata = wp_generate_attachment_metadata( $attachment_id, $file_path );
+		wp_update_attachment_metadata( $attachment_id, $metadata );
+
+		// Store guest meta, sanitizing user-provided strings.
+		update_post_meta( $attachment_id, '_egps_guest_name', sanitize_text_field( $guest_data['guest_name'] ) );
+		update_post_meta( $attachment_id, '_egps_table_name', sanitize_text_field( $guest_data['table_name'] ) );
+		update_post_meta( $attachment_id, '_egps_guest_id', $guest_data['guest_id'] );
+		update_post_meta( $attachment_id, '_egps_uploaded_at', time() );
+
+		/**
+		 * Filters whether a newly uploaded photo requires moderation.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param bool $requires_moderation Whether the photo requires moderation. Default false.
+		 * @param int  $attachment_id       The attachment post ID.
+		 * @param int  $page_id             The event page ID.
+		 */
+		$requires_moderation = (bool) apply_filters( 'egps_photo_requires_moderation', false, $attachment_id, $page_id );
+		update_post_meta( $attachment_id, '_egps_requires_moderation', $requires_moderation );
+
+		/**
+		 * Fires after a guest photo has been uploaded and its metadata stored.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param int $attachment_id The attachment post ID.
+		 * @param int $page_id       The event page ID.
+		 */
+		do_action( 'egps_after_photo_upload', $attachment_id, $page_id );
+
+		return $attachment_id;
+	}
+
+	/**
 	 * Check whether the server supports HEIC image files.
 	 *
 	 * Uses wp_check_filetype_and_ext() to determine support, and caches

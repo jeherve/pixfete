@@ -137,4 +137,307 @@ class UploadTest extends TestCase {
 		$upload = new Upload();
 		$this->assertTrue( $upload->is_valid_image_type( 'image/jpeg' ) );
 	}
+
+	// ─── §3b: Attachment creation with guest metadata ─────────────────
+
+	/**
+	 * Helper: build guest data for tests.
+	 *
+	 * @return array{guest_name: string, table_name: string, guest_id: string}
+	 */
+	private function make_guest_data(): array {
+		return array(
+			'guest_name' => 'Alice',
+			'table_name' => 'Table 5',
+			'guest_id'   => 'abc123def456',
+		);
+	}
+
+	/**
+	 * Test that create_attachment() calls wp_insert_attachment with correct post_parent.
+	 */
+	public function test_create_attachment_calls_wp_insert_attachment_with_correct_parent(): void {
+		$page_id       = 42;
+		$attachment_id = 100;
+
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
+		Functions\when( 'sanitize_file_name' )->alias(
+			function ( $name ) {
+				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
+			}
+		);
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$captured_args = null;
+		Functions\expect( 'wp_insert_attachment' )
+			->once()
+			->withArgs(
+				function ( $args, $file ) use ( &$captured_args ) {
+					$captured_args = $args;
+					return true;
+				}
+			)
+			->andReturn( $attachment_id );
+
+		$upload = new Upload();
+		$upload->create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			$page_id,
+			$this->make_guest_data()
+		);
+
+		$this->assertSame( $page_id, $captured_args['post_parent'] );
+		$this->assertSame( 'image/jpeg', $captured_args['post_mime_type'] );
+		$this->assertSame( 'inherit', $captured_args['post_status'] );
+	}
+
+	/**
+	 * Test that create_attachment() stores all 5 meta fields.
+	 */
+	public function test_create_attachment_stores_all_meta_fields(): void {
+		$attachment_id = 100;
+		$guest_data    = $this->make_guest_data();
+
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
+		Functions\when( 'sanitize_file_name' )->alias(
+			function ( $name ) {
+				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
+			}
+		);
+		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$stored_meta = array();
+		Functions\expect( 'update_post_meta' )
+			->atLeast()
+			->times( 5 )
+			->withArgs(
+				function ( $post_id, $key, $value ) use ( $attachment_id, &$stored_meta ) {
+					if ( $post_id === $attachment_id ) {
+						$stored_meta[ $key ] = $value;
+					}
+					return true;
+				}
+			)
+			->andReturn( true );
+
+		$upload = new Upload();
+		$upload->create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			42,
+			$guest_data
+		);
+
+		$this->assertArrayHasKey( '_egps_guest_name', $stored_meta );
+		$this->assertArrayHasKey( '_egps_table_name', $stored_meta );
+		$this->assertArrayHasKey( '_egps_guest_id', $stored_meta );
+		$this->assertArrayHasKey( '_egps_uploaded_at', $stored_meta );
+		$this->assertArrayHasKey( '_egps_requires_moderation', $stored_meta );
+	}
+
+	/**
+	 * Test that create_attachment() fires the egps_after_photo_upload action.
+	 */
+	public function test_create_attachment_fires_after_photo_upload_action(): void {
+		$page_id       = 42;
+		$attachment_id = 100;
+
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
+		Functions\when( 'sanitize_file_name' )->alias(
+			function ( $name ) {
+				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
+			}
+		);
+		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$action_fired = false;
+		Functions\expect( 'do_action' )
+			->once()
+			->with( 'egps_after_photo_upload', $attachment_id, $page_id )
+			->andReturnUsing(
+				function () use ( &$action_fired ) {
+					$action_fired = true;
+				}
+			);
+
+		$upload = new Upload();
+		$upload->create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			$page_id,
+			$this->make_guest_data()
+		);
+
+		$this->assertTrue( $action_fired, 'egps_after_photo_upload action must be fired.' );
+	}
+
+	/**
+	 * Test that create_attachment() applies the egps_photo_requires_moderation filter.
+	 */
+	public function test_create_attachment_applies_moderation_filter(): void {
+		$attachment_id = 100;
+
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
+		Functions\when( 'sanitize_file_name' )->alias(
+			function ( $name ) {
+				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
+			}
+		);
+		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		Functions\expect( 'apply_filters' )
+			->once()
+			->with( 'egps_photo_requires_moderation', false, $attachment_id, 42 )
+			->andReturn( true );
+
+		$stored_meta = array();
+		Functions\expect( 'update_post_meta' )
+			->atLeast()
+			->times( 1 )
+			->withArgs(
+				function ( $post_id, $key, $value ) use ( $attachment_id, &$stored_meta ) {
+					if ( $post_id === $attachment_id ) {
+						$stored_meta[ $key ] = $value;
+					}
+					return true;
+				}
+			)
+			->andReturn( true );
+
+		$upload = new Upload();
+		$upload->create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			42,
+			$this->make_guest_data()
+		);
+
+		$this->assertTrue( $stored_meta['_egps_requires_moderation'] );
+	}
+
+	/**
+	 * Test that create_attachment() returns the attachment ID.
+	 */
+	public function test_create_attachment_returns_attachment_id(): void {
+		$attachment_id = 100;
+
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
+		Functions\when( 'sanitize_file_name' )->alias(
+			function ( $name ) {
+				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
+			}
+		);
+		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$upload = new Upload();
+		$result = $upload->create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			42,
+			$this->make_guest_data()
+		);
+
+		$this->assertSame( $attachment_id, $result );
+	}
+
+	/**
+	 * Test that create_attachment() sanitizes guest_name and table_name with sanitize_text_field().
+	 */
+	public function test_create_attachment_sanitizes_guest_data(): void {
+		$attachment_id = 100;
+		$guest_data    = array(
+			'guest_name' => '<script>Alice</script>',
+			'table_name' => '<b>Table 5</b>',
+			'guest_id'   => 'abc123',
+		);
+
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
+		Functions\when( 'sanitize_file_name' )->alias(
+			function ( $name ) {
+				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
+			}
+		);
+		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$stored_meta = array();
+		Functions\expect( 'update_post_meta' )
+			->atLeast()
+			->times( 1 )
+			->withArgs(
+				function ( $post_id, $key, $value ) use ( $attachment_id, &$stored_meta ) {
+					if ( $post_id === $attachment_id ) {
+						$stored_meta[ $key ] = $value;
+					}
+					return true;
+				}
+			)
+			->andReturn( true );
+
+		$upload = new Upload();
+		$upload->create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			42,
+			$guest_data
+		);
+
+		// sanitize_text_field strips tags.
+		$this->assertSame( 'Alice', $stored_meta['_egps_guest_name'] );
+		$this->assertSame( 'Table 5', $stored_meta['_egps_table_name'] );
+	}
 }
