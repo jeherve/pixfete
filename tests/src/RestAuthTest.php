@@ -148,12 +148,13 @@ class RestAuthTest extends TestCase {
 	 * Test that register_routes calls register_rest_route with the correct path and method.
 	 */
 	public function test_register_routes_registers_auth_endpoint(): void {
-		$captured = null;
+		$captured = array();
 		Functions\expect( 'register_rest_route' )
-			->once()
+			->atLeast()
+			->times( 1 )
 			->withArgs(
 				function ( $namespace, $route, $args ) use ( &$captured ) {
-					$captured = array(
+					$captured[] = array(
 						'namespace' => $namespace,
 						'route'     => $route,
 						'args'      => $args,
@@ -164,10 +165,13 @@ class RestAuthTest extends TestCase {
 
 		REST::register_routes();
 
-		$this->assertSame( 'event-guest-photos-sharing/v1', $captured['namespace'] );
-		$this->assertSame( '/auth/(?P<page_id>\d+)', $captured['route'] );
-		$this->assertSame( 'POST', $captured['args']['methods'] );
-		$this->assertIsCallable( $captured['args']['callback'] );
+		// The first registration must be the auth endpoint.
+		$auth = $captured[0] ?? null;
+		$this->assertNotNull( $auth, 'Auth route must be registered.' );
+		$this->assertSame( 'event-guest-photos-sharing/v1', $auth['namespace'] );
+		$this->assertSame( '/auth/(?P<page_id>\d+)', $auth['route'] );
+		$this->assertSame( 'POST', $auth['args']['methods'] );
+		$this->assertIsCallable( $auth['args']['callback'] );
 	}
 
 	// ─── §4a: action=register ─────────────────────────────────────────
