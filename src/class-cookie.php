@@ -33,7 +33,7 @@ class Cookie {
 	 * @return string Signed cookie value in `{base64url}.{hmac_hex}` format.
 	 */
 	public static function sign( array $payload ): string {
-		$json      = wp_json_encode( $payload );
+		$json      = wp_json_encode( $payload, JSON_THROW_ON_ERROR );
 		$base64url = rtrim( strtr( base64_encode( $json ), '+/', '-_' ), '=' );
 		$hmac      = hash_hmac( 'sha256', $base64url, wp_salt( 'auth' ) );
 
@@ -143,7 +143,8 @@ class Cookie {
 			return null;
 		}
 
-		$payload = self::verify( $_COOKIE[ $name ] );
+		$raw     = wp_unslash( $_COOKIE[ $name ] );
+		$payload = self::verify( $raw );
 
 		if ( null === $payload ) {
 			return null;
@@ -175,9 +176,17 @@ class Cookie {
 		$name   = self::cookie_name( $payload['page_id'] );
 		$signed = self::sign( $payload );
 
-		/** This filter is documented below. */
+		/**
+		 * Filters the cookie expiration timestamp.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param int   $expires_at Unix timestamp when the cookie expires.
+		 * @param array $payload    The full cookie payload.
+		 */
 		$expires = (int) apply_filters( 'egps_cookie_expiry', $payload['expires_at'], $payload );
 
+		// phpcs:ignore Jetpack.Functions.SetCookie.FoundNonHTTPOnlyFalse -- JS needs read access for state detection on mount.
 		setcookie(
 			$name,
 			$signed,

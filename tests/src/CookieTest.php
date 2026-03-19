@@ -29,12 +29,14 @@ class CookieTest extends TestCase {
 		// Stub WordPress functions used across tests.
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt-value' );
+		Functions\when( 'wp_unslash' )->alias( function ( $v ) { return is_string( $v ) ? stripslashes( $v ) : $v; } );
 	}
 
 	/**
 	 * Tear down Brain Monkey after each test.
 	 */
 	protected function tearDown(): void {
+		unset( $_COOKIE['egps_42'], $_COOKIE['egps_99'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -292,8 +294,6 @@ class CookieTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 'Alice', $result['guest_name'] );
 		$this->assertSame( 42, $result['page_id'] );
-
-		unset( $_COOKIE['egps_42'] );
 	}
 
 	/**
@@ -309,8 +309,6 @@ class CookieTest extends TestCase {
 		$_COOKIE['egps_42'] = $signed;
 
 		$this->assertNull( Cookie::get_for_page( 99 ) );
-
-		unset( $_COOKIE['egps_42'] );
 	}
 
 	/**
@@ -320,8 +318,6 @@ class CookieTest extends TestCase {
 		$_COOKIE['egps_42'] = 'tampered-value';
 
 		$this->assertNull( Cookie::get_for_page( 42 ) );
-
-		unset( $_COOKIE['egps_42'] );
 	}
 
 	/**
