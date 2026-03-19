@@ -199,4 +199,71 @@ class CookieTest extends TestCase {
 
 		$this->assertNull( Cookie::verify( $base64url . '.' . $hmac ) );
 	}
+
+	// ─── §2c: Cookie name and guest ID ──────────────────────────────────
+
+	/**
+	 * Test that cookie_name() returns the expected format: egps_{page_id}.
+	 */
+	public function test_cookie_name_returns_egps_prefix_with_page_id(): void {
+		$this->assertSame( 'egps_42', Cookie::cookie_name( 42 ) );
+		$this->assertSame( 'egps_1', Cookie::cookie_name( 1 ) );
+		$this->assertSame( 'egps_99999', Cookie::cookie_name( 99999 ) );
+	}
+
+	/**
+	 * Test that guest_id() is deterministic: same inputs produce the same hash.
+	 */
+	public function test_guest_id_is_deterministic(): void {
+		$payload = $this->make_payload();
+
+		$id_a = Cookie::guest_id( $payload );
+		$id_b = Cookie::guest_id( $payload );
+
+		$this->assertSame( $id_a, $id_b, 'guest_id must be deterministic for the same payload.' );
+	}
+
+	/**
+	 * Test that guest_id() differs for different guest names.
+	 */
+	public function test_guest_id_differs_for_different_guest_names(): void {
+		$payload_alice = $this->make_payload();
+		$payload_bob   = $this->make_payload();
+		$payload_bob['guest_name'] = 'Bob';
+
+		$this->assertNotSame(
+			Cookie::guest_id( $payload_alice ),
+			Cookie::guest_id( $payload_bob ),
+			'guest_id must differ when guest_name differs.'
+		);
+	}
+
+	/**
+	 * Test that guest_id() returns a valid SHA-256 hex string (64 chars).
+	 */
+	public function test_guest_id_returns_sha256_hex(): void {
+		$id = Cookie::guest_id( $this->make_payload() );
+
+		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', $id, 'guest_id must be a 64-character hex string.' );
+	}
+
+	/**
+	 * Test that guest_id() uses guest_name, registered_at, and page_id.
+	 */
+	public function test_guest_id_uses_all_three_components(): void {
+		$payload = $this->make_payload();
+
+		// Changing registered_at should change the ID.
+		$payload_diff_time               = $payload;
+		$payload_diff_time['registered_at'] = 1700000001;
+
+		// Changing page_id should change the ID.
+		$payload_diff_page            = $payload;
+		$payload_diff_page['page_id'] = 99;
+
+		$original = Cookie::guest_id( $payload );
+
+		$this->assertNotSame( $original, Cookie::guest_id( $payload_diff_time ), 'guest_id must change when registered_at changes.' );
+		$this->assertNotSame( $original, Cookie::guest_id( $payload_diff_page ), 'guest_id must change when page_id changes.' );
+	}
 }

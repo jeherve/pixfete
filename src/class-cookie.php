@@ -91,4 +91,36 @@ class Cookie {
 
 		return $payload;
 	}
+
+	/**
+	 * Get the cookie name for a specific event page.
+	 *
+	 * Each event page gets its own cookie so guests can be authenticated
+	 * independently per event. The name uses a consistent prefix to make
+	 * cookies identifiable in the browser.
+	 *
+	 * @param int $page_id The WordPress page ID for the event.
+	 * @return string Cookie name in the format `egps_{page_id}`.
+	 */
+	public static function cookie_name( int $page_id ): string {
+		return 'egps_' . $page_id;
+	}
+
+	/**
+	 * Compute a deterministic guest identifier from a cookie payload.
+	 *
+	 * Creates a SHA-256 hash from the guest name, registration timestamp,
+	 * and page ID. This produces a stable, unique-per-guest identifier
+	 * used for per-guest upload counting without storing personal data.
+	 *
+	 * @param array<string, mixed> $payload The cookie payload containing
+	 *                                      guest_name, registered_at, and page_id.
+	 * @return string A 64-character hex SHA-256 hash.
+	 */
+	public static function guest_id( array $payload ): string {
+		return hash(
+			'sha256',
+			$payload['guest_name'] . '|' . $payload['registered_at'] . '|' . $payload['page_id']
+		);
+	}
 }
