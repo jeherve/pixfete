@@ -53,8 +53,7 @@ class UploadTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$upload = new Upload();
-		$types  = $upload->get_allowed_mime_types();
+		$types = Upload::get_allowed_mime_types();
 
 		$this->assertContains( 'image/jpeg', $types );
 		$this->assertContains( 'image/png', $types );
@@ -77,8 +76,7 @@ class UploadTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$upload = new Upload();
-		$types  = $upload->get_allowed_mime_types();
+		$types = Upload::get_allowed_mime_types();
 
 		$this->assertNotContains( 'image/heic', $types );
 		$this->assertNotContains( 'image/heif', $types );
@@ -92,8 +90,7 @@ class UploadTest extends TestCase {
 		Functions\when( 'get_transient' )->justReturn( 'supported' );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$upload = new Upload();
-		$types  = $upload->get_allowed_mime_types();
+		$types = Upload::get_allowed_mime_types();
 
 		$this->assertContains( 'image/heic', $types );
 		$this->assertContains( 'image/heif', $types );
@@ -115,8 +112,7 @@ class UploadTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$upload = new Upload();
-		$this->assertFalse( $upload->is_valid_image_type( 'image/gif' ) );
+		$this->assertFalse( Upload::is_valid_image_type( 'image/gif' ) );
 	}
 
 	/**
@@ -134,8 +130,7 @@ class UploadTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$upload = new Upload();
-		$this->assertTrue( $upload->is_valid_image_type( 'image/jpeg' ) );
+		$this->assertTrue( Upload::is_valid_image_type( 'image/jpeg' ) );
 	}
 
 	// ─── §3b: Attachment creation with guest metadata ─────────────────
@@ -154,12 +149,9 @@ class UploadTest extends TestCase {
 	}
 
 	/**
-	 * Test that create_attachment() calls wp_insert_attachment with correct post_parent.
+	 * Helper: stub the common WP functions needed by create_attachment() tests.
 	 */
-	public function test_create_attachment_calls_wp_insert_attachment_with_correct_parent(): void {
-		$page_id       = 42;
-		$attachment_id = 100;
-
+	private function stub_common_create_attachment_functions(): void {
 		Functions\when( 'sanitize_text_field' )->alias(
 			function ( $str ) {
 				return trim( strip_tags( $str ) );
@@ -170,6 +162,26 @@ class UploadTest extends TestCase {
 				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
 			}
 		);
+		Functions\when( 'sanitize_key' )->alias(
+			function ( $key ) {
+				return preg_replace( '/[^a-z0-9_-]/', '', strtolower( $key ) );
+			}
+		);
+		Functions\when( 'is_wp_error' )->alias(
+			function ( $v ) {
+				return $v instanceof \WP_Error;
+			}
+		);
+	}
+
+	/**
+	 * Test that create_attachment() calls wp_insert_attachment with correct post_parent.
+	 */
+	public function test_create_attachment_calls_wp_insert_attachment_with_correct_parent(): void {
+		$page_id       = 42;
+		$attachment_id = 100;
+
+		$this->stub_common_create_attachment_functions();
 		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
 		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
 		Functions\when( 'update_post_meta' )->justReturn( true );
@@ -187,8 +199,7 @@ class UploadTest extends TestCase {
 			)
 			->andReturn( $attachment_id );
 
-		$upload = new Upload();
-		$upload->create_attachment(
+		Upload::create_attachment(
 			'/tmp/test.jpg',
 			'test.jpg',
 			'image/jpeg',
@@ -208,16 +219,7 @@ class UploadTest extends TestCase {
 		$attachment_id = 100;
 		$guest_data    = $this->make_guest_data();
 
-		Functions\when( 'sanitize_text_field' )->alias(
-			function ( $str ) {
-				return trim( strip_tags( $str ) );
-			}
-		);
-		Functions\when( 'sanitize_file_name' )->alias(
-			function ( $name ) {
-				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
-			}
-		);
+		$this->stub_common_create_attachment_functions();
 		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
 		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
 		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
@@ -238,8 +240,7 @@ class UploadTest extends TestCase {
 			)
 			->andReturn( true );
 
-		$upload = new Upload();
-		$upload->create_attachment(
+		Upload::create_attachment(
 			'/tmp/test.jpg',
 			'test.jpg',
 			'image/jpeg',
@@ -261,16 +262,7 @@ class UploadTest extends TestCase {
 		$page_id       = 42;
 		$attachment_id = 100;
 
-		Functions\when( 'sanitize_text_field' )->alias(
-			function ( $str ) {
-				return trim( strip_tags( $str ) );
-			}
-		);
-		Functions\when( 'sanitize_file_name' )->alias(
-			function ( $name ) {
-				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
-			}
-		);
+		$this->stub_common_create_attachment_functions();
 		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
 		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
 		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
@@ -287,8 +279,7 @@ class UploadTest extends TestCase {
 				}
 			);
 
-		$upload = new Upload();
-		$upload->create_attachment(
+		Upload::create_attachment(
 			'/tmp/test.jpg',
 			'test.jpg',
 			'image/jpeg',
@@ -305,16 +296,7 @@ class UploadTest extends TestCase {
 	public function test_create_attachment_applies_moderation_filter(): void {
 		$attachment_id = 100;
 
-		Functions\when( 'sanitize_text_field' )->alias(
-			function ( $str ) {
-				return trim( strip_tags( $str ) );
-			}
-		);
-		Functions\when( 'sanitize_file_name' )->alias(
-			function ( $name ) {
-				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
-			}
-		);
+		$this->stub_common_create_attachment_functions();
 		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
 		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
 		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
@@ -339,8 +321,7 @@ class UploadTest extends TestCase {
 			)
 			->andReturn( true );
 
-		$upload = new Upload();
-		$upload->create_attachment(
+		Upload::create_attachment(
 			'/tmp/test.jpg',
 			'test.jpg',
 			'image/jpeg',
@@ -357,16 +338,7 @@ class UploadTest extends TestCase {
 	public function test_create_attachment_returns_attachment_id(): void {
 		$attachment_id = 100;
 
-		Functions\when( 'sanitize_text_field' )->alias(
-			function ( $str ) {
-				return trim( strip_tags( $str ) );
-			}
-		);
-		Functions\when( 'sanitize_file_name' )->alias(
-			function ( $name ) {
-				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
-			}
-		);
+		$this->stub_common_create_attachment_functions();
 		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
 		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
 		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
@@ -374,8 +346,7 @@ class UploadTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\when( 'do_action' )->justReturn( null );
 
-		$upload = new Upload();
-		$result = $upload->create_attachment(
+		$result = Upload::create_attachment(
 			'/tmp/test.jpg',
 			'test.jpg',
 			'image/jpeg',
@@ -397,16 +368,7 @@ class UploadTest extends TestCase {
 			'guest_id'   => 'abc123',
 		);
 
-		Functions\when( 'sanitize_text_field' )->alias(
-			function ( $str ) {
-				return trim( strip_tags( $str ) );
-			}
-		);
-		Functions\when( 'sanitize_file_name' )->alias(
-			function ( $name ) {
-				return preg_replace( '/[^a-zA-Z0-9._-]/', '', $name );
-			}
-		);
+		$this->stub_common_create_attachment_functions();
 		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
 		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
 		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
@@ -427,8 +389,7 @@ class UploadTest extends TestCase {
 			)
 			->andReturn( true );
 
-		$upload = new Upload();
-		$upload->create_attachment(
+		Upload::create_attachment(
 			'/tmp/test.jpg',
 			'test.jpg',
 			'image/jpeg',
@@ -439,5 +400,68 @@ class UploadTest extends TestCase {
 		// sanitize_text_field strips tags.
 		$this->assertSame( 'Alice', $stored_meta['_egps_guest_name'] );
 		$this->assertSame( 'Table 5', $stored_meta['_egps_table_name'] );
+	}
+
+	/**
+	 * Test that create_attachment() applies sanitize_key() to guest_id before storage.
+	 */
+	public function test_create_attachment_sanitizes_guest_id(): void {
+		$attachment_id = 100;
+		$guest_data    = array(
+			'guest_name' => 'Alice',
+			'table_name' => 'Table 5',
+			'guest_id'   => 'ABC-123 XYZ!',
+		);
+
+		$this->stub_common_create_attachment_functions();
+		Functions\when( 'wp_insert_attachment' )->justReturn( $attachment_id );
+		Functions\when( 'wp_generate_attachment_metadata' )->justReturn( array() );
+		Functions\when( 'wp_update_attachment_metadata' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'do_action' )->justReturn( null );
+
+		$stored_meta = array();
+		Functions\expect( 'update_post_meta' )
+			->atLeast()
+			->times( 1 )
+			->withArgs(
+				function ( $post_id, $key, $value ) use ( $attachment_id, &$stored_meta ) {
+					if ( $post_id === $attachment_id ) {
+						$stored_meta[ $key ] = $value;
+					}
+					return true;
+				}
+			)
+			->andReturn( true );
+
+		Upload::create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			42,
+			$guest_data
+		);
+
+		// sanitize_key lowercases and strips non-alphanumeric chars (except _ and -).
+		$this->assertSame( 'abc-123xyz', $stored_meta['_egps_guest_id'] );
+	}
+
+	/**
+	 * Test that create_attachment() returns 0 when wp_insert_attachment() returns a WP_Error.
+	 */
+	public function test_create_attachment_returns_zero_on_wp_error(): void {
+		$this->stub_common_create_attachment_functions();
+
+		Functions\when( 'wp_insert_attachment' )->justReturn( new \WP_Error( 'upload_error', 'Failed.' ) );
+
+		$result = Upload::create_attachment(
+			'/tmp/test.jpg',
+			'test.jpg',
+			'image/jpeg',
+			42,
+			$this->make_guest_data()
+		);
+
+		$this->assertSame( 0, $result );
 	}
 }

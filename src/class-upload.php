@@ -29,19 +29,15 @@ class Upload {
 	 * @since 1.0.0
 	 *
 	 * @return string[] Array of allowed MIME type strings.
-	 *
-	 * @filter egps_allowed_mime_types
-	 * @since  1.0.0
-	 * @param  string[] $mime_types Allowed MIME types.
 	 */
-	public function get_allowed_mime_types(): array {
+	public static function get_allowed_mime_types(): array {
 		$mime_types = array(
 			'image/jpeg',
 			'image/png',
 			'image/webp',
 		);
 
-		if ( $this->server_supports_heic() ) {
+		if ( self::server_supports_heic() ) {
 			$mime_types[] = 'image/heic';
 			$mime_types[] = 'image/heif';
 		}
@@ -64,8 +60,8 @@ class Upload {
 	 * @param string $mime_type The MIME type to validate.
 	 * @return bool True if the MIME type is allowed, false otherwise.
 	 */
-	public function is_valid_image_type( string $mime_type ): bool {
-		return in_array( $mime_type, $this->get_allowed_mime_types(), true );
+	public static function is_valid_image_type( string $mime_type ): bool {
+		return in_array( $mime_type, self::get_allowed_mime_types(), true );
 	}
 
 	/**
@@ -73,6 +69,7 @@ class Upload {
 	 *
 	 * Inserts the attachment post, generates its metadata, and stores
 	 * guest-specific post meta for tracking and optional moderation.
+	 * Returns 0 on failure (e.g. if wp_insert_attachment() returns a WP_Error).
 	 *
 	 * @since 1.0.0
 	 *
@@ -87,20 +84,9 @@ class Upload {
 	 *     @type string $table_name Pre-sanitized table/group name.
 	 *     @type string $guest_id   Pre-computed hash identifying the guest.
 	 * }
-	 * @return int The newly created attachment ID.
-	 *
-	 * @filter egps_photo_requires_moderation
-	 * @since  1.0.0
-	 * @param  bool $requires_moderation Whether the photo requires moderation. Default false.
-	 * @param  int  $attachment_id       The attachment post ID.
-	 * @param  int  $page_id             The event page ID.
-	 *
-	 * @action egps_after_photo_upload
-	 * @since  1.0.0
-	 * @param  int $attachment_id The attachment post ID.
-	 * @param  int $page_id       The event page ID.
+	 * @return int The newly created attachment ID, or 0 on failure.
 	 */
-	public function create_attachment( string $file_path, string $filename, string $mime_type, int $page_id, array $guest_data ): int {
+	public static function create_attachment( string $file_path, string $filename, string $mime_type, int $page_id, array $guest_data ): int {
 		$attachment_args = array(
 			'post_mime_type' => $mime_type,
 			'post_title'     => sanitize_file_name( $filename ),
@@ -110,13 +96,17 @@ class Upload {
 
 		$attachment_id = wp_insert_attachment( $attachment_args, $file_path );
 
+		if ( is_wp_error( $attachment_id ) ) {
+			return 0;
+		}
+
 		$metadata = wp_generate_attachment_metadata( $attachment_id, $file_path );
 		wp_update_attachment_metadata( $attachment_id, $metadata );
 
 		// Store guest meta, sanitizing user-provided strings.
 		update_post_meta( $attachment_id, '_egps_guest_name', sanitize_text_field( $guest_data['guest_name'] ) );
 		update_post_meta( $attachment_id, '_egps_table_name', sanitize_text_field( $guest_data['table_name'] ) );
-		update_post_meta( $attachment_id, '_egps_guest_id', $guest_data['guest_id'] );
+		update_post_meta( $attachment_id, '_egps_guest_id', sanitize_key( $guest_data['guest_id'] ) );
 		update_post_meta( $attachment_id, '_egps_uploaded_at', time() );
 
 		/**
@@ -154,7 +144,7 @@ class Upload {
 	 *
 	 * @return bool True if the server supports HEIC files.
 	 */
-	private function server_supports_heic(): bool {
+	private static function server_supports_heic(): bool {
 		$cached = get_transient( 'egps_heic_support' );
 
 		if ( false !== $cached ) {

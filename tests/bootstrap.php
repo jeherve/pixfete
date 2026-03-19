@@ -19,6 +19,28 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
+// Minimal WP_Error stub so tests can construct instances without a full WP stack.
+if ( ! class_exists( 'WP_Error' ) ) {
+	// phpcs:ignore Generic.Files.OneClassPerFile.MultipleFound
+	class WP_Error {
+		/** @var string */
+		private string $code;
+		/** @var string */
+		private string $message;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param string $code    Error code.
+		 * @param string $message Error message.
+		 */
+		public function __construct( string $code = '', string $message = '' ) {
+			$this->code    = $code;
+			$this->message = $message;
+		}
+	}
+}
+
 // Load namespace-level stubs before source files so PHP resolves them
 // within the plugin namespace during tests.
 require_once __DIR__ . '/stubs/setcookie-stub.php';
