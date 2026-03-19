@@ -1,0 +1,42 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "event-guest-photos-sharing/event-album",
+    "version": "1.0.0",
+    "title": "Event Photo Album",
+    "category": "media",
+    "icon": "format-image",
+    "description": "A photo sharing album for event guests.",
+    "textdomain": "event-guest-photos-sharing",
+    "attributes": {
+        "password": {
+            "type": "string",
+            "default": ""
+        },
+        "eventVersion": {
+            "type": "integer",
+            "default": 1
+        },
+        "dateRangeStart": {
+            "type": "string",
+            "default": ""
+        },
+        "dateRangeEnd": {
+            "type": "string",
+            "default": ""
+        },
+        "enableTableNames": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "html": false,
+        "multiple": false
+    },
+    "editorScript": "file:./edit.js",
+    "viewScriptModule": "file:./view.js",
+    "style": "file:./style-edit.css",
+    "viewStyle": "file:./view.scss",
+    "render": "file:./render.php"
+}

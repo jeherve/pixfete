@@ -17,6 +17,11 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 	define( 'DAY_IN_SECONDS', 86400 );
 }
 
+// Plugin path constant used by Block::register().
+if ( ! defined( 'EGPS_PLUGIN_DIR' ) ) {
+	define( 'EGPS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
+}
+
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 // WordPress constants used by the REST tests.
@@ -91,6 +96,8 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 		private array $params = array();
 		/** @var array */
 		private array $headers = array();
+		/** @var array */
+		private array $file_params = array();
 
 		/**
 		 * Set a parameter.
@@ -131,6 +138,113 @@ if ( ! class_exists( 'WP_REST_Request' ) ) {
 		public function get_header( string $key ): ?string {
 			return $this->headers[ strtolower( $key ) ] ?? null;
 		}
+
+		/**
+		 * Set file parameters.
+		 *
+		 * @param array $file_params File parameters ($_FILES-style).
+		 */
+		public function set_file_params( array $file_params ): void {
+			$this->file_params = $file_params;
+		}
+
+		/**
+		 * Get file parameters.
+		 *
+		 * @return array File parameters.
+		 */
+		public function get_file_params(): array {
+			return $this->file_params;
+		}
+	}
+}
+
+// Minimal WP_REST_Response stub for tests.
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	// phpcs:ignore Generic.Files.OneClassPerFile.MultipleFound
+	class WP_REST_Response {
+		/** @var mixed */
+		private mixed $data;
+		/** @var int */
+		private int $status;
+		/** @var array */
+		private array $headers = array();
+
+		/**
+		 * Constructor.
+		 *
+		 * @param mixed $data   Response data.
+		 * @param int   $status HTTP status code.
+		 */
+		public function __construct( mixed $data = null, int $status = 200 ) {
+			$this->data   = $data;
+			$this->status = $status;
+		}
+
+		/**
+		 * Get response data.
+		 *
+		 * @return mixed
+		 */
+		public function get_data(): mixed {
+			return $this->data;
+		}
+
+		/**
+		 * Get HTTP status code.
+		 *
+		 * @return int
+		 */
+		public function get_status(): int {
+			return $this->status;
+		}
+
+		/**
+		 * Set a response header.
+		 *
+		 * @param string $key   Header name.
+		 * @param mixed  $value Header value.
+		 */
+		public function header( string $key, mixed $value ): void {
+			$this->headers[ $key ] = $value;
+		}
+
+		/**
+		 * Get all response headers.
+		 *
+		 * @return array
+		 */
+		public function get_headers(): array {
+			return $this->headers;
+		}
+	}
+}
+
+// Minimal WP_Query stub for tests.
+// Uses a global mock object when available for configurable responses.
+if ( ! class_exists( 'WP_Query' ) ) {
+	// phpcs:ignore Generic.Files.OneClassPerFile.MultipleFound
+	class WP_Query {
+		/** @var array */
+		public array $posts = array();
+		/** @var int */
+		public int $found_posts = 0;
+		/** @var int */
+		public int $max_num_pages = 0;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param array $args Query arguments (stored but used via mock).
+		 */
+		public function __construct( array $args = array() ) {
+			if ( isset( $GLOBALS['egps_wp_query_mock'] ) ) {
+				$mock                = $GLOBALS['egps_wp_query_mock'];
+				$this->posts         = $mock->posts ?? array();
+				$this->found_posts   = $mock->found_posts ?? 0;
+				$this->max_num_pages = $mock->max_num_pages ?? 0;
+			}
+		}
 	}
 }
 
@@ -142,3 +256,4 @@ require_once __DIR__ . '/stubs/setcookie-stub.php';
 require_once dirname( __DIR__ ) . '/src/class-cookie.php';
 require_once dirname( __DIR__ ) . '/src/class-upload.php';
 require_once dirname( __DIR__ ) . '/src/class-rest.php';
+require_once dirname( __DIR__ ) . '/src/class-block.php';
