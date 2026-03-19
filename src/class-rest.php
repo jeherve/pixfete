@@ -1,10 +1,13 @@
 <?php
 /**
- * Register REST API endpoints for guest authentication and consent.
+ * Register REST API endpoints for guest authentication, photo upload,
+ * and gallery retrieval.
  *
  * Handles the two-step auth flow: registration (password validation,
- * cookie creation) and consent (cookie update). Uses CSRF tokens stored
- * as transients and HMAC-signed cookies for stateless guest auth.
+ * cookie creation) and consent (cookie update). Also handles photo
+ * uploads with MIME/image validation and gallery retrieval with
+ * pagination. Uses CSRF tokens stored as transients and HMAC-signed
+ * cookies for stateless guest auth.
  *
  * @package Jeherve\Event_Guest_Photos_Sharing
  */
@@ -16,7 +19,7 @@ namespace Jeherve\Event_Guest_Photos_Sharing;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST API controller for guest authentication endpoints.
+ * REST API controller for guest authentication, photo upload, and gallery endpoints.
  */
 class REST extends \WP_REST_Controller {
 
@@ -47,6 +50,26 @@ class REST extends \WP_REST_Controller {
 				'methods'             => 'POST',
 				'callback'            => array( static::class, 'handle_auth' ),
 				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/photos/(?P<page_id>\d+)',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( static::class, 'handle_photo_upload' ),
+				'permission_callback' => array( static::class, 'check_photo_upload_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/photos/(?P<page_id>\d+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( static::class, 'handle_gallery' ),
+				'permission_callback' => array( static::class, 'check_gallery_permission' ),
 			)
 		);
 	}
@@ -364,5 +387,411 @@ class REST extends \WP_REST_Controller {
 			}
 		}
 		return null;
+	}
+
+	// ─── Photo upload endpoint ───────────────────────────────────────
+
+	/**
+	 * Permission callback for the photo upload endpoint.
+	 *
+	 * Validates the page, verifies the HMAC cookie with consent=true,
+	 * checks event_version match, date range, and per-guest upload limit.
+	 *
+	 * @param \WP_REST_Request $request The REST request.
+	 * @return true|\WP_Error True if permitted, WP_Error on failure.
+	 */
+	public static function check_photo_upload_permission( \WP_REST_Request $request ): true|\WP_Error {
+		$page_id = (int) $request->get_param( 'page_id' );
+
+		// 1. Validate page.
+		$block_attrs = self::validate_page( $page_id );
+		if ( is_wp_error( $block_attrs ) ) {
+			return $block_attrs;
+		}
+
+		// 2-5. Verify cookie, consent, event_version.
+		$cookie_error = self::verify_guest_cookie( $page_id, $block_attrs );
+		if ( is_wp_error( $cookie_error ) ) {
+			return $cookie_error;
+		}
+
+		// 6. Check date range if set in block attributes.
+		$date_error = self::check_date_range( $block_attrs );
+		if ( is_wp_error( $date_error ) ) {
+			return $date_error;
+		}
+
+		// 7. Check per-guest upload limit.
+		$cookie_payload = Cookie::get_for_page( $page_id );
+
+		/**
+		 * Filters the maximum number of uploads per guest.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param int $max_uploads Maximum uploads per guest. Default 0 (unlimited).
+		 */
+		$max_uploads = (int) apply_filters( 'egps_max_uploads_per_guest', 0 );
+		if ( $max_uploads > 0 && null !== $cookie_payload ) {
+			$guest_id = Cookie::guest_id( $cookie_payload );
+			$query    = new \WP_Query(
+				array(
+					'post_type'      => 'attachment',
+					'post_parent'    => $page_id,
+					'post_status'    => 'inherit',
+					'posts_per_page' => 1,
+					'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+						array(
+							'key'   => '_egps_guest_id',
+							'value' => $guest_id,
+						),
+					),
+					'fields'         => 'ids',
+				)
+			);
+
+			if ( $query->found_posts >= $max_uploads ) {
+				return new \WP_Error(
+					'egps_upload_limit_reached',
+					'You have reached the maximum number of photo uploads.',
+					array( 'status' => 429 )
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Handle the photo upload request.
+	 *
+	 * Validates MIME type, verifies the file is a real image, handles the
+	 * upload via wp_handle_upload(), creates a WordPress attachment with
+	 * guest metadata, and returns the attachment data.
+	 *
+	 * @param \WP_REST_Request $request The REST request.
+	 * @return \WP_REST_Response|\WP_Error Response with attachment data or error.
+	 */
+	public static function handle_photo_upload( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$page_id    = (int) $request->get_param( 'page_id' );
+		$files      = $request->get_file_params();
+		$photo_file = $files['photo'] ?? null;
+
+		if ( empty( $photo_file ) || empty( $photo_file['tmp_name'] ) ) {
+			return new \WP_Error(
+				'egps_invalid_file_type',
+				'No photo file was uploaded.',
+				array( 'status' => 415 )
+			);
+		}
+
+		// 1. Validate MIME type using wp_check_filetype_and_ext on the actual file.
+		$file_check = wp_check_filetype_and_ext(
+			$photo_file['tmp_name'],
+			$photo_file['name']
+		);
+
+		$mime_type = $file_check['type'] ?? '';
+		if ( empty( $mime_type ) || ! Upload::is_valid_image_type( $mime_type ) ) {
+			return new \WP_Error(
+				'egps_invalid_file_type',
+				'The uploaded file type is not allowed.',
+				array( 'status' => 415 )
+			);
+		}
+
+		// 2. Validate that this is a real image using getimagesize().
+		$image_info = @getimagesize( $photo_file['tmp_name'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( false === $image_info ) {
+			return new \WP_Error(
+				'egps_invalid_image',
+				'The uploaded file is not a valid image.',
+				array( 'status' => 422 )
+			);
+		}
+
+		// 3. Handle the upload.
+		// File size limits are enforced by WordPress/PHP (upload_max_filesize, post_max_size).
+		// The egps_max_file_size filter is available for plugin-level enforcement but not
+		// checked here in v1. See spec §1 (File size limits).
+		$upload_result = wp_handle_upload(
+			$photo_file,
+			array(
+				'test_form' => false,
+				'action'    => 'egps_photo_upload',
+			)
+		);
+
+		if ( isset( $upload_result['error'] ) ) {
+			return new \WP_Error(
+				'egps_upload_failed',
+				$upload_result['error'],
+				array( 'status' => 500 )
+			);
+		}
+
+		// 4. Create attachment with guest data from cookie.
+		$cookie_payload = Cookie::get_for_page( $page_id );
+		if ( null === $cookie_payload ) {
+			return new \WP_Error( 'egps_invalid_cookie', __( 'Invalid or missing authentication.', 'event-guest-photos-sharing' ), array( 'status' => 403 ) );
+		}
+		$guest_data     = array(
+			'guest_name' => $cookie_payload['guest_name'] ?? '',
+			'table_name' => $cookie_payload['table_name'] ?? '',
+			'guest_id'   => Cookie::guest_id( $cookie_payload ),
+		);
+
+		$attachment_id = Upload::create_attachment(
+			$upload_result['file'],
+			$photo_file['name'],
+			$upload_result['type'],
+			$page_id,
+			$guest_data
+		);
+
+		if ( 0 === $attachment_id ) {
+			return new \WP_Error(
+				'egps_upload_failed',
+				'Failed to create the attachment.',
+				array( 'status' => 500 )
+			);
+		}
+
+		// 5. Build response.
+		$thumbnail_src = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
+		$full_url      = wp_get_attachment_url( $attachment_id );
+		$uploaded_at   = get_post_meta( $attachment_id, '_egps_uploaded_at', true );
+
+		$response_data = array(
+			'id'          => $attachment_id,
+			'thumbnail'   => $thumbnail_src ? $thumbnail_src[0] : $full_url,
+			'full'        => $full_url,
+			'guest_name'  => get_post_meta( $attachment_id, '_egps_guest_name', true ),
+			'uploaded_at' => (int) $uploaded_at,
+		);
+
+		$response = new \WP_REST_Response( $response_data, 201 );
+
+		return $response;
+	}
+
+	// ─── Gallery retrieval endpoint ──────────────────────────────────
+
+	/**
+	 * Permission callback for the gallery endpoint.
+	 *
+	 * Validates the page, verifies the HMAC cookie with consent=true,
+	 * and checks event_version match. Does not check date range or file limits.
+	 *
+	 * @param \WP_REST_Request $request The REST request.
+	 * @return true|\WP_Error True if permitted, WP_Error on failure.
+	 */
+	public static function check_gallery_permission( \WP_REST_Request $request ): true|\WP_Error {
+		$page_id = (int) $request->get_param( 'page_id' );
+
+		// 1. Validate page.
+		$block_attrs = self::validate_page( $page_id );
+		if ( is_wp_error( $block_attrs ) ) {
+			return $block_attrs;
+		}
+
+		// 2-5. Verify cookie, consent, event_version.
+		$cookie_error = self::verify_guest_cookie( $page_id, $block_attrs );
+		if ( is_wp_error( $cookie_error ) ) {
+			return $cookie_error;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Handle the gallery retrieval request.
+	 *
+	 * Queries attachments for the page with pagination, excludes moderated
+	 * photos, supports filtering by timestamp, and returns response with
+	 * total/pages headers.
+	 *
+	 * @param \WP_REST_Request $request The REST request.
+	 * @return \WP_REST_Response Gallery response with photo data and headers.
+	 */
+	public static function handle_gallery( \WP_REST_Request $request ): \WP_REST_Response {
+		$page_id  = (int) $request->get_param( 'page_id' );
+		$per_page = min( (int) ( $request->get_param( 'per_page' ) ?? 30 ), 100 );
+		$page     = max( (int) ( $request->get_param( 'page' ) ?? 1 ), 1 );
+		$since    = $request->get_param( 'since' );
+
+		if ( $per_page < 1 ) {
+			$per_page = 30;
+		}
+
+		// Build meta query: always exclude moderated photos.
+		$meta_query = array(
+			array(
+				'relation' => 'OR',
+				array(
+					'key'     => '_egps_requires_moderation',
+					'compare' => 'NOT EXISTS',
+				),
+				array(
+					'key'     => '_egps_requires_moderation',
+					'value'   => '1',
+					'compare' => '!=',
+				),
+			),
+		);
+
+		// If 'since' param is provided, add a meta query for newer photos.
+		if ( null !== $since && '' !== $since ) {
+			$meta_query[] = array(
+				'key'     => '_egps_uploaded_at',
+				'value'   => (int) $since,
+				'compare' => '>',
+				'type'    => 'NUMERIC',
+			);
+		}
+
+		$query_args = array(
+			'post_type'      => 'attachment',
+			'post_parent'    => $page_id,
+			'post_status'    => 'inherit',
+			'posts_per_page' => $per_page,
+			'paged'          => $page,
+			'orderby'        => 'meta_value_num',
+			'meta_key'       => '_egps_uploaded_at', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			'order'          => 'DESC',
+			'meta_query'     => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+		);
+
+		/**
+		 * Filters the gallery WP_Query arguments before execution.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param array $query_args WP_Query arguments.
+		 * @param int   $page_id   The event page ID.
+		 */
+		$query_args = (array) apply_filters( 'egps_gallery_query_args', $query_args, $page_id );
+
+		$query  = new \WP_Query( $query_args );
+		$photos = array();
+
+		foreach ( $query->posts as $post ) {
+			$attachment_id = $post->ID;
+
+			$thumbnail_src = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
+			$full_url      = wp_get_attachment_url( $attachment_id );
+
+			$photo_data = array(
+				'id'          => $attachment_id,
+				'thumbnail'   => $thumbnail_src ? $thumbnail_src[0] : $full_url,
+				'full'        => $full_url,
+				'guest_name'  => get_post_meta( $attachment_id, '_egps_guest_name', true ),
+				'table_name'  => get_post_meta( $attachment_id, '_egps_table_name', true ),
+				'uploaded_at' => (int) get_post_meta( $attachment_id, '_egps_uploaded_at', true ),
+			);
+
+			/**
+			 * Filters a single photo response object before it is included in the gallery.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param array $photo_data    Photo response data.
+			 * @param int   $attachment_id The attachment post ID.
+			 * @param int   $page_id       The event page ID.
+			 */
+			$photos[] = (array) apply_filters( 'egps_photo_response', $photo_data, $attachment_id, $page_id );
+		}
+
+		$response = new \WP_REST_Response( $photos );
+		$response->header( 'X-WP-Total', $query->found_posts );
+		$response->header( 'X-WP-TotalPages', $query->max_num_pages );
+
+		return $response;
+	}
+
+	// ─── Shared permission helpers ───────────────────────────────────
+
+	/**
+	 * Verify the guest cookie for photo/gallery endpoints.
+	 *
+	 * Checks that a valid HMAC cookie exists for the page, that consent
+	 * is true, and that event_version matches the current block attribute.
+	 *
+	 * @param int   $page_id     The page ID.
+	 * @param array $block_attrs Block attributes from validate_page.
+	 * @return true|\WP_Error True if valid, WP_Error on failure.
+	 */
+	private static function verify_guest_cookie( int $page_id, array $block_attrs ): true|\WP_Error {
+		// Verify HMAC cookie exists.
+		$cookie_payload = Cookie::get_for_page( $page_id );
+		if ( null === $cookie_payload ) {
+			return new \WP_Error(
+				'egps_invalid_cookie',
+				'A valid guest cookie is required.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// Consent must be true.
+		if ( true !== ( $cookie_payload['consent'] ?? false ) ) {
+			return new \WP_Error(
+				'egps_no_consent',
+				'Consent is required to access this resource.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// Event version must match.
+		$current_version = $block_attrs['eventVersion'] ?? 1;
+		if ( (int) ( $cookie_payload['event_version'] ?? 0 ) !== (int) $current_version ) {
+			return new \WP_Error(
+				'egps_invalid_event_version',
+				'The event has been updated. Please re-register.',
+				array( 'status' => 403 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Check whether the current date is within the event's date range.
+	 *
+	 * If the block attributes include startDate and/or endDate, compares
+	 * them against the current date using the site's timezone. Returns a
+	 * WP_Error if the event has expired or hasn't started yet.
+	 *
+	 * @param array $block_attrs Block attributes containing optional startDate/endDate.
+	 * @return true|\WP_Error True if within range or no range set, WP_Error if expired.
+	 */
+	private static function check_date_range( array $block_attrs ): true|\WP_Error {
+		$start_date = $block_attrs['startDate'] ?? null;
+		$end_date   = $block_attrs['endDate'] ?? null;
+
+		// No date range set — always valid.
+		if ( empty( $start_date ) && empty( $end_date ) ) {
+			return true;
+		}
+
+		$timezone = wp_timezone();
+		$today    = wp_date( 'Y-m-d', null, $timezone );
+
+		if ( ! empty( $start_date ) && $today < $start_date ) {
+			return new \WP_Error(
+				'egps_event_expired',
+				'This event is not yet accepting uploads.',
+				array( 'status' => 403 )
+			);
+		}
+
+		if ( ! empty( $end_date ) && $today > $end_date ) {
+			return new \WP_Error(
+				'egps_event_expired',
+				'This event has ended and is no longer accepting uploads.',
+				array( 'status' => 403 )
+			);
+		}
+
+		return true;
 	}
 }
