@@ -116,4 +116,87 @@ class CookieTest extends TestCase {
 
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{64}$/', $hmac, 'HMAC must be a 64-character hex string.' );
 	}
+
+	// ─── §2b: Cookie verification ──────────────────────────────────────
+
+	/**
+	 * Test that verify() returns the payload for a valid, non-expired cookie.
+	 */
+	public function test_verify_returns_payload_for_valid_cookie(): void {
+		$payload = $this->make_payload();
+		$signed  = Cookie::sign( $payload );
+		$result  = Cookie::verify( $signed );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( $payload['guest_name'], $result['guest_name'] );
+		$this->assertSame( $payload['page_id'], $result['page_id'] );
+	}
+
+	/**
+	 * Test that verify() returns null when the HMAC has been tampered with.
+	 */
+	public function test_verify_returns_null_for_tampered_hmac(): void {
+		$signed  = Cookie::sign( $this->make_payload() );
+		$parts   = explode( '.', $signed );
+		// Flip one character in the HMAC to simulate tampering.
+		$parts[1] = str_repeat( 'a', 64 );
+		$tampered = implode( '.', $parts );
+
+		$this->assertNull( Cookie::verify( $tampered ) );
+	}
+
+	/**
+	 * Test that verify() returns null when the payload has been tampered with.
+	 */
+	public function test_verify_returns_null_for_tampered_payload(): void {
+		$signed  = Cookie::sign( $this->make_payload() );
+		$parts   = explode( '.', $signed );
+		// Modify the base64url payload.
+		$parts[0] = $parts[0] . 'TAMPERED';
+		$tampered = implode( '.', $parts );
+
+		$this->assertNull( Cookie::verify( $tampered ) );
+	}
+
+	/**
+	 * Test that verify() returns null for an expired cookie (expires_at in the past).
+	 */
+	public function test_verify_returns_null_for_expired_cookie(): void {
+		$payload               = $this->make_payload();
+		$payload['expires_at'] = time() - 3600; // Expired 1 hour ago.
+		$signed                = Cookie::sign( $payload );
+
+		$this->assertNull( Cookie::verify( $signed ) );
+	}
+
+	/**
+	 * Test that verify() returns null for an empty string.
+	 */
+	public function test_verify_returns_null_for_empty_string(): void {
+		$this->assertNull( Cookie::verify( '' ) );
+	}
+
+	/**
+	 * Test that verify() returns null for a string with no dot.
+	 */
+	public function test_verify_returns_null_for_no_dot(): void {
+		$this->assertNull( Cookie::verify( 'nodothere' ) );
+	}
+
+	/**
+	 * Test that verify() returns null for a string with too many dots.
+	 */
+	public function test_verify_returns_null_for_too_many_dots(): void {
+		$this->assertNull( Cookie::verify( 'part1.part2.part3' ) );
+	}
+
+	/**
+	 * Test that verify() returns null when base64url segment is not valid JSON.
+	 */
+	public function test_verify_returns_null_for_invalid_json(): void {
+		$base64url = rtrim( strtr( base64_encode( 'not-json' ), '+/', '-_' ), '=' );
+		$hmac      = hash_hmac( 'sha256', $base64url, 'test-salt-value' );
+
+		$this->assertNull( Cookie::verify( $base64url . '.' . $hmac ) );
+	}
 }

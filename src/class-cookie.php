@@ -39,4 +39,56 @@ class Cookie {
 
 		return $base64url . '.' . $hmac;
 	}
+
+	/**
+	 * Verify a signed cookie string and return the decoded payload.
+	 *
+	 * Validates the cookie format (exactly 2 dot-separated parts),
+	 * recomputes the HMAC using `hash_equals()` for timing-safe comparison,
+	 * decodes the JSON payload, and checks the `expires_at` timestamp.
+	 *
+	 * Returns null on any failure: bad format, HMAC mismatch, invalid JSON,
+	 * missing `expires_at`, or expiry in the past.
+	 *
+	 * @param string $cookie_value Raw cookie string from the browser.
+	 * @return array<string, mixed>|null Decoded payload array, or null on failure.
+	 */
+	public static function verify( string $cookie_value ): ?array {
+		// Must have exactly two dot-separated parts.
+		$parts = explode( '.', $cookie_value );
+		if ( count( $parts ) !== 2 ) {
+			return null;
+		}
+
+		list( $base64url, $hmac ) = $parts;
+
+		if ( '' === $base64url || '' === $hmac ) {
+			return null;
+		}
+
+		// Timing-safe HMAC comparison.
+		$expected_hmac = hash_hmac( 'sha256', $base64url, wp_salt( 'auth' ) );
+		if ( ! hash_equals( $expected_hmac, $hmac ) ) {
+			return null;
+		}
+
+		// Decode the base64url payload.
+		$base64  = strtr( $base64url, '-_', '+/' );
+		$json    = base64_decode( $base64, true );
+		if ( false === $json ) {
+			return null;
+		}
+
+		$payload = json_decode( $json, true );
+		if ( ! is_array( $payload ) ) {
+			return null;
+		}
+
+		// Check expiration.
+		if ( ! isset( $payload['expires_at'] ) || $payload['expires_at'] < time() ) {
+			return null;
+		}
+
+		return $payload;
+	}
 }
