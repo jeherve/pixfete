@@ -16,8 +16,6 @@
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
-
 define( 'EGPS_VERSION', '1.0.0-alpha' );
 define( 'EGPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EGPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -27,5 +25,5 @@ require_once EGPS_PLUGIN_DIR . 'src/class-upload.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-rest.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-block.php';
 
-add_action( 'init', array( Block::class, 'register' ) );
-add_action( 'rest_api_init', array( REST::class, 'register_routes' ) );
+add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Block::class, 'register' ) );
+add_action( 'rest_api_init', array( \Jeherve\Event_Guest_Photos_Sharing\REST::class, 'register_routes' ) );

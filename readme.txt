@@ -1,7 +1,7 @@
 === Event Guest Photos Sharing ===
 Contributors: jeherve
 Tags: photo album, photo wall, event, guest photos, sharing
-Stable tag: 1.0.0
+Stable tag: 1.0.0-alpha
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 6.9

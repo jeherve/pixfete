@@ -13,6 +13,8 @@
 
 declare( strict_types=1 );
 
+defined( 'ABSPATH' ) || exit;
+
 namespace Jeherve\Event_Guest_Photos_Sharing;
 
 /**

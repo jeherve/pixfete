@@ -19,7 +19,7 @@
   },
   "scripts": {
     "phpunit": [
-      "./vendor/phpunit/phpunit/phpunit --colors=always"
+      "vendor/bin/phpunit --colors=always"
     ],
     "lint": [
       "Composer\\Config::disableProcessTimeout",
