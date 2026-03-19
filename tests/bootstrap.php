@@ -19,5 +19,9 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
+// Load namespace-level stubs before source files so PHP resolves them
+// within the plugin namespace during tests.
+require_once __DIR__ . '/stubs/setcookie-stub.php';
+
 // Load source files (no autoloader for src/).
 require_once dirname( __DIR__ ) . '/src/class-cookie.php';

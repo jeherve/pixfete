@@ -266,4 +266,133 @@ class CookieTest extends TestCase {
 		$this->assertNotSame( $original, Cookie::guest_id( $payload_diff_time ), 'guest_id must change when registered_at changes.' );
 		$this->assertNotSame( $original, Cookie::guest_id( $payload_diff_page ), 'guest_id must change when page_id changes.' );
 	}
+
+	// ─── §2d: Reading and setting cookies ───────────────────────────────
+
+	/**
+	 * Test that get_for_page() returns null when no cookie exists.
+	 */
+	public function test_get_for_page_returns_null_when_no_cookie(): void {
+		// Ensure $_COOKIE is empty for this page.
+		unset( $_COOKIE['egps_42'] );
+
+		$this->assertNull( Cookie::get_for_page( 42 ) );
+	}
+
+	/**
+	 * Test that get_for_page() returns the payload for a valid cookie.
+	 */
+	public function test_get_for_page_returns_payload_for_valid_cookie(): void {
+		$payload = $this->make_payload();
+		$signed  = Cookie::sign( $payload );
+
+		$_COOKIE['egps_42'] = $signed;
+
+		$result = Cookie::get_for_page( 42 );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'Alice', $result['guest_name'] );
+		$this->assertSame( 42, $result['page_id'] );
+
+		unset( $_COOKIE['egps_42'] );
+	}
+
+	/**
+	 * Test that get_for_page() returns null when page_id in payload
+	 * does not match the requested page_id.
+	 */
+	public function test_get_for_page_returns_null_for_page_id_mismatch(): void {
+		$payload = $this->make_payload(); // page_id = 42
+		$signed  = Cookie::sign( $payload );
+
+		// Store under the correct cookie name for page 42,
+		// but request page 99.
+		$_COOKIE['egps_42'] = $signed;
+
+		$this->assertNull( Cookie::get_for_page( 99 ) );
+
+		unset( $_COOKIE['egps_42'] );
+	}
+
+	/**
+	 * Test that get_for_page() returns null for a tampered cookie value.
+	 */
+	public function test_get_for_page_returns_null_for_tampered_cookie(): void {
+		$_COOKIE['egps_42'] = 'tampered-value';
+
+		$this->assertNull( Cookie::get_for_page( 42 ) );
+
+		unset( $_COOKIE['egps_42'] );
+	}
+
+	/**
+	 * Test that set_for_page() calls setcookie() with correct parameters.
+	 *
+	 * Uses a namespace-level setcookie stub that captures the call
+	 * arguments into $GLOBALS['egps_setcookie_last_call'].
+	 */
+	public function test_set_for_page_calls_setcookie_with_correct_params(): void {
+		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$payload = $this->make_payload();
+
+		$GLOBALS['egps_setcookie_last_call'] = null;
+		Cookie::set_for_page( $payload );
+
+		$call = $GLOBALS['egps_setcookie_last_call'];
+		$this->assertNotNull( $call, 'setcookie must have been called.' );
+
+		// Verify cookie name.
+		$this->assertSame( 'egps_42', $call['name'] );
+
+		// Verify signed value has correct format.
+		$parts = explode( '.', $call['value'] );
+		$this->assertCount( 2, $parts );
+
+		// Verify options.
+		$this->assertSame( $payload['expires_at'], $call['options']['expires'] );
+		$this->assertSame( '/', $call['options']['path'] );
+		$this->assertFalse( $call['options']['secure'] );
+		$this->assertFalse( $call['options']['httponly'] );
+		$this->assertSame( 'Lax', $call['options']['samesite'] );
+	}
+
+	/**
+	 * Test that set_for_page() sets secure flag when is_ssl() returns true.
+	 */
+	public function test_set_for_page_sets_secure_when_ssl(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$payload = $this->make_payload();
+
+		$GLOBALS['egps_setcookie_last_call'] = null;
+		Cookie::set_for_page( $payload );
+
+		$call = $GLOBALS['egps_setcookie_last_call'];
+		$this->assertNotNull( $call, 'setcookie must have been called.' );
+		$this->assertTrue( $call['options']['secure'] );
+	}
+
+	/**
+	 * Test that set_for_page() applies the egps_cookie_expiry filter.
+	 */
+	public function test_set_for_page_applies_expiry_filter(): void {
+		Functions\when( 'is_ssl' )->justReturn( false );
+
+		$payload       = $this->make_payload();
+		$custom_expiry = time() + 7200; // 2 hours.
+
+		Functions\expect( 'apply_filters' )
+			->once()
+			->with( 'egps_cookie_expiry', $payload['expires_at'], $payload )
+			->andReturn( $custom_expiry );
+
+		$GLOBALS['egps_setcookie_last_call'] = null;
+		Cookie::set_for_page( $payload );
+
+		$call = $GLOBALS['egps_setcookie_last_call'];
+		$this->assertNotNull( $call, 'setcookie must have been called.' );
+		$this->assertSame( $custom_expiry, $call['options']['expires'] );
+	}
 }

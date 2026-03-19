@@ -123,4 +123,71 @@ class Cookie {
 			$payload['guest_name'] . '|' . $payload['registered_at'] . '|' . $payload['page_id']
 		);
 	}
+
+	/**
+	 * Read and verify the guest cookie for a specific event page.
+	 *
+	 * Looks up the cookie by name from `$_COOKIE`, verifies its HMAC
+	 * signature and expiry, then confirms that the `page_id` in the
+	 * payload matches the requested page. This prevents a cookie issued
+	 * for one event from being reused on another.
+	 *
+	 * @param int $page_id The WordPress page ID to read the cookie for.
+	 * @return array<string, mixed>|null The verified payload, or null if
+	 *                                   absent, invalid, or page mismatch.
+	 */
+	public static function get_for_page( int $page_id ): ?array {
+		$name = self::cookie_name( $page_id );
+
+		if ( ! isset( $_COOKIE[ $name ] ) ) {
+			return null;
+		}
+
+		$payload = self::verify( $_COOKIE[ $name ] );
+
+		if ( null === $payload ) {
+			return null;
+		}
+
+		// Ensure the cookie belongs to this specific page.
+		if ( $payload['page_id'] !== $page_id ) {
+			return null;
+		}
+
+		return $payload;
+	}
+
+	/**
+	 * Set a signed guest cookie for an event page.
+	 *
+	 * Signs the payload and sends it as a browser cookie. The cookie uses
+	 * path `/` so it's available across the site, `httponly` is false so
+	 * the frontend JavaScript can read the guest name for UI display,
+	 * `samesite` is Lax to allow normal navigation, and `secure` follows
+	 * the current SSL state.
+	 *
+	 * The expiry can be customized via the `egps_cookie_expiry` filter.
+	 *
+	 * @param array<string, mixed> $payload The cookie payload to sign and set.
+	 * @return void
+	 */
+	public static function set_for_page( array $payload ): void {
+		$name   = self::cookie_name( $payload['page_id'] );
+		$signed = self::sign( $payload );
+
+		/** This filter is documented below. */
+		$expires = (int) apply_filters( 'egps_cookie_expiry', $payload['expires_at'], $payload );
+
+		setcookie(
+			$name,
+			$signed,
+			array(
+				'expires'  => $expires,
+				'path'     => '/',
+				'secure'   => is_ssl(),
+				'httponly'  => false,
+				'samesite' => 'Lax',
+			)
+		);
+	}
 }
