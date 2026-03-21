@@ -1,0 +1,13 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "https://playground.wordpress.net/plugin-proxy.php?build-ref=trunk"
+	},
+	"steps": [
+		{
+			"step": "activatePlugin",
+			"pluginPath": "event-guest-photos-sharing"
+		}
+	]
+}
