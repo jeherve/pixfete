@@ -282,6 +282,10 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
+
+		&[hidden] {
+			display: none;
+		}
 	}
 
 	.egps-lightbox-close {
