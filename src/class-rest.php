@@ -42,7 +42,7 @@ class REST extends \WP_REST_Controller {
 	 *
 	 * @return void
 	 */
-	public static function register_routes(): void {
+	public function register_routes(): void {
 		register_rest_route(
 			self::NAMESPACE,
 			'/auth/(?P<page_id>\d+)',

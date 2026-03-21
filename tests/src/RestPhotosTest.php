@@ -165,7 +165,7 @@ class RestPhotosTest extends TestCase {
 				}
 			);
 
-		REST::register_routes();
+		( new REST() )->register_routes();
 
 		// The second and third registrations should be the photo endpoints.
 		$upload  = $captured[1] ?? null;

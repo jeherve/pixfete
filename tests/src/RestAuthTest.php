@@ -163,7 +163,7 @@ class RestAuthTest extends TestCase {
 				}
 			);
 
-		REST::register_routes();
+		( new REST() )->register_routes();
 
 		// The first registration must be the auth endpoint.
 		$auth = $captured[0] ?? null;
