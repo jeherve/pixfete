@@ -1,0 +1,46 @@
+name: E2E Tests
+on:
+  pull_request:
+    branches: [trunk]
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        wp: [stable, trunk]
+    name: e2e (${{ matrix.wp }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install chromium
+
+      - name: Start WP Playground
+        env:
+          WP_VERSION: ${{ matrix.wp }}
+        run: |
+          BLUEPRINT="blueprint.json"
+          if [ "$WP_VERSION" = "trunk" ]; then
+            BLUEPRINT="blueprint-trunk.json"
+          fi
+          npx @wp-playground/cli@latest server \
+            --mount=.:/wordpress/wp-content/plugins/event-guest-photos-sharing \
+            --blueprint="$BLUEPRINT" &
+          timeout 60 bash -c 'until curl -s http://localhost:9400 > /dev/null 2>&1; do sleep 2; done'
+          echo "Playground is ready"
+
+      - name: Run e2e tests
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.wp }}
+          path: playwright-report/
+          retention-days: 7
