@@ -1,6 +1,6 @@
-const { defineConfig } = require( '@playwright/test' );
+const { defineConfig } = require('@playwright/test');
 
-module.exports = defineConfig( {
+module.exports = defineConfig({
 	testDir: './tests/e2e',
 	timeout: 90000,
 	expect: {
@@ -17,9 +17,6 @@ module.exports = defineConfig( {
 			use: { browserName: 'chromium' },
 		},
 	],
-	reporter: [
-		[ 'list' ],
-		[ 'html', { outputFolder: 'playwright-report', open: 'never' } ],
-	],
+	reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
 	outputDir: 'test-results',
-} );
+});
