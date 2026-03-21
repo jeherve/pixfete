@@ -37,7 +37,7 @@ class Block {
 	 */
 	public static function register(): void {
 		// 1. Register the block type from block.json metadata.
-		register_block_type( EGPS_PLUGIN_DIR . 'src/blocks/event-album' );
+		register_block_type( EGPS_PLUGIN_DIR . 'build/blocks/event-album' );
 
 		// 2. Register the block pattern category.
 		register_block_pattern_category(

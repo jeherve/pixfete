@@ -34,7 +34,7 @@
         "html": false,
         "multiple": false
     },
-    "editorScript": "file:./edit.js",
+    "editorScript": "file:./index.js",
     "viewScriptModule": "file:./view.js",
     "style": "file:./style-edit.css",
     "viewStyle": "file:./view.css",
