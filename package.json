@@ -17,6 +17,8 @@
 		"lint:js": "wp-scripts lint-js",
 		"test:unit": "wp-scripts test-unit-js",
 		"test:unit:watch": "wp-scripts test-unit-js --watch",
+		"test:e2e": "npx playwright test",
+		"test:e2e:headed": "npx playwright test --headed",
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop"
 	},
@@ -26,6 +28,7 @@
 	},
 	"homepage": "https://github.com/jeherve/event-guest-photos-sharing#readme",
 	"devDependencies": {
+		"@playwright/test": "^1.58.2",
 		"@wordpress/env": "10.36.0",
 		"@wordpress/prettier-config": "4.36.0",
 		"@wordpress/scripts": "31.1.0"
