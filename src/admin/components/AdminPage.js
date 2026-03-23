@@ -20,36 +20,29 @@ export function AdminPage() {
 	/* global egpsQrAdmin */
 	const { pages } = egpsQrAdmin;
 
-	const [ selectedPageId, setSelectedPageId ] = useState(
-		pages.length ? pages[ 0 ].id : null
-	);
-	const [ config, setConfig ] = useState( DEFAULT_CONFIG );
+	const [selectedPageId, setSelectedPageId] = useState(pages.length ? pages[0].id : null);
+	const [config, setConfig] = useState(DEFAULT_CONFIG);
 
-	const selectedPage = useMemo(
-		() => pages.find( ( p ) => p.id === selectedPageId ),
-		[ pages, selectedPageId ]
-	);
+	const selectedPage = useMemo(() => pages.find((p) => p.id === selectedPageId), [pages, selectedPageId]);
 
-	const handlePageChange = ( pageId ) => {
-		setSelectedPageId( pageId );
-		const page = pages.find( ( p ) => p.id === pageId );
-		setConfig( {
+	const handlePageChange = (pageId) => {
+		setSelectedPageId(pageId);
+		const page = pages.find((p) => p.id === pageId);
+		setConfig({
 			...DEFAULT_CONFIG,
 			logoDataUrl: page?.logoDataUrl ?? null,
-		} );
+		});
 	};
 
-	if ( ! pages.length ) {
+	if (!pages.length) {
 		return (
 			<div className="egps-qr-empty">
-				<p>
-					{ __( 'No pages with the Event Photo Album block were found.', 'event-guest-photos-sharing' ) }
-				</p>
+				<p>{__('No pages with the Event Photo Album block were found.', 'event-guest-photos-sharing')}</p>
 			</div>
 		);
 	}
 
-	if ( ! selectedPage ) {
+	if (!selectedPage) {
 		return null;
 	}
 
@@ -62,26 +55,18 @@ export function AdminPage() {
 		logoDataUrl: selectedPage.logoDataUrl,
 	};
 
-	const url = buildUrl( selectedPage, config );
+	const url = buildUrl(selectedPage, config);
 
 	return (
 		<div className="egps-qr-admin">
-			<PageSelector
-				pages={ pages }
-				selectedPageId={ selectedPageId }
-				onChange={ handlePageChange }
-			/>
+			<PageSelector pages={pages} selectedPageId={selectedPageId} onChange={handlePageChange} />
 			<div className="egps-qr-admin-columns">
-				<QrConfigPanel
-					page={ selectedPage }
-					config={ configWithLogo }
-					onConfigChange={ setConfig }
-				/>
+				<QrConfigPanel page={selectedPage} config={configWithLogo} onConfigChange={setConfig} />
 				<QrPreview
-					url={ url }
-					slug={ selectedPage.slug }
-					tableName={ config.includeTable ? config.tableName : '' }
-					config={ configWithLogo }
+					url={url}
+					slug={selectedPage.slug}
+					tableName={config.includeTable ? config.tableName : ''}
+					config={configWithLogo}
 				/>
 			</div>
 		</div>

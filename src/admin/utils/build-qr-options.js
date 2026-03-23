@@ -1,10 +1,10 @@
 // cornersDotOptions only supports 'square' and 'dot' in qr-code-styling.
 // When cornersSquareOptions is 'extra-rounded', fall back to 'dot' for cornersDot.
-function getCornerDotType( cornerStyle ) {
+function getCornerDotType(cornerStyle) {
 	return cornerStyle === 'extra-rounded' ? 'dot' : cornerStyle;
 }
 
-export function buildQrOptions( { data, fgColor, bgColor, cornerStyle, logoDataUrl } ) {
+export function buildQrOptions({ data, fgColor, bgColor, cornerStyle, logoDataUrl }) {
 	const options = {
 		width: 300,
 		height: 300,
@@ -20,14 +20,14 @@ export function buildQrOptions( { data, fgColor, bgColor, cornerStyle, logoDataU
 			type: cornerStyle,
 		},
 		cornersDotOptions: {
-			type: getCornerDotType( cornerStyle ),
+			type: getCornerDotType(cornerStyle),
 		},
 		qrOptions: {
 			errorCorrectionLevel: 'Q',
 		},
 	};
 
-	if ( logoDataUrl ) {
+	if (logoDataUrl) {
 		options.image = logoDataUrl;
 		options.imageOptions = {
 			margin: 4,

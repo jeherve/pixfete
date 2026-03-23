@@ -134,7 +134,7 @@ class REST extends WP_REST_Controller {
 		}
 
 		// 2. Check honeypot field.
-		/** @var string $honeypot_field */
+		// @var string $honeypot_field
 		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
 		$honeypot_value = $request->get_param( $honeypot_field );
 		if ( ! empty( $honeypot_value ) ) {

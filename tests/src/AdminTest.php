@@ -158,6 +158,14 @@ class AdminTest extends TestCase {
 				}
 			);
 
+		Functions\expect( 'wp_enqueue_style' )
+			->once()
+			->withArgs(
+				function ( $handle ) {
+					return $handle === 'egps-qr-admin';
+				}
+			);
+
 		Functions\expect( 'wp_localize_script' )
 			->once()
 			->withArgs(

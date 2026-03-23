@@ -87,6 +87,7 @@
 }
 
 @media ( max-width: 782px ) {
+
 	.egps-qr-admin-columns {
 		flex-direction: column;
 	}

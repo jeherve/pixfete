@@ -194,7 +194,7 @@ class Cookie {
 				'expires'  => $expires,
 				'path'     => '/',
 				'secure'   => is_ssl(),
-				'httponly' => false,
+				'httponly' => false, // phpcs:ignore Jetpack.Functions.SetCookie.FoundNonHTTPOnlyFalse -- intentionally accessible to JavaScript for the Interactivity API consent flow.
 				'samesite' => 'Lax',
 			)
 		);

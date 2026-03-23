@@ -9,8 +9,6 @@ declare( strict_types=1 );
 
 namespace Jeherve\Event_Guest_Photos_Sharing;
 
-use Jeherve\Event_Guest_Photos_Sharing\REST;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -122,7 +120,7 @@ class Admin {
 		}
 
 		if ( $local_path && file_exists( $local_path ) ) {
-			$contents = file_get_contents( $local_path );
+			$contents = file_get_contents( $local_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
 		} else {
 			$response = wp_remote_get( $url );
 			if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
@@ -137,7 +135,7 @@ class Admin {
 
 		$filetype = wp_check_filetype( $url );
 		$mime     = $filetype['type'] ?? 'image/png';
-		return 'data:' . $mime . ';base64,' . base64_encode( $contents );
+		return 'data:' . $mime . ';base64,' . base64_encode( $contents ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- encoding binary image data for a data URI, not obfuscating code.
 	}
 
 	/**
