@@ -73,8 +73,8 @@ class Cookie {
 		}
 
 		// Decode the base64url payload.
-		$base64  = strtr( $base64url, '-_', '+/' );
-		$json    = base64_decode( $base64, true );
+		$base64 = strtr( $base64url, '-_', '+/' );
+		$json   = base64_decode( $base64, true );
 		if ( false === $json ) {
 			return null;
 		}
@@ -194,7 +194,7 @@ class Cookie {
 				'expires'  => $expires,
 				'path'     => '/',
 				'secure'   => is_ssl(),
-				'httponly'  => false,
+				'httponly' => false,
 				'samesite' => 'Lax',
 			)
 		);

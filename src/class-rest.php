@@ -122,8 +122,8 @@ class REST extends WP_REST_Controller {
 	 * On success, creates an HMAC-signed cookie and returns a consent nonce.
 	 *
 	 * @param WP_REST_Request $request    The REST request.
-	 * @param int              $page_id    The validated page ID.
-	 * @param array            $block_attrs Block attributes from validate_page.
+	 * @param int             $page_id    The validated page ID.
+	 * @param array           $block_attrs Block attributes from validate_page.
 	 * @return array|WP_REST_Response|WP_Error Response data or error.
 	 */
 	private static function handle_register( WP_REST_Request $request, int $page_id, array $block_attrs ): array|WP_REST_Response|WP_Error {
@@ -232,8 +232,8 @@ class REST extends WP_REST_Controller {
 	 * nonce, validates event_version, then updates the cookie with consent=true.
 	 *
 	 * @param WP_REST_Request $request    The REST request.
-	 * @param int              $page_id    The validated page ID.
-	 * @param array            $block_attrs Block attributes from validate_page.
+	 * @param int             $page_id    The validated page ID.
+	 * @param array           $block_attrs Block attributes from validate_page.
 	 * @return array|WP_REST_Response|WP_Error Response data or error.
 	 */
 	private static function handle_consent( WP_REST_Request $request, int $page_id, array $block_attrs ): array|WP_REST_Response|WP_Error {
@@ -282,7 +282,7 @@ class REST extends WP_REST_Controller {
 	 * then deletes it (one-time use).
 	 *
 	 * @param WP_REST_Request $request The REST request.
-	 * @param int              $page_id The expected page ID.
+	 * @param int             $page_id The expected page ID.
 	 * @return WP_Error|null Error if invalid, null if valid.
 	 */
 	private static function verify_csrf_nonce( WP_REST_Request $request, int $page_id ): ?WP_Error {
@@ -548,7 +548,7 @@ class REST extends WP_REST_Controller {
 		if ( null === $cookie_payload ) {
 			return new WP_Error( 'egps_invalid_cookie', __( 'Invalid or missing authentication.', 'event-guest-photos-sharing' ), array( 'status' => 403 ) );
 		}
-		$guest_data     = array(
+		$guest_data = array(
 			'guest_name' => $cookie_payload['guest_name'] ?? '',
 			'table_name' => $cookie_payload['table_name'] ?? '',
 			'guest_id'   => Cookie::guest_id( $cookie_payload ),
