@@ -245,7 +245,7 @@ class RestPhotosTest extends TestCase {
 	}
 
 	/**
-	 * Test upload rejected when date range is expired (endDate in the past).
+	 * Test upload rejected when date range is expired (dateRangeEnd in the past).
 	 */
 	public function test_upload_rejected_when_date_range_expired(): void {
 		$this->stub_valid_page(
@@ -253,8 +253,8 @@ class RestPhotosTest extends TestCase {
 			'correct-password',
 			1,
 			array(
-				'startDate' => '2020-01-01',
-				'endDate'   => '2020-01-02',
+				'dateRangeStart' => '2020-01-01',
+				'dateRangeEnd'   => '2020-01-02',
 			)
 		);
 
@@ -990,8 +990,8 @@ class RestPhotosTest extends TestCase {
 			'correct-password',
 			1,
 			array(
-				'startDate' => '2026-03-01',
-				'endDate'   => '2026-12-31',
+				'dateRangeStart' => '2026-03-01',
+				'dateRangeEnd'   => '2026-12-31',
 			)
 		);
 
@@ -1022,8 +1022,8 @@ class RestPhotosTest extends TestCase {
 			'correct-password',
 			1,
 			array(
-				'startDate' => '2027-01-01',
-				'endDate'   => '2027-12-31',
+				'dateRangeStart' => '2027-01-01',
+				'dateRangeEnd'   => '2027-12-31',
 			)
 		);
 

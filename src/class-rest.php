@@ -769,12 +769,12 @@ class REST extends \WP_REST_Controller {
 	 * them against the current date using the site's timezone. Returns a
 	 * WP_Error if the event has expired or hasn't started yet.
 	 *
-	 * @param array $block_attrs Block attributes containing optional startDate/endDate.
+	 * @param array $block_attrs Block attributes containing optional dateRangeStart/dateRangeEnd.
 	 * @return true|\WP_Error True if within range or no range set, WP_Error if expired.
 	 */
 	private static function check_date_range( array $block_attrs ): true|\WP_Error {
-		$start_date = $block_attrs['startDate'] ?? null;
-		$end_date   = $block_attrs['endDate'] ?? null;
+		$start_date = $block_attrs['dateRangeStart'] ?? null;
+		$end_date   = $block_attrs['dateRangeEnd'] ?? null;
 
 		// No date range set — always valid.
 		if ( empty( $start_date ) && empty( $end_date ) ) {
