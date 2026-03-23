@@ -6,7 +6,11 @@
 /docs
 /.superpowers
 
+# JS test files nested in src/
+/src/admin/utils/__tests__
+
 # Files
+webpack.config.js
 .wp-env.json
 .distignore
 .gitignore
