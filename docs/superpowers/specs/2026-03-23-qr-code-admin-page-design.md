@@ -47,7 +47,7 @@ PHP (page load)                          React (client-side)
 Query published pages                    AdminPage (state owner)
   └─ filter: has event-album block         ├─ PageSelector
   └─ extract per page:                     ├─ QrConfigPanel
-       - id, title, permalink              │    ├─ URL param checkboxes
+       - id, title, slug, permalink        │    ├─ URL param checkboxes
        - password (block attr)             │    ├─ Table name input
        - enableTableNames (block attr)     │    ├─ Logo checkbox
        - logoDataUrl (base64, see below)   │    ├─ ColorPickers (fg/bg)
