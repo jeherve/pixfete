@@ -1,4 +1,5 @@
 import { SelectControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 export function PageSelector({ pages, selectedPageId, onChange }) {
 	if (!pages.length) {
@@ -13,7 +14,7 @@ export function PageSelector({ pages, selectedPageId, onChange }) {
 	return (
 		<div className="egps-qr-page-selector">
 			<SelectControl
-				label="Select Event Page"
+				label={__('Select Event Page', 'event-guest-photos-sharing')}
 				value={String(selectedPageId)}
 				options={options}
 				onChange={(value) => onChange(Number(value))}

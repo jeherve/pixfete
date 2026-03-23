@@ -9,5 +9,5 @@ export function buildFilename(slug, tableName) {
 		parts.push(tableName.toLowerCase().replace(/\s+/g, '-'));
 	}
 
-	return parts.join('-') + '.png';
+	return parts.join('-');
 }

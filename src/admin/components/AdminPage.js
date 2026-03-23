@@ -28,16 +28,16 @@ export function AdminPage() {
 	const handlePageChange = (pageId) => {
 		setSelectedPageId(pageId);
 		const page = pages.find((p) => p.id === pageId);
-		setConfig({
-			...DEFAULT_CONFIG,
-			logoDataUrl: page?.logoDataUrl ?? null,
-		});
+		setConfig({ ...DEFAULT_CONFIG });
 	};
 
 	if (!pages.length) {
 		return (
 			<div className="egps-qr-empty">
 				<p>{__('No pages with the Event Photo Album block were found.', 'event-guest-photos-sharing')}</p>
+				<p>
+					<a href="post-new.php?post_type=page">{__('Create a new page', 'event-guest-photos-sharing')}</a>
+				</p>
 			</div>
 		);
 	}
