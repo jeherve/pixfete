@@ -80,9 +80,9 @@ class REST extends \WP_REST_Controller {
 	 * Routes to register or consent based on the action body param.
 	 *
 	 * @param \WP_REST_Request $request The REST request.
-	 * @return array|\WP_Error Response data or error.
+	 * @return array|\WP_REST_Response|\WP_Error Response data or error.
 	 */
-	public static function handle_auth( \WP_REST_Request $request ): array|\WP_Error {
+	public static function handle_auth( \WP_REST_Request $request ): array|\WP_REST_Response|\WP_Error {
 		$page_id = (int) $request->get_param( 'page_id' );
 
 		// Validate that the page exists, is published, and has our block.
@@ -118,9 +118,9 @@ class REST extends \WP_REST_Controller {
 	 * @param \WP_REST_Request $request    The REST request.
 	 * @param int              $page_id    The validated page ID.
 	 * @param array            $block_attrs Block attributes from validate_page.
-	 * @return array|\WP_Error Response data or error.
+	 * @return array|\WP_REST_Response|\WP_Error Response data or error.
 	 */
-	private static function handle_register( \WP_REST_Request $request, int $page_id, array $block_attrs ): array|\WP_Error {
+	private static function handle_register( \WP_REST_Request $request, int $page_id, array $block_attrs ): array|\WP_REST_Response|\WP_Error {
 		// 1. Verify CSRF token.
 		$nonce_error = self::verify_csrf_nonce( $request, $page_id );
 		if ( null !== $nonce_error ) {
@@ -228,9 +228,9 @@ class REST extends \WP_REST_Controller {
 	 * @param \WP_REST_Request $request    The REST request.
 	 * @param int              $page_id    The validated page ID.
 	 * @param array            $block_attrs Block attributes from validate_page.
-	 * @return array|\WP_Error Response data or error.
+	 * @return array|\WP_REST_Response|\WP_Error Response data or error.
 	 */
-	private static function handle_consent( \WP_REST_Request $request, int $page_id, array $block_attrs ): array|\WP_Error {
+	private static function handle_consent( \WP_REST_Request $request, int $page_id, array $block_attrs ): array|\WP_REST_Response|\WP_Error {
 		// 1. Verify HMAC cookie exists with consent === false.
 		$cookie_payload = Cookie::get_for_page( $page_id );
 		if ( null === $cookie_payload || true === ( $cookie_payload['consent'] ?? true ) ) {
@@ -514,6 +514,10 @@ class REST extends \WP_REST_Controller {
 		// File size limits are enforced by WordPress/PHP (upload_max_filesize, post_max_size).
 		// The egps_max_file_size filter is available for plugin-level enforcement but not
 		// checked here in v1. See spec §1 (File size limits).
+		if ( ! function_exists( 'wp_handle_upload' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
 		$upload_result = wp_handle_upload(
 			$photo_file,
 			array(
