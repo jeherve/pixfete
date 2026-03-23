@@ -13,6 +13,8 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Jeherve\Event_Guest_Photos_Sharing\REST;
 use PHPUnit\Framework\TestCase;
+use WP_Error;
+use WP_REST_Request;
 
 /**
  * Test the REST auth endpoint for guest registration and consent.
@@ -41,7 +43,7 @@ class RestAuthTest extends TestCase {
 		);
 		Functions\when( 'is_wp_error' )->alias(
 			function ( $v ) {
-				return $v instanceof \WP_Error;
+				return $v instanceof WP_Error;
 			}
 		);
 		Functions\when( 'sanitize_key' )->alias(
@@ -65,10 +67,10 @@ class RestAuthTest extends TestCase {
 	 *
 	 * @param array  $params  Body parameters.
 	 * @param array  $headers Headers (key => value).
-	 * @return \WP_REST_Request
+	 * @return WP_REST_Request
 	 */
-	private function make_request( array $params = array(), array $headers = array() ): \WP_REST_Request {
-		$request = new \WP_REST_Request();
+	private function make_request( array $params = array(), array $headers = array() ): WP_REST_Request {
+		$request = new WP_REST_Request();
 		foreach ( $params as $key => $value ) {
 			$request->set_param( $key, $value );
 		}
@@ -270,7 +272,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -304,7 +306,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -330,7 +332,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -357,7 +359,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -391,7 +393,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
 	}
 
@@ -416,7 +418,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
@@ -442,7 +444,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
@@ -466,7 +468,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_action', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
@@ -490,7 +492,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
@@ -514,7 +516,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
@@ -538,7 +540,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
@@ -562,7 +564,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
@@ -596,7 +598,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
 	}
 
@@ -720,7 +722,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_cookie', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -750,7 +752,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_cookie', $response->get_error_code() );
 	}
 
@@ -786,7 +788,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_event_version', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -816,7 +818,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
@@ -846,7 +848,7 @@ class RestAuthTest extends TestCase {
 
 		$result = REST::validate_page( 42 );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
 	}
 
@@ -860,7 +862,7 @@ class RestAuthTest extends TestCase {
 
 		$result = REST::validate_page( 42 );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
 	}
 
@@ -874,7 +876,7 @@ class RestAuthTest extends TestCase {
 
 		$result = REST::validate_page( 42 );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
 	}
 
@@ -980,7 +982,7 @@ class RestAuthTest extends TestCase {
 
 		$response = REST::handle_auth( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}

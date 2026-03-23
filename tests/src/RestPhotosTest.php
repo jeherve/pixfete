@@ -14,6 +14,9 @@ use Brain\Monkey\Functions;
 use Jeherve\Event_Guest_Photos_Sharing\Cookie;
 use Jeherve\Event_Guest_Photos_Sharing\REST;
 use PHPUnit\Framework\TestCase;
+use WP_Error;
+use WP_REST_Request;
+use WP_REST_Response;
 
 /**
  * Test the REST photo upload and gallery retrieval endpoints.
@@ -42,7 +45,7 @@ class RestPhotosTest extends TestCase {
 		);
 		Functions\when( 'is_wp_error' )->alias(
 			function ( $v ) {
-				return $v instanceof \WP_Error;
+				return $v instanceof WP_Error;
 			}
 		);
 		Functions\when( 'sanitize_key' )->alias(
@@ -67,10 +70,10 @@ class RestPhotosTest extends TestCase {
 	 * @param array $params      Body parameters.
 	 * @param array $headers     Headers (key => value).
 	 * @param array $file_params File upload parameters.
-	 * @return \WP_REST_Request
+	 * @return WP_REST_Request
 	 */
-	private function make_request( array $params = array(), array $headers = array(), array $file_params = array() ): \WP_REST_Request {
-		$request = new \WP_REST_Request();
+	private function make_request( array $params = array(), array $headers = array(), array $file_params = array() ): WP_REST_Request {
+		$request = new WP_REST_Request();
 		foreach ( $params as $key => $value ) {
 			$request->set_param( $key, $value );
 		}
@@ -198,7 +201,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_photo_upload_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_cookie', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -218,7 +221,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_photo_upload_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_no_consent', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -239,7 +242,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_photo_upload_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_event_version', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -274,7 +277,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_photo_upload_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_event_expired', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -308,7 +311,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_photo_upload_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_upload_limit_reached', $result->get_error_code() );
 		$this->assertSame( 429, $result->get_error_data()['status'] );
 
@@ -421,7 +424,7 @@ class RestPhotosTest extends TestCase {
 			unlink( $tmp_file );
 		}
 
-		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
 		$this->assertSame( 201, $response->get_status() );
 
 		$data = $response->get_data();
@@ -475,7 +478,7 @@ class RestPhotosTest extends TestCase {
 			unlink( $tmp_file );
 		}
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_file_type', $response->get_error_code() );
 		$this->assertSame( 415, $response->get_error_data()['status'] );
 	}
@@ -524,7 +527,7 @@ class RestPhotosTest extends TestCase {
 			unlink( $tmp_file );
 		}
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_invalid_image', $response->get_error_code() );
 		$this->assertSame( 422, $response->get_error_data()['status'] );
 	}
@@ -578,7 +581,7 @@ class RestPhotosTest extends TestCase {
 			unlink( $tmp_file );
 		}
 
-		$this->assertInstanceOf( \WP_Error::class, $response );
+		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'egps_upload_failed', $response->get_error_code() );
 		$this->assertSame( 500, $response->get_error_data()['status'] );
 	}
@@ -599,7 +602,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_gallery_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_cookie', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -619,7 +622,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_gallery_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_no_consent', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -640,7 +643,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_gallery_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_invalid_event_version', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
@@ -704,7 +707,7 @@ class RestPhotosTest extends TestCase {
 
 		unset( $GLOBALS['egps_wp_query_mock'] );
 
-		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
 
 		$data = $response->get_data();
 		$this->assertCount( 2, $data );
@@ -813,7 +816,7 @@ class RestPhotosTest extends TestCase {
 
 		unset( $GLOBALS['egps_wp_query_mock'] );
 
-		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
 
 		$headers = $response->get_headers();
 		$this->assertSame( 35, $headers['X-WP-Total'] );
@@ -905,7 +908,7 @@ class RestPhotosTest extends TestCase {
 		unset( $GLOBALS['egps_wp_query_mock'] );
 		unset( $GLOBALS['egps_wp_query_args_capture'] );
 
-		$this->assertInstanceOf( \WP_REST_Response::class, $response );
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
 		$data = $response->get_data();
 		$this->assertCount( 1, $data );
 
@@ -1042,7 +1045,7 @@ class RestPhotosTest extends TestCase {
 
 		$result = REST::check_photo_upload_permission( $request );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'egps_event_expired', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}

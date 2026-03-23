@@ -13,6 +13,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Jeherve\Event_Guest_Photos_Sharing\Upload;
 use PHPUnit\Framework\TestCase;
+use WP_Error;
 
 /**
  * Test the Upload class methods for photo upload validation and attachment creation.
@@ -169,7 +170,7 @@ class UploadTest extends TestCase {
 		);
 		Functions\when( 'is_wp_error' )->alias(
 			function ( $v ) {
-				return $v instanceof \WP_Error;
+				return $v instanceof WP_Error;
 			}
 		);
 	}
@@ -452,7 +453,7 @@ class UploadTest extends TestCase {
 	public function test_create_attachment_returns_zero_on_wp_error(): void {
 		$this->stub_common_create_attachment_functions();
 
-		Functions\when( 'wp_insert_attachment' )->justReturn( new \WP_Error( 'upload_error', 'Failed.' ) );
+		Functions\when( 'wp_insert_attachment' )->justReturn( new WP_Error( 'upload_error', 'Failed.' ) );
 
 		$result = Upload::create_attachment(
 			'/tmp/test.jpg',
