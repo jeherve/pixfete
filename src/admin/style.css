@@ -1,1 +1,97 @@
-/* Admin page styles — populated in Task 9. */
+.egps-qr-admin-columns {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+	margin-top: 16px;
+}
+
+.egps-qr-config-panel {
+	flex: 1;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 20px;
+}
+
+.egps-qr-config-panel h2 {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 16px;
+	border-bottom: 1px solid #c3c4c7;
+	padding-bottom: 8px;
+}
+
+.egps-qr-config-panel fieldset {
+	border: none;
+	padding: 0;
+	margin: 0 0 20px;
+}
+
+.egps-qr-config-panel legend {
+	font-size: 13px;
+	font-weight: 600;
+	color: #50575e;
+	margin-bottom: 8px;
+}
+
+.egps-qr-corner-styles {
+	display: flex;
+	gap: 8px;
+}
+
+.egps-qr-no-password {
+	font-style: italic;
+	color: #50575e;
+	font-size: 13px;
+}
+
+.egps-qr-preview {
+	width: 320px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 20px;
+	text-align: center;
+}
+
+.egps-qr-preview h2 {
+	font-size: 14px;
+	font-weight: 600;
+	margin: 0 0 16px;
+	border-bottom: 1px solid #c3c4c7;
+	padding-bottom: 8px;
+}
+
+.egps-qr-preview-canvas {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 12px;
+}
+
+.egps-qr-preview-url code {
+	font-size: 11px;
+	word-break: break-all;
+	display: block;
+	margin-bottom: 16px;
+}
+
+.egps-qr-page-selector {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 20px;
+}
+
+.egps-qr-empty {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 40px;
+	text-align: center;
+}
+
+@media ( max-width: 782px ) {
+	.egps-qr-admin-columns {
+		flex-direction: column;
+	}
+
+	.egps-qr-preview {
+		width: 100%;
+	}
+}

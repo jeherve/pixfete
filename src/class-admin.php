@@ -65,6 +65,13 @@ class Admin {
 			true
 		);
 
+		wp_enqueue_style(
+			self::SCRIPT_HANDLE,
+			EGPS_PLUGIN_URL . 'build/style-admin.css',
+			array( 'wp-components' ),
+			$asset['version']
+		);
+
 		wp_localize_script(
 			self::SCRIPT_HANDLE,
 			'egpsQrAdmin',
