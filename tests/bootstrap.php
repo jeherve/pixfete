@@ -22,6 +22,10 @@ if ( ! defined( 'EGPS_PLUGIN_DIR' ) ) {
 	define( 'EGPS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 }
 
+if ( ! defined( 'EGPS_PLUGIN_URL' ) ) {
+	define( 'EGPS_PLUGIN_URL', 'http://example.com/wp-content/plugins/event-guest-photos-sharing/' );
+}
+
 if ( ! defined( 'EGPS_VERSION' ) ) {
 	define( 'EGPS_VERSION', '1.0.0-alpha' );
 }

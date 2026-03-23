@@ -78,4 +78,51 @@ class AdminTest extends TestCase {
 		$this->assertStringContainsString( 'id="egps-qr-admin"', $output );
 		$this->assertStringContainsString( '<div', $output );
 	}
+
+	/**
+	 * Test that enqueue_scripts() does nothing when called on the wrong page.
+	 */
+	public function test_enqueue_scripts_skips_wrong_page(): void {
+		Functions\expect( 'wp_enqueue_script' )->never();
+		Functions\expect( 'wp_localize_script' )->never();
+
+		Admin::enqueue_scripts( 'edit.php' );
+
+		// Mockery enforces the ->never() expectations above; this confirms we reached here.
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that enqueue_scripts() enqueues and localizes the script on the correct page.
+	 */
+	public function test_enqueue_scripts_runs_on_correct_page(): void {
+		// Stub that no pages have the block.
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array() );
+
+		Functions\expect( 'wp_enqueue_script' )
+			->once()
+			->withArgs(
+				function ( $handle ) {
+					return $handle === 'egps-qr-admin';
+				}
+			);
+
+		Functions\expect( 'wp_localize_script' )
+			->once()
+			->withArgs(
+				function ( $handle, $object_name, $data ) {
+					return $handle === 'egps-qr-admin'
+						&& $object_name === 'egpsQrAdmin'
+						&& is_array( $data )
+						&& array_key_exists( 'pages', $data );
+				}
+			);
+
+		Admin::enqueue_scripts( 'tools_page_event-qr-codes' );
+
+		// Mockery enforces the ->once() and ->withArgs() expectations above.
+		$this->assertTrue( true );
+	}
 }
