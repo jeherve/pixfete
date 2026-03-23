@@ -25,16 +25,16 @@ class Cookie {
 	/**
 	 * Sign a payload array into a cookie value string.
 	 *
-	 * JSON-encodes the payload, base64url-encodes it, then computes an
-	 * HMAC-SHA256 signature using the WordPress auth salt. Returns the
-	 * two parts joined by a dot: `{base64url}.{hmac_hex}`.
+	 * JSON-encodes the payload, base64url-encodes it via sodium, then
+	 * computes an HMAC-SHA256 signature using the WordPress auth salt.
+	 * Returns the two parts joined by a dot: `{base64url}.{hmac_hex}`.
 	 *
 	 * @param array<string, mixed> $payload The cookie payload data.
 	 * @return string Signed cookie value in `{base64url}.{hmac_hex}` format.
 	 */
 	public static function sign( array $payload ): string {
 		$json      = wp_json_encode( $payload, JSON_THROW_ON_ERROR );
-		$base64url = rtrim( strtr( base64_encode( $json ), '+/', '-_' ), '=' );
+		$base64url = sodium_bin2base64( $json, SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING );
 		$hmac      = hash_hmac( 'sha256', $base64url, wp_salt( 'auth' ) );
 
 		return $base64url . '.' . $hmac;
@@ -73,9 +73,9 @@ class Cookie {
 		}
 
 		// Decode the base64url payload.
-		$base64 = strtr( $base64url, '-_', '+/' );
-		$json   = base64_decode( $base64, true );
-		if ( false === $json ) {
+		try {
+			$json = sodium_base642bin( $base64url, SODIUM_BASE64_VARIANT_URLSAFE_NO_PADDING );
+		} catch ( \SodiumException $e ) {
 			return null;
 		}
 
