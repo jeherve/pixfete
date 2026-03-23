@@ -19,3 +19,7 @@ composer.json
 composer.lock
 package.json
 package-lock.json
+blueprint.json
+blueprint-trunk.json
+playwright.config.js
+README.md
