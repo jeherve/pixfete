@@ -143,7 +143,7 @@ class Cookie {
 			return null;
 		}
 
-		$raw     = wp_unslash( $_COOKIE[ $name ] );
+		$raw     = sanitize_text_field( wp_unslash( $_COOKIE[ $name ] ) );
 		$payload = self::verify( $raw );
 
 		if ( null === $payload ) {
