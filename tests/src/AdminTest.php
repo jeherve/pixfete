@@ -93,6 +93,55 @@ class AdminTest extends TestCase {
 	}
 
 	/**
+	 * Test that get_logo_data_url() returns a data URL from the featured image.
+	 */
+	public function test_get_logo_data_url_returns_featured_image(): void {
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/egps-test-logo.png' );
+		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
+		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => 'image/png', 'ext' => 'png' ) );
+
+		$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
+		file_put_contents( '/tmp/egps-test-logo.png', $png );
+
+		$result = Admin::get_logo_data_url( 1 );
+
+		$this->assertStringStartsWith( 'data:image/', $result );
+
+		unlink( '/tmp/egps-test-logo.png' );
+	}
+
+	/**
+	 * Test that get_logo_data_url() falls back to the site icon when no featured image.
+	 */
+	public function test_get_logo_data_url_falls_back_to_site_icon(): void {
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( false );
+		Functions\when( 'get_site_icon_url' )->justReturn( '/tmp/egps-test-icon.png' );
+		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
+		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => 'image/png', 'ext' => 'png' ) );
+
+		$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
+		file_put_contents( '/tmp/egps-test-icon.png', $png );
+
+		$result = Admin::get_logo_data_url( 1 );
+
+		$this->assertStringStartsWith( 'data:image/', $result );
+
+		unlink( '/tmp/egps-test-icon.png' );
+	}
+
+	/**
+	 * Test that get_logo_data_url() returns null when no image is available.
+	 */
+	public function test_get_logo_data_url_returns_null_when_no_image(): void {
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( false );
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
+
+		$result = Admin::get_logo_data_url( 1 );
+
+		$this->assertNull( $result );
+	}
+
+	/**
 	 * Test that enqueue_scripts() enqueues and localizes the script on the correct page.
 	 */
 	public function test_enqueue_scripts_runs_on_correct_page(): void {

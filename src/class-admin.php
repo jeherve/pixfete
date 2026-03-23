@@ -73,6 +73,67 @@ class Admin {
 	}
 
 	/**
+	 * Get the logo as a base64-encoded data URL for a given page.
+	 *
+	 * Uses the page's featured image, falling back to the site icon.
+	 *
+	 * @param int $page_id The page ID.
+	 * @return string|null A data URL string, or null if no image is available.
+	 */
+	public static function get_logo_data_url( int $page_id ): ?string {
+		$image_url = get_the_post_thumbnail_url( $page_id, 'thumbnail' );
+
+		if ( ! $image_url ) {
+			$image_url = get_site_icon_url();
+		}
+
+		if ( ! $image_url ) {
+			return null;
+		}
+
+		return self::image_url_to_data_url( $image_url );
+	}
+
+	/**
+	 * Convert an image URL to a base64-encoded data URL.
+	 *
+	 * Reads the file from the local filesystem when possible to avoid remote HTTP
+	 * requests for images hosted on this server.
+	 *
+	 * @param string $url The image URL or local path.
+	 * @return string|null A data URL string, or null on failure.
+	 */
+	private static function image_url_to_data_url( string $url ): ?string {
+		// Convert URL to local file path if it's on this server.
+		$upload_dir = wp_get_upload_dir();
+		$local_path = null;
+
+		if ( ! empty( $upload_dir['baseurl'] ) && str_starts_with( $url, $upload_dir['baseurl'] ) ) {
+			$local_path = $upload_dir['basedir'] . substr( $url, strlen( $upload_dir['baseurl'] ) );
+		} elseif ( str_starts_with( $url, '/' ) && file_exists( $url ) ) {
+			$local_path = $url;
+		}
+
+		if ( $local_path && file_exists( $local_path ) ) {
+			$contents = file_get_contents( $local_path );
+		} else {
+			$response = wp_remote_get( $url );
+			if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+				return null;
+			}
+			$contents = wp_remote_retrieve_body( $response );
+		}
+
+		if ( empty( $contents ) ) {
+			return null;
+		}
+
+		$filetype = wp_check_filetype( $url );
+		$mime     = $filetype['type'] ?? 'image/png';
+		return 'data:' . $mime . ';base64,' . base64_encode( $contents );
+	}
+
+	/**
 	 * Get all published pages that contain the event block and their attributes.
 	 *
 	 * @return array<int, array<string, mixed>> Array of event page data.
