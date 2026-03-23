@@ -22,6 +22,10 @@ if ( ! defined( 'EGPS_PLUGIN_DIR' ) ) {
 	define( 'EGPS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 }
 
+if ( ! defined( 'EGPS_VERSION' ) ) {
+	define( 'EGPS_VERSION', '1.0.0-alpha' );
+}
+
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 // WordPress constants used by the REST tests.
@@ -257,3 +261,4 @@ require_once dirname( __DIR__ ) . '/src/class-cookie.php';
 require_once dirname( __DIR__ ) . '/src/class-upload.php';
 require_once dirname( __DIR__ ) . '/src/class-rest.php';
 require_once dirname( __DIR__ ) . '/src/class-block.php';
+require_once dirname( __DIR__ ) . '/src/class-admin.php';

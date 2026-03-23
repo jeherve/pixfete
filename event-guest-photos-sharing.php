@@ -24,6 +24,8 @@ require_once EGPS_PLUGIN_DIR . 'src/class-cookie.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-upload.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-rest.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-block.php';
+require_once EGPS_PLUGIN_DIR . 'src/class-admin.php';
 
 add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Block::class, 'register' ) );
 add_action( 'rest_api_init', array( new \Jeherve\Event_Guest_Photos_Sharing\REST(), 'register_routes' ) );
+add_action( 'admin_menu', array( \Jeherve\Event_Guest_Photos_Sharing\Admin::class, 'register_menu' ) );
