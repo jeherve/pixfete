@@ -483,7 +483,18 @@ const { state } = store('event-guest-photos-sharing', {
 
 					const newPhotos = await response.json();
 					if (newPhotos.length > 0) {
-						state.pendingPhotos = [...newPhotos, ...state.pendingPhotos];
+						// Deduplicate against existing pending and displayed photos.
+						const knownIds = new Set([
+							...state.pendingPhotos.map((p) => p.id),
+							...state.photos.map((p) => p.id),
+						]);
+						const unique = newPhotos.filter((p) => !knownIds.has(p.id));
+
+						if (unique.length === 0) {
+							return;
+						}
+
+						state.pendingPhotos = [...unique, ...state.pendingPhotos];
 						state.newPhotoCount = state.pendingPhotos.length;
 
 						// Update the latest timestamp.
@@ -502,7 +513,10 @@ const { state } = store('event-guest-photos-sharing', {
 		 * Prepend pending photos to the gallery and clear the banner.
 		 */
 		showNewPhotos() {
-			state.photos = [...state.pendingPhotos, ...state.photos];
+			// Deduplicate pending photos against the current gallery.
+			const existingIds = new Set(state.photos.map((p) => p.id));
+			const unique = state.pendingPhotos.filter((p) => !existingIds.has(p.id));
+			state.photos = [...unique, ...state.photos];
 			state.pendingPhotos = [];
 			state.newPhotoCount = 0;
 		},

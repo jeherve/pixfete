@@ -501,13 +501,16 @@ class REST extends \WP_REST_Controller {
 		}
 
 		// 2. Validate that this is a real image using getimagesize().
-		$image_info = @getimagesize( $photo_file['tmp_name'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		if ( false === $image_info ) {
-			return new \WP_Error(
-				'egps_invalid_image',
-				'The uploaded file is not a valid image.',
-				array( 'status' => 422 )
-			);
+		// Skip for HEIC/HEIF — getimagesize() doesn't support them on most PHP installs.
+		if ( ! in_array( $mime_type, array( 'image/heic', 'image/heif' ), true ) ) {
+			$image_info = @getimagesize( $photo_file['tmp_name'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( false === $image_info ) {
+				return new \WP_Error(
+					'egps_invalid_image',
+					'The uploaded file is not a valid image.',
+					array( 'status' => 422 )
+				);
+			}
 		}
 
 		// 3. Handle the upload.
@@ -554,6 +557,7 @@ class REST extends \WP_REST_Controller {
 		);
 
 		if ( 0 === $attachment_id ) {
+			wp_delete_file( $upload_result['file'] );
 			return new \WP_Error(
 				'egps_upload_failed',
 				'Failed to create the attachment.',
