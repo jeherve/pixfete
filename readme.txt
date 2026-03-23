@@ -24,23 +24,28 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 **Features:**
 
 * Mobile-first guest experience — designed for phones at events.
-* No guest accounts required — cookie-based authentication with HMAC signing.
+* No guest accounts required — password-based access with cookie authentication.
 * Password protection with QR code support for easy access.
-* Real-time gallery with polling for new photos.
+* Real-time gallery with automatic polling for new photos.
 * 3-column photo grid with lightbox viewer.
-* Camera capture and gallery picker for uploads.
+* Camera capture and gallery picker for uploads (supports multiple file selection).
 * Customizable consent message via the block editor.
 * Optional table name tracking for seating assignments.
 * Date range support — uploads automatically stop when the event is over.
+* Optional photo moderation — require approval before photos appear in the gallery.
 * Extensible via WordPress hooks and filters.
 
 == Installation ==
 
 1. Upload the plugin to your WordPress site and activate it.
 2. Create a new page in the block editor.
-3. Add the "Event Photo Album" block, or select the "Event Photo Album" pattern.
-4. Configure the event password and settings in the block sidebar.
-5. Publish the page and share the URL with your guests.
+3. Add the "Event Photo Album" block, or select the "Event Photo Album" pattern (under the "Event" category).
+4. Configure the event password and settings in the block sidebar:
+   * Set or regenerate the event password.
+   * Optionally restrict uploads to a specific date range.
+   * Optionally enable table/seating name tracking.
+5. Customize the consent message using the block's inner content area.
+6. Publish the page and share the URL with your guests.
 
 == Frequently Asked Questions ==
 
@@ -50,15 +55,27 @@ No. Guests authenticate with a shared event password and provide their name. No 
 
 = How do guests access the event page? =
 
-Share the page URL directly, or generate a QR code that includes the password as a URL parameter (`?key=yourpassword`). Guests scan the QR code and go straight to the registration step.
+Share the page URL directly, or generate a QR code that includes the password as a URL parameter (`?key=yourpassword`). You can also include a table name (`?table=tablename`). Guests scan the QR code and go straight to the registration step.
 
 = What image formats are supported? =
 
 JPEG, PNG, and WebP. HEIC/HEIF are supported if your server has the required image libraries.
 
+= What happens when I regenerate the password? =
+
+Regenerating the password invalidates all existing guest sessions. Guests who authenticated with the old password will need to re-register with the new one.
+
+= Can I use this on multiple pages? =
+
+Yes. Each page with the Event Photo Album block operates independently with its own password, settings, and photo gallery. Only one Event Photo Album block is allowed per page.
+
+= Can I moderate photos before they appear? =
+
+Yes, with a small amount of custom code. Developers can use the `egps_photo_requires_moderation` filter to enable moderation. See the README on GitHub for details.
+
 = Can I limit how many photos each guest uploads? =
 
-Not by default, but developers can use the `egps_max_uploads_per_guest` filter to set per-event limits.
+Not by default, but developers can use the `egps_max_uploads_per_guest` filter to set per-event limits. See the README on GitHub for the full list of available hooks.
 
 == Changelog ==
 
