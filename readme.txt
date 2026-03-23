@@ -26,6 +26,7 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 * Mobile-first guest experience — designed for phones at events.
 * No guest accounts required — password-based access with cookie authentication.
 * Password protection with QR code support for easy access.
+* Built-in QR code generator (Tools > Event QR Codes) — create styled, downloadable QR codes with custom colors, corner styles, and embedded logos.
 * Real-time gallery with automatic polling for new photos.
 * 3-column photo grid with lightbox viewer.
 * Camera capture and gallery picker for uploads (supports multiple file selection).
@@ -55,7 +56,11 @@ No. Guests authenticate with a shared event password and provide their name. No 
 
 = How do guests access the event page? =
 
-Share the page URL directly, or generate a QR code that includes the password as a URL parameter (`?key=yourpassword`). You can also include a table name (`?table=tablename`). Guests scan the QR code and go straight to the registration step.
+Share the page URL directly, or use the built-in QR code generator under Tools > Event QR Codes. You can create QR codes that include the event password and table name, so guests scan and go straight to the registration step. QR codes can be customized with your event's colors and logo.
+
+= How do I generate QR codes for my event? =
+
+Go to Tools > Event QR Codes in your WordPress admin. Select an event page, choose which URL parameters to include (password, table name), optionally customize colors and corner styles, then download the QR code as a PNG. You can generate a different QR code for each table.
 
 = What image formats are supported? =
 

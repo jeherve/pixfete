@@ -70,7 +70,9 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 | `src/class-cookie.php` | HMAC-signed cookie management for guest sessions |
 | `src/class-rest.php` | REST API endpoints (auth, upload, gallery) |
 | `src/class-upload.php` | File upload handling and MIME type validation |
+| `src/class-admin.php` | Admin page for QR code generation (Tools > Event QR Codes) |
 | `src/blocks/event-album/` | Block assets (edit.js, view.js, render.php, block.json, styles) |
+| `src/admin/` | React app for the QR code admin page (components, utilities, styles) |
 
 ### Guest flow
 
@@ -78,6 +80,19 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 2. **Registration** — Guest provides their name (and optionally table name via `?table=` parameter or form field).
 3. **Consent** — Guest accepts the consent message (customizable via InnerBlocks in the editor).
 4. **Gallery** — Guest can upload photos and browse the shared album with 15-second auto-polling.
+
+### QR Code Admin Page
+
+Under **Tools > Event QR Codes**, admins can generate styled QR codes for event pages. This helps event planners prepare printed QR codes ahead of time — for example, one per table.
+
+The page lists all published pages containing the Event Photo Album block. For each page, admins can:
+
+- Choose which URL parameters to embed (password, table name).
+- Toggle an embedded logo (auto-resolved from the page's featured image or the site icon).
+- Customize foreground/background colors and corner styles.
+- Preview the QR code live and download it as a PNG.
+
+QR codes are generated client-side using [qr-code-styling](https://www.npmjs.com/package/qr-code-styling). No data is saved — styling choices are ephemeral.
 
 ### Block attributes
 
