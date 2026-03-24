@@ -223,6 +223,9 @@ const { state } = store('event-guest-photos-sharing', {
 				actions.startPolling();
 			} else if (cookie && cookie.consent === false) {
 				// Valid cookie without consent — show consent screen.
+				// Use the page-level CSRF token as the consent nonce, since
+				// the normal registration flow (which sets consentNonce) was skipped.
+				state.consentNonce = ctx.nonce;
 				state.currentView = 'consent';
 			} else if (keyParam) {
 				// No cookie but key param — go to registration.
