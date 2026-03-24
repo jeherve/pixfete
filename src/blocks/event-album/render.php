@@ -17,19 +17,19 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
 // Generate a one-time CSRF token and store it in a transient.
-$csrf_token = wp_generate_password( 32, false );
-set_transient( 'egps_csrf_' . $csrf_token, get_the_ID(), HOUR_IN_SECONDS );
+$egps_csrf_token = wp_generate_password( 32, false );
+set_transient( 'egps_csrf_' . $egps_csrf_token, get_the_ID(), HOUR_IN_SECONDS );
 
-$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+$egps_honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
 
-$enable_table_names = ! empty( $attributes['enableTableNames'] );
+$egps_enable_table_names = ! empty( $attributes['enableTableNames'] );
 
 // Build the Interactivity API context.
-$context = array(
+$egps_context = array(
 	'pageId'           => get_the_ID(),
-	'nonce'            => $csrf_token,
-	'honeypotField'    => $honeypot_field,
-	'enableTableNames' => $enable_table_names,
+	'nonce'            => $egps_csrf_token,
+	'honeypotField'    => $egps_honeypot_field,
+	'enableTableNames' => $egps_enable_table_names,
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'event-guest-photos-sharing/v1' ),
@@ -39,7 +39,7 @@ $context = array(
 	<?php echo get_block_wrapper_attributes(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
 	data-wp-interactive="event-guest-photos-sharing"
 	data-wp-init="actions.init"
-	data-wp-context='<?php echo esc_attr( wp_json_encode( $context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
+	data-wp-context='<?php echo esc_attr( wp_json_encode( $egps_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
 	<template class="egps-consent-message">
 		<?php echo wp_kses_post( $content ); ?>
@@ -65,7 +65,7 @@ $context = array(
 				/>
 				<?php // Honeypot field — hidden from humans. ?>
 				<div class="egps-hp" aria-hidden="true" tabindex="-1">
-					<input type="text" name="<?php echo esc_attr( $honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
+					<input type="text" name="<?php echo esc_attr( $egps_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
 				</div>
 				<div data-wp-bind--hidden="!state.errorMessage" class="egps-error" data-wp-text="state.errorMessage"></div>
 				<button type="submit" data-wp-bind--disabled="state.isSubmitting">
@@ -98,7 +98,7 @@ $context = array(
 				</div>
 				<?php // Honeypot field — hidden from humans. ?>
 				<div class="egps-hp" aria-hidden="true" tabindex="-1">
-					<input type="text" name="<?php echo esc_attr( $honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
+					<input type="text" name="<?php echo esc_attr( $egps_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
 				</div>
 				<div data-wp-bind--hidden="!state.errorMessage" class="egps-error" data-wp-text="state.errorMessage"></div>
 				<button type="submit" data-wp-bind--disabled="state.isSubmitting">

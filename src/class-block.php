@@ -51,21 +51,18 @@ class Block {
 		$heading_text = esc_html__( 'Event Photo Album', 'event-guest-photos-sharing' );
 		$consent_text = esc_html__( 'By sharing your photos, you agree that they will be visible to all event guests.', 'event-guest-photos-sharing' );
 
-		$pattern_content = <<<PATTERN
-<!-- wp:group {"layout":{"type":"constrained"}} -->
-<div class="wp-block-group">
-	<!-- wp:heading -->
-	<h2 class="wp-block-heading">{$heading_text}</h2>
-	<!-- /wp:heading -->
-
-	<!-- wp:event-guest-photos-sharing/event-album -->
-	<!-- wp:paragraph -->
-	<p>{$consent_text}</p>
-	<!-- /wp:paragraph -->
-	<!-- /wp:event-guest-photos-sharing/event-album -->
-</div>
-<!-- /wp:group -->
-PATTERN;
+		$pattern_content = '<!-- wp:group {"layout":{"type":"constrained"}} -->'
+			. '<div class="wp-block-group">'
+			. '<!-- wp:heading -->'
+			. '<h2 class="wp-block-heading">' . $heading_text . '</h2>'
+			. '<!-- /wp:heading -->'
+			. '<!-- wp:event-guest-photos-sharing/event-album -->'
+			. '<!-- wp:paragraph -->'
+			. '<p>' . $consent_text . '</p>'
+			. '<!-- /wp:paragraph -->'
+			. '<!-- /wp:event-guest-photos-sharing/event-album -->'
+			. '</div>'
+			. '<!-- /wp:group -->';
 
 		register_block_pattern(
 			self::BLOCK_NAME,

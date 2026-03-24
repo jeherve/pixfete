@@ -6,6 +6,7 @@
 /node_modules
 /docs
 /.superpowers
+/vendor
 /wordpress
 
 # JS test files nested in src/

@@ -16,6 +16,8 @@
 
 declare( strict_types=1 );
 
+defined( 'ABSPATH' ) || exit;
+
 define( 'EGPS_VERSION', '1.0.0-alpha' );
 define( 'EGPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EGPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
