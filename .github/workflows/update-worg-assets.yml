@@ -1,27 +1,17 @@
 name: Plugin asset/readme update
 on:
-# Only trigger when a release is published (and not a pre-release) in the GitHub repo.
-  release:
-    types: [published]
+  push:
+    branches:
+      - trunk
+    paths:
+      - '.wordpress-org/**'
 
 jobs:
   trunk:
-    name: Push to trunk
+    name: Push assets to WordPress.org
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.3
-        tools: composer
-        extensions: mysql, imagick
-        coverage: none
-
-    - name: Install dependencies
-      run: |
-        composer install --no-dev
 
     - name: WordPress.org plugin asset/readme update
       uses: 10up/action-wordpress-plugin-asset-update@stable
