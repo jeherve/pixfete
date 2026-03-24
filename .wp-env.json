@@ -1,6 +1,7 @@
 {
 	"core": "WordPress/WordPress#master",
 	"phpVersion": "8.3",
+	"port": 8123,
 	"plugins": [
 		"."
 	],

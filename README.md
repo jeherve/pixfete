@@ -30,7 +30,7 @@ npm run dev             # Development mode (watch)
 The plugin includes a [wp-env](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/) configuration:
 
 ```bash
-npm run env:start       # Start local WordPress environment
+npm run env:start       # Start local WordPress environment (http://localhost:8123)
 npm run env:stop        # Stop the environment
 ```
 
