@@ -84,6 +84,10 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
+= 1.0.1 =
+
+* Fix: Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
+
 = 1.0.0 =
 
 * Initial release.
