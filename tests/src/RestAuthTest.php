@@ -961,6 +961,155 @@ class RestAuthTest extends TestCase {
 		$this->assertSame( 1, $result['eventVersion'] );
 	}
 
+	// ─── action=validate_password ────────────────────────────────────
+
+	/**
+	 * Test successful password validation returns valid=true and a fresh nonce.
+	 *
+	 * Regression test: previously, wrong passwords were not caught until
+	 * the registration step, allowing users to proceed to the name input
+	 * with an incorrect password.
+	 */
+	public function test_validate_password_success_returns_valid_and_fresh_nonce(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce-token' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'rest_ensure_response' )->alias(
+			function ( $data ) {
+				return $data;
+			}
+		);
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'validate_password',
+				'password' => 'correct-password',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['valid'] );
+		$this->assertSame( 'fresh-nonce-token', $response['nonce'] );
+	}
+
+	/**
+	 * Test that validate_password with a wrong password returns 403.
+	 *
+	 * Regression test: this is the core bug — incorrect passwords must
+	 * be rejected at the password step, not deferred to registration.
+	 */
+	public function test_validate_password_wrong_password_returns_403(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'validate_password',
+				'password' => 'wrong-password',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 403, $response->get_error_data()['status'] );
+	}
+
+	/**
+	 * Test that validate_password with missing password returns 400.
+	 */
+	public function test_validate_password_missing_password_returns_400(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id' => 42,
+				'action'  => 'validate_password',
+				// password missing!
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
+	}
+
+	/**
+	 * Test that validate_password with honeypot filled returns 403.
+	 */
+	public function test_validate_password_honeypot_filled_returns_403(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'apply_filters' )->alias(
+			function ( $filter, ...$args ) {
+				if ( 'egps_honeypot_field_name' === $filter ) {
+					return 'email';
+				}
+				return $args[0];
+			}
+		);
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'validate_password',
+				'password' => 'correct-password',
+				'email'    => 'bot@spam.com',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 403, $response->get_error_data()['status'] );
+	}
+
+	/**
+	 * Test that validate_password without CSRF nonce returns 403.
+	 */
+	public function test_validate_password_missing_nonce_returns_403(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'validate_password',
+				'password' => 'correct-password',
+			),
+			array() // No nonce header.
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
+		$this->assertSame( 403, $response->get_error_data()['status'] );
+	}
+
 	/**
 	 * Test registration with missing password returns 400 egps_missing_fields.
 	 */

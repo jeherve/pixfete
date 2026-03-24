@@ -272,13 +272,13 @@ const { state } = store('event-guest-photos-sharing', {
 		/**
 		 * Handle password form submission.
 		 *
-		 * Validates the password is not empty, then transitions
-		 * to the registration view. Actual password validation
-		 * happens server-side during registration.
+		 * Validates the password against the server before transitioning
+		 * to the registration view. On success, stores the fresh CSRF
+		 * nonce returned by the server for the subsequent registration request.
 		 *
 		 * @param {Event} event The submit event.
 		 */
-		submitPassword(event) {
+		*submitPassword(event) {
 			event.preventDefault();
 			state.errorMessage = '';
 
@@ -287,7 +287,44 @@ const { state } = store('event-guest-photos-sharing', {
 				return;
 			}
 
-			state.currentView = 'registration';
+			state.isSubmitting = true;
+			const ctx = getContext();
+
+			try {
+				const body = {
+					action: 'validate_password',
+					password: state.passwordInput,
+				};
+
+				// Include honeypot field (should be empty for real users).
+				body[ctx.honeypotField] = '';
+
+				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-EGPS-Nonce': ctx.nonce,
+					},
+					credentials: 'same-origin',
+					body: JSON.stringify(body),
+				});
+
+				if (!response.ok) {
+					const errorData = yield response.json();
+					state.errorMessage = errorData.message || 'The password is incorrect.';
+					return;
+				}
+
+				const data = yield response.json();
+
+				// Store the fresh nonce for the registration step.
+				ctx.nonce = data.nonce;
+				state.currentView = 'registration';
+			} catch {
+				state.errorMessage = 'A network error occurred. Please try again.';
+			} finally {
+				state.isSubmitting = false;
+			}
 		},
 
 		/**

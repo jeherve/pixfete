@@ -100,6 +100,9 @@ class REST extends WP_REST_Controller {
 		$action = sanitize_key( $request->get_param( 'action' ) ?? '' );
 
 		switch ( $action ) {
+			case 'validate_password':
+				return self::handle_validate_password( $request, $page_id, $page_result );
+
 			case 'register':
 				return self::handle_register( $request, $page_id, $page_result );
 
@@ -109,10 +112,90 @@ class REST extends WP_REST_Controller {
 			default:
 				return new WP_Error(
 					'egps_invalid_action',
-					'The action must be "register" or "consent".',
+					'The action must be "validate_password", "register", or "consent".',
 					array( 'status' => 400 )
 				);
 		}
+	}
+
+	/**
+	 * Handle the validate_password action.
+	 *
+	 * Validates the CSRF token, honeypot, and password only — without
+	 * requiring guest_name or creating a cookie. This allows the frontend
+	 * to verify the password at the password step before transitioning
+	 * to the registration (name entry) step.
+	 *
+	 * On success, returns a fresh CSRF nonce for the subsequent
+	 * registration request (since the original nonce is consumed here).
+	 *
+	 * @param WP_REST_Request $request     The REST request.
+	 * @param int             $page_id     The validated page ID.
+	 * @param array           $block_attrs Block attributes from validate_page.
+	 * @return array|WP_REST_Response|WP_Error Response data or error.
+	 */
+	private static function handle_validate_password( WP_REST_Request $request, int $page_id, array $block_attrs ): array|WP_REST_Response|WP_Error {
+		// 1. Verify CSRF token.
+		$nonce_error = self::verify_csrf_nonce( $request, $page_id );
+		if ( null !== $nonce_error ) {
+			return $nonce_error;
+		}
+
+		// 2. Check honeypot field.
+		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+		$honeypot_value = $request->get_param( $honeypot_field );
+		if ( ! empty( $honeypot_value ) ) {
+			return new WP_Error(
+				'egps_invalid_password',
+				'The password is incorrect.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// 3. Validate password is present.
+		$password = $request->get_param( 'password' );
+		if ( empty( $password ) ) {
+			return new WP_Error(
+				'egps_missing_fields',
+				'The password field is required.',
+				array( 'status' => 400 )
+			);
+		}
+
+		// 4. Validate password minimum length.
+		$block_password = $block_attrs['password'] ?? '';
+
+		/** This filter is documented in self::handle_register(). */
+		$min_length = (int) apply_filters( 'egps_password_min_length', 8 );
+
+		if ( strlen( $block_password ) < $min_length ) {
+			return new WP_Error(
+				'egps_invalid_password',
+				'The password is incorrect.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// 5. Validate password with timing-safe comparison.
+		if ( ! hash_equals( $block_password, $password ) ) {
+			return new WP_Error(
+				'egps_invalid_password',
+				'The password is incorrect.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// 6. Issue a fresh CSRF nonce for the registration step
+		// (the original was consumed in step 1).
+		$fresh_token = wp_generate_password( 32, false );
+		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+
+		return rest_ensure_response(
+			array(
+				'valid' => true,
+				'nonce' => $fresh_token,
+			)
+		);
 	}
 
 	/**
