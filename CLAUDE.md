@@ -62,4 +62,4 @@
 
 ## Files Excluded from Distribution
 
-Dev files (tests, config, docs) are excluded from the WP.org release via `.distignore` and `.gitattributes`. If you add new dev-only files, add them to both.
+Dev files (tests, config, docs) are excluded from the WP.org release via `.distignore`. If you add new dev-only files, add them to `.distignore`.
