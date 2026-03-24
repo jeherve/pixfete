@@ -30,6 +30,11 @@ class CookieTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt-value' );
 		Functions\when( 'wp_unslash' )->alias( function ( $v ) { return is_string( $v ) ? stripslashes( $v ) : $v; } );
+		Functions\when( 'sanitize_text_field' )->alias(
+			function ( $str ) {
+				return trim( strip_tags( $str ) );
+			}
+		);
 	}
 
 	/**
