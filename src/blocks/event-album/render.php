@@ -41,10 +41,6 @@ $egps_context = array(
 	data-wp-init="actions.init"
 	data-wp-context='<?php echo esc_attr( wp_json_encode( $egps_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
-	<template class="egps-consent-message">
-		<?php echo wp_kses_post( $content ); ?>
-	</template>
-
 	<div class="egps-app">
 		<?php // Loading view. ?>
 		<div data-wp-bind--hidden="!state.isLoadingView" class="egps-loading">
@@ -109,7 +105,7 @@ $egps_context = array(
 
 		<?php // Consent view. ?>
 		<div data-wp-bind--hidden="!state.isConsentView" class="egps-consent">
-			<div class="egps-consent-text" data-wp-html="state.consentHtml"></div>
+			<div class="egps-consent-text"><?php echo wp_kses_post( $content ); ?></div>
 			<div data-wp-bind--hidden="!state.errorMessage" class="egps-error" data-wp-text="state.errorMessage"></div>
 			<button
 				class="egps-accept-btn"

@@ -87,6 +87,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 = 1.0.2 =
 
 * Fix: Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
+* Fix: The consent message now displays correctly on the front end instead of appearing blank above the "I Accept" button.
 
 = 1.0.1 =
 

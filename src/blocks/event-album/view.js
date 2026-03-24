@@ -9,7 +9,7 @@
 
 import './view.scss';
 
-import { store, getContext, getElement } from '@wordpress/interactivity';
+import { store, getContext } from '@wordpress/interactivity';
 
 /**
  * Number of photos to load per page.
@@ -86,7 +86,6 @@ const { state } = store('event-guest-photos-sharing', {
 		newPhotoCount: 0,
 		pendingPhotos: [],
 		consentNonce: '',
-		consentHtml: '',
 		lightboxOpen: false,
 		lightboxPhoto: { full: '', guest_name: '' },
 		latestUploadedAt: 0,
@@ -194,14 +193,6 @@ const { state } = store('event-guest-photos-sharing', {
 		 */
 		init() {
 			const ctx = getContext();
-			const el = getElement();
-
-			// Read the consent message from the template element.
-			const consentTemplate = el.ref.querySelector('.egps-consent-message');
-			if (consentTemplate) {
-				state.consentHtml = consentTemplate.innerHTML;
-			}
-
 			// Read URL parameters before cleaning.
 			const url = new URL(window.location.href);
 			const keyParam = url.searchParams.get('key');
