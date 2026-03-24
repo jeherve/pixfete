@@ -87,6 +87,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 = 1.0.1 =
 
 * Fix: Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
+* Fix: Custom consent messages entered in the block editor are now saved correctly and no longer disappear after refreshing the page.
 
 = 1.0.0 =
 

@@ -60,6 +60,10 @@
 - Docblocks should explain **why** the code exists and what problem it solves, not just restate what the function does. The "what" is already in the code; the "why" is what future readers need.
 - Include `@param`, `@return`, and `@throws` tags as appropriate.
 
+## Changelog
+
+- Changelog entries in `readme.txt` are **customer-facing** — write them in plain, non-technical language that any WordPress user can understand. Avoid jargon like "InnerBlocks", "serialization", or "save function". Describe the problem the user experienced and that it's now fixed (e.g., "Custom consent messages no longer disappear after refreshing the page").
+
 ## Files Excluded from Distribution
 
 Dev files (tests, config, docs) are excluded from the WP.org release via `.distignore`. If you add new dev-only files, add them to `.distignore`.
