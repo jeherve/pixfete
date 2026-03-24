@@ -135,34 +135,47 @@ class REST extends WP_REST_Controller {
 	 * @return array|WP_REST_Response|WP_Error Response data or error.
 	 */
 	private static function handle_validate_password( WP_REST_Request $request, int $page_id, array $block_attrs ): array|WP_REST_Response|WP_Error {
-		// 1. Verify CSRF token.
+		// 1. Verify CSRF token (one-time use — consumed on success).
 		$nonce_error = self::verify_csrf_nonce( $request, $page_id );
 		if ( null !== $nonce_error ) {
 			return $nonce_error;
 		}
 
-		// 2. Check honeypot field.
+		// 2. Issue a fresh CSRF nonce immediately after consuming the old one.
+		// This is needed regardless of whether the request succeeds or fails,
+		// because the original nonce was already deleted in step 1. Without a
+		// fresh nonce, any subsequent retry would fail with "CSRF token invalid".
+		$fresh_token = wp_generate_password( 32, false );
+		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+
+		// 3. Check honeypot field.
 		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
 		$honeypot_value = $request->get_param( $honeypot_field );
 		if ( ! empty( $honeypot_value ) ) {
 			return new WP_Error(
 				'egps_invalid_password',
 				'The password is incorrect.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 3. Validate password is present.
+		// 4. Validate password is present.
 		$password = $request->get_param( 'password' );
 		if ( empty( $password ) ) {
 			return new WP_Error(
 				'egps_missing_fields',
 				'The password field is required.',
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 4. Validate password minimum length.
+		// 5. Validate password minimum length.
 		$block_password = $block_attrs['password'] ?? '';
 
 		/** This filter is documented in self::handle_register(). */
@@ -172,24 +185,26 @@ class REST extends WP_REST_Controller {
 			return new WP_Error(
 				'egps_invalid_password',
 				'The password is incorrect.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 5. Validate password with timing-safe comparison.
+		// 6. Validate password with timing-safe comparison.
 		if ( ! hash_equals( $block_password, $password ) ) {
 			return new WP_Error(
 				'egps_invalid_password',
 				'The password is incorrect.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 6. Issue a fresh CSRF nonce for the registration step
-		// (the original was consumed in step 1).
-		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
-
+		// 7. Return success with the fresh nonce for the registration step.
 		return rest_ensure_response(
 			array(
 				'valid' => true,
@@ -210,13 +225,19 @@ class REST extends WP_REST_Controller {
 	 * @return array|WP_REST_Response|WP_Error Response data or error.
 	 */
 	private static function handle_register( WP_REST_Request $request, int $page_id, array $block_attrs ): array|WP_REST_Response|WP_Error {
-		// 1. Verify CSRF token.
+		// 1. Verify CSRF token (one-time use — consumed on success).
 		$nonce_error = self::verify_csrf_nonce( $request, $page_id );
 		if ( null !== $nonce_error ) {
 			return $nonce_error;
 		}
 
-		// 2. Check honeypot field.
+		// 2. Issue a fresh CSRF nonce immediately after consuming the old one.
+		// This ensures retries are possible even if validation fails below,
+		// because the original nonce was already deleted in step 1.
+		$fresh_token = wp_generate_password( 32, false );
+		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+
+		// 3. Check honeypot field.
 		// @var string $honeypot_field
 		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
 		$honeypot_value = $request->get_param( $honeypot_field );
@@ -224,11 +245,14 @@ class REST extends WP_REST_Controller {
 			return new WP_Error(
 				'egps_invalid_password',
 				'The password is incorrect.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 3. Validate required fields.
+		// 4. Validate required fields.
 		$password   = $request->get_param( 'password' );
 		$guest_name = $request->get_param( 'guest_name' );
 
@@ -236,11 +260,14 @@ class REST extends WP_REST_Controller {
 			return new WP_Error(
 				'egps_missing_fields',
 				'The password and guest_name fields are required.',
-				array( 'status' => 400 )
+				array(
+					'status' => 400,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 4. Validate password minimum length.
+		// 5. Validate password minimum length.
 		$block_password = $block_attrs['password'] ?? '';
 
 		/**
@@ -256,20 +283,26 @@ class REST extends WP_REST_Controller {
 			return new WP_Error(
 				'egps_invalid_password',
 				'The password is incorrect.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 5. Validate password with timing-safe comparison.
+		// 6. Validate password with timing-safe comparison.
 		if ( ! hash_equals( $block_password, $password ) ) {
 			return new WP_Error(
 				'egps_invalid_password',
 				'The password is incorrect.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
 			);
 		}
 
-		// 6. Build cookie payload.
+		// 7. Build cookie payload.
 		$event_version = $block_attrs['eventVersion'] ?? 1;
 		$now           = time();
 
@@ -292,14 +325,14 @@ class REST extends WP_REST_Controller {
 			'expires_at'    => $now + $expiry_duration,
 		);
 
-		// 7. Sign and set cookie.
+		// 8. Sign and set cookie.
 		Cookie::set_for_page( $payload );
 
-		// 8. Generate consent nonce.
+		// 9. Generate consent nonce.
 		$consent_token = wp_generate_password( 32, false );
 		set_transient( 'egps_csrf_' . $consent_token, $page_id, HOUR_IN_SECONDS );
 
-		// 9. Return success response.
+		// 10. Return success response.
 		return rest_ensure_response(
 			array(
 				'state'         => 'consent',

@@ -258,6 +258,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -284,6 +286,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
 				if ( 'egps_honeypot_field_name' === $filter ) {
@@ -404,6 +408,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -430,6 +436,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -577,6 +585,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'short', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
 				if ( 'egps_password_min_length' === $filter ) {
@@ -1009,6 +1019,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -1034,6 +1046,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -1059,6 +1073,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
 				if ( 'egps_honeypot_field_name' === $filter ) {
@@ -1111,12 +1127,149 @@ class RestAuthTest extends TestCase {
 	}
 
 	/**
+	 * Test that validate_password with wrong password returns a fresh nonce
+	 * so the user can retry without getting a CSRF error.
+	 *
+	 * Regression test: previously, the CSRF nonce was consumed during
+	 * verification but no fresh nonce was returned on error, making all
+	 * subsequent password attempts fail with "CSRF token is invalid".
+	 */
+	public function test_validate_password_wrong_password_returns_fresh_nonce(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-retry-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'validate_password',
+				'password' => 'wrong-password',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$error_data = $response->get_error_data();
+		$this->assertArrayHasKey( 'nonce', $error_data, 'Error response must include a fresh nonce for retry.' );
+		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
+	}
+
+	/**
+	 * Test that validate_password with honeypot filled returns a fresh nonce.
+	 *
+	 * Even bot-detected requests should return a fresh nonce after consuming
+	 * the old one, to avoid leaking detection status via different error shapes.
+	 */
+	public function test_validate_password_honeypot_returns_fresh_nonce(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-retry-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			function ( $filter, ...$args ) {
+				if ( 'egps_honeypot_field_name' === $filter ) {
+					return 'email';
+				}
+				return $args[0];
+			}
+		);
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'validate_password',
+				'password' => 'correct-password',
+				'email'    => 'bot@spam.com',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$error_data = $response->get_error_data();
+		$this->assertArrayHasKey( 'nonce', $error_data );
+		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
+	}
+
+	/**
+	 * Test that validate_password with missing password returns a fresh nonce.
+	 */
+	public function test_validate_password_missing_password_returns_fresh_nonce(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-retry-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id' => 42,
+				'action'  => 'validate_password',
+				// password missing!
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$error_data = $response->get_error_data();
+		$this->assertArrayHasKey( 'nonce', $error_data );
+		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
+	}
+
+	/**
+	 * Test that register with wrong password returns a fresh nonce for retry.
+	 *
+	 * Regression test: same root cause as validate_password — nonce consumed
+	 * but not refreshed on error.
+	 */
+	public function test_register_wrong_password_returns_fresh_nonce(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-retry-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'    => 42,
+				'action'     => 'register',
+				'password'   => 'wrong-password',
+				'guest_name' => 'Alice',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$error_data = $response->get_error_data();
+		$this->assertArrayHasKey( 'nonce', $error_data, 'Error response must include a fresh nonce for retry.' );
+		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
+	}
+
+	/**
 	 * Test registration with missing password returns 400 egps_missing_fields.
 	 */
 	public function test_register_missing_password_returns_400(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
 
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(

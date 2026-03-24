@@ -312,6 +312,12 @@ const { state } = store('event-guest-photos-sharing', {
 				if (!response.ok) {
 					const errorData = yield response.json();
 					state.errorMessage = errorData.message || 'The password is incorrect.';
+
+					// Update the nonce from the error response so retries work.
+					// The original nonce was consumed during CSRF verification.
+					if (errorData.data?.nonce) {
+						ctx.nonce = errorData.data.nonce;
+					}
 					return;
 				}
 
@@ -372,6 +378,11 @@ const { state } = store('event-guest-photos-sharing', {
 				if (!response.ok) {
 					const errorData = yield response.json();
 					state.errorMessage = errorData.message || 'Registration failed. Please try again.';
+
+					// Update the nonce from the error response so retries work.
+					if (errorData.data?.nonce) {
+						ctx.nonce = errorData.data.nonce;
+					}
 					return;
 				}
 

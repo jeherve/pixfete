@@ -84,6 +84,10 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
+= 1.0.2 =
+
+* Fix: Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
+
 = 1.0.1 =
 
 * Fix: Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
