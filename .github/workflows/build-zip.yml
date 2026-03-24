@@ -1,0 +1,47 @@
+name: Build release zip
+on:
+  release:
+    types: [prereleased]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and attach zip to release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.3
+        tools: composer
+        coverage: none
+
+    - name: Install Composer dependencies
+      run: composer install --no-dev
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: Install npm dependencies
+      run: npm ci
+
+    - name: Build assets
+      run: npm run build
+
+    - name: Build zip
+      id: build-zip
+      uses: 10up/action-wordpress-plugin-build-zip@stable
+
+    - name: Upload zip to release
+      run: gh release upload "$TAG_NAME" "$ZIP_PATH"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG_NAME: ${{ github.event.release.tag_name }}
+        ZIP_PATH: ${{ steps.build-zip.outputs.zip_path }}
