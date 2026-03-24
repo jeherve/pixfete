@@ -10,9 +10,14 @@
 /.phpunit.cache
 /vendor
 /wordpress
-/src
 /playwright-report
 /test-results
+
+# JS source files (PHP files in src/ are needed at runtime)
+/src/admin
+/src/blocks/event-album/*.js
+/src/blocks/event-album/*.scss
+/src/blocks/event-album/block.json
 
 # Files
 webpack.config.js
