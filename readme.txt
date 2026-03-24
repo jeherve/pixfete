@@ -1,7 +1,7 @@
 === Event Guest Photos Sharing ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.0.0-alpha
+Stable tag: 1.0.0
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 6.9
@@ -84,6 +84,6 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
-= 1.0.0-alpha =
+= 1.0.0 =
 
-* Initial alpha release.
+* Initial release.
