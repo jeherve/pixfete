@@ -6,11 +6,13 @@
 /node_modules
 /docs
 /.superpowers
+/.claude
+/.phpunit.cache
 /vendor
 /wordpress
-
-# JS test files nested in src/
-/src/admin/utils/__tests__
+/src
+/playwright-report
+/test-results
 
 # Files
 webpack.config.js
@@ -22,6 +24,7 @@ webpack.config.js
 .prettierrc.js
 .prettierignore
 .editorconfig
+.DS_Store
 phpunit.xml.dist
 composer.json
 composer.lock
