@@ -93,25 +93,35 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
-= 1.1.1 =
+= 1.1.1 - 2026-03-25 =
 
-* Improved: The event page template now uses your theme's own colors and spacing instead of a fixed dark background, so it blends naturally with any theme.
-* Improved: The photo upload button now only appears on mobile devices, where guests are most likely to snap and share photos.
-* Removed: The "Event Photo Album" block pattern has been removed — use the "Event Album (Full Screen)" page template instead for a quicker setup.
+**Changed**
 
-= 1.1.0 =
+* The event page template now uses your theme's own colors and spacing instead of a fixed dark background, so it blends naturally with any theme.
+* The photo upload button now only appears on mobile devices, where guests are most likely to snap and share photos.
 
-* New: You can now see upload progress when sharing photos — a banner shows which photo is being uploaded and how many remain.
-* New: The photo gallery now feels more immersive on mobile — photos are larger and fill the screen edge-to-edge, inspired by popular photo gallery apps.
-* New: Upload buttons are now a floating action button that stays visible as you scroll through photos, making it easier to share your pictures at any time.
-* New: A new "Event Album (Full Screen)" page template is available in the site editor — it removes the header, footer, and sidebar for a distraction-free photo browsing experience.
-* Fix: Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
-* Fix: The consent message now displays correctly on the front end instead of appearing blank above the "I Accept" button.
-* Fix: Returning guests who already entered their name no longer see a "CSRF token is required" error when accepting the consent message.
-* Fix: Tapping "Load more" to see older photos no longer causes a JavaScript error in the browser console.
-* Fix: Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
-* Fix: Custom consent messages entered in the block editor are now saved correctly and no longer disappear after refreshing the page.
+**Removed**
 
-= 1.0.0 =
+* The "Event Photo Album" block pattern has been removed — use the "Event Album (Full Screen)" page template instead for a quicker setup.
+
+= 1.1.0 - 2026-03-25 =
+
+**Added**
+
+* You can now see upload progress when sharing photos — a banner shows which photo is being uploaded and how many remain.
+* The photo gallery now feels more immersive on mobile — photos are larger and fill the screen edge-to-edge, inspired by popular photo gallery apps.
+* Upload buttons are now a floating action button that stays visible as you scroll through photos, making it easier to share your pictures at any time.
+* A new "Event Album (Full Screen)" page template is available in the site editor — it removes the header, footer, and sidebar for a distraction-free photo browsing experience.
+
+**Fixed**
+
+* Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
+* The consent message now displays correctly on the front end instead of appearing blank above the "I Accept" button.
+* Returning guests who already entered their name no longer see a "CSRF token is required" error when accepting the consent message.
+* Tapping "Load more" to see older photos no longer causes a JavaScript error in the browser console.
+* Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
+* Custom consent messages entered in the block editor are now saved correctly and no longer disappear after refreshing the page.
+
+= 1.0.0 - 2026-03-25 =
 
 * Initial release.

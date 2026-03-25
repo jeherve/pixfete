@@ -63,7 +63,11 @@
 
 ## Changelog
 
-- Changelog entries in `readme.txt` are **customer-facing** — write them in plain, non-technical language that any WordPress user can understand. Avoid jargon like "InnerBlocks", "serialization", or "save function". Describe the problem the user experienced and that it's now fixed (e.g., "Custom consent messages no longer disappear after refreshing the page").
+- The changelog lives in `readme.txt` and follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format, adapted for WordPress.org heading syntax.
+- **Version headings** use the format `= X.Y.Z - YYYY-MM-DD =` (e.g., `= 1.2.0 - 2026-04-01 =`).
+- **Group changes by type** using bold labels: `**Added**`, `**Changed**`, `**Deprecated**`, `**Removed**`, `**Fixed**`, `**Security**`. Only include categories that have entries for that release.
+- Entries are **customer-facing** — write them in plain, non-technical language that any WordPress user can understand. Avoid jargon like "InnerBlocks", "serialization", or "save function". Describe the problem the user experienced and that it's now fixed (e.g., "Custom consent messages no longer disappear after refreshing the page").
+- **When a change is customer-facing, include a changelog entry as part of the commit.** Don't defer changelog updates to a separate "release prep" step — add them alongside the code change so the changelog stays current.
 
 ## Files Excluded from Distribution
 
