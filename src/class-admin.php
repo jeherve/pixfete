@@ -161,7 +161,7 @@ class Admin {
 
 			$event_pages[] = array(
 				'id'               => $page->ID,
-				'title'            => get_the_title( $page->ID ),
+				'title'            => html_entity_decode( get_the_title( $page->ID ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'slug'             => $page->post_name,
 				'permalink'        => get_permalink( $page->ID ),
 				'password'         => $attrs['password'] ?? '',

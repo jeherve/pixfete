@@ -104,6 +104,10 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 * The "Event Photo Album" block pattern has been removed — use the "Event Album (Full Screen)" page template instead for a quicker setup.
 
+**Fixed**
+
+* Event page names with special characters (like "&" or apostrophes) now display correctly in the QR Code Generator page selector.
+
 = 1.1.0 - 2026-03-25 =
 
 **Added**

@@ -182,4 +182,65 @@ class AdminTest extends TestCase {
 		// Mockery enforces the ->once() and ->withArgs() expectations above.
 		$this->assertTrue( true );
 	}
+
+	/**
+	 * Test that page titles with HTML entities are decoded before passing to JavaScript.
+	 *
+	 * WordPress's get_the_title() returns HTML-encoded strings (e.g. &amp; for &).
+	 * When passed to wp_localize_script, these entities must be decoded first,
+	 * otherwise the JS UI displays raw entities like "John &amp; Jane&#8217;s Wedding".
+	 */
+	public function test_page_titles_are_html_decoded(): void {
+		$mock_page           = new \stdClass();
+		$mock_page->ID       = 42;
+		$mock_page->post_name = 'wedding';
+
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array( $mock_page ) );
+
+		// Simulate get_the_title() returning HTML-encoded entities, as WordPress does.
+		Functions\expect( 'get_the_title' )
+			->once()
+			->with( 42 )
+			->andReturn( 'John &amp; Jane&#8217;s Wedding' );
+
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/wedding' );
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( false );
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
+
+		// Mock REST::get_block_attributes chain to indicate this page has the event block.
+		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:jeherve/event-guest-photos-sharing -->' );
+		Functions\expect( 'parse_blocks' )
+			->once()
+			->andReturn(
+				array(
+					array(
+						'blockName' => 'event-guest-photos-sharing/event-album',
+						'attrs'     => array( 'password' => 'secret' ),
+					),
+				)
+			);
+
+		$captured_data = null;
+		Functions\expect( 'wp_enqueue_script' )->once();
+		Functions\expect( 'wp_enqueue_style' )->once();
+		Functions\expect( 'wp_localize_script' )
+			->once()
+			->withArgs(
+				function ( $handle, $object_name, $data ) use ( &$captured_data ) {
+					$captured_data = $data;
+					return true;
+				}
+			);
+
+		Admin::enqueue_scripts( 'settings_page_event-guest-photos-sharing' );
+
+		$this->assertCount( 1, $captured_data['pages'] );
+		$this->assertSame(
+			"John & Jane\u{2019}s Wedding",
+			$captured_data['pages'][0]['title'],
+			'Page title should have HTML entities decoded for JavaScript consumption.'
+		);
+	}
 }
