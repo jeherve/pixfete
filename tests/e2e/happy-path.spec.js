@@ -126,12 +126,26 @@ test.describe('Event Guest Photos Sharing - Happy Path', () => {
 		await expect(page.locator('.egps-upload')).toBeVisible();
 
 		// --- Step 4: Upload a photo ---
-		const fileInput = page.locator('.egps-upload-gallery input[type="file"]');
+		const fileInput = page.locator('#egps-file-gallery');
 		await fileInput.setInputFiles(path.join(__dirname, 'fixtures', 'test-photo.jpg'));
+
+		// Verify the upload progress banner appears during upload.
+		// The banner may be very brief for small test files, so use a
+		// short timeout and don't fail the test if we miss it — the
+		// unit tests cover the state logic exhaustively.
+		await page
+			.locator('.egps-upload-progress')
+			.waitFor({ state: 'visible', timeout: 5000 })
+			.catch(() => {
+				// Banner may have already disappeared for fast uploads.
+			});
 
 		// Wait for the uploaded photo to appear in the grid.
 		const photo = page.locator('.egps-photo img');
 		await photo.first().waitFor({ timeout: 15000 });
+
+		// Upload progress banner should be hidden after upload completes.
+		await expect(page.locator('.egps-upload-progress')).toBeHidden();
 
 		// Verify the photo is visible with the guest name.
 		await expect(photo.first()).toBeVisible();
