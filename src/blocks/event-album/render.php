@@ -118,26 +118,74 @@ $egps_context = array(
 
 		<?php // Gallery view. ?>
 		<div data-wp-bind--hidden="!state.isGalleryView">
-			<?php // Upload area — hidden when date range has expired. ?>
-			<div data-wp-bind--hidden="!state.isUploadEnabled" class="egps-upload">
-				<label class="egps-upload-btn egps-upload-camera">
-					<?php esc_html_e( 'Take Photo', 'event-guest-photos-sharing' ); ?>
-					<input
-						type="file"
-						accept="image/*"
-						capture="environment"
-						data-wp-on--change="actions.handleFileSelect"
-					/>
-				</label>
-				<label class="egps-upload-btn egps-upload-gallery">
-					<?php esc_html_e( 'Choose from Gallery', 'event-guest-photos-sharing' ); ?>
-					<input
-						type="file"
-						accept="image/*"
-						multiple
-						data-wp-on--change="actions.handleFileSelect"
-					/>
-				</label>
+			<?php // Upload FAB — hidden when date range has expired or lightbox is open. ?>
+			<div
+				data-wp-bind--hidden="!state.showFab"
+				class="egps-fab-container"
+				data-wp-on--keydown="actions.handleFabKeydown"
+			>
+				<?php // Scrim overlay when FAB is expanded. ?>
+				<div
+					data-wp-bind--hidden="!state.fabOpen"
+					class="egps-fab-scrim"
+					data-wp-on--click="actions.closeFab"
+					aria-hidden="true"
+				></div>
+
+				<?php // Expanded sub-buttons. ?>
+				<div data-wp-bind--hidden="!state.fabOpen" class="egps-fab-menu">
+					<div class="egps-fab-option">
+						<span class="egps-fab-label"><?php esc_html_e( 'Take Photo', 'event-guest-photos-sharing' ); ?></span>
+						<button
+							class="egps-fab-btn egps-fab-btn--secondary"
+							data-wp-on--click="actions.triggerCapture"
+							aria-label="<?php esc_attr_e( 'Take a photo', 'event-guest-photos-sharing' ); ?>"
+							type="button"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+						</button>
+					</div>
+					<div class="egps-fab-option">
+						<span class="egps-fab-label"><?php esc_html_e( 'Choose from Gallery', 'event-guest-photos-sharing' ); ?></span>
+						<button
+							class="egps-fab-btn egps-fab-btn--secondary"
+							data-wp-on--click="actions.triggerGallery"
+							aria-label="<?php esc_attr_e( 'Choose photos from gallery', 'event-guest-photos-sharing' ); ?>"
+							type="button"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/></svg>
+						</button>
+					</div>
+				</div>
+
+				<?php // Main FAB toggle button. ?>
+				<button
+					class="egps-fab-btn egps-fab-btn--main"
+					data-wp-on--click="actions.toggleFab"
+					data-wp-bind--aria-expanded="state.fabOpen"
+					aria-label="<?php esc_attr_e( 'Upload photos', 'event-guest-photos-sharing' ); ?>"
+					type="button"
+				>
+					<svg class="egps-fab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+				</button>
+
+				<?php // Hidden file inputs triggered programmatically by FAB buttons. ?>
+				<input
+					type="file"
+					id="egps-file-capture"
+					accept="image/*"
+					capture="environment"
+					data-wp-on--change="actions.handleFileSelect"
+					class="egps-hp"
+				/>
+				<input
+					type="file"
+					id="egps-file-gallery"
+					accept="image/*"
+					multiple
+					data-wp-on--change="actions.handleFileSelect"
+					class="egps-hp"
+				/>
 			</div>
 
 			<?php // New photos banner. ?>
