@@ -28,8 +28,12 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 * Password protection with QR code support for easy access.
 * Built-in QR code generator (Tools > Event QR Codes) — create styled, downloadable QR codes with custom colors, corner styles, and embedded logos.
 * Real-time gallery with automatic polling for new photos.
-* 3-column photo grid with lightbox viewer.
+* Immersive photo grid — photos fill the screen edge-to-edge on mobile for a gallery-app feel.
+* Lightbox viewer for full-size photos.
+* Floating upload button that stays visible as you scroll through photos.
+* Upload progress banner — see which photo is being uploaded and how many remain.
 * Camera capture and gallery picker for uploads (supports multiple file selection).
+* Full-screen page template — remove the header, footer, and sidebar for distraction-free photo browsing.
 * Customizable consent message via the block editor.
 * Optional table name tracking for seating assignments.
 * Date range support — uploads automatically stop when the event is over.
@@ -46,7 +50,8 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
    * Optionally restrict uploads to a specific date range.
    * Optionally enable table/seating name tracking.
 5. Customize the consent message using the block's inner content area.
-6. Publish the page and share the URL with your guests.
+6. Optionally, assign the "Event Album (Full Screen)" page template in the site editor to hide the header, footer, and sidebar.
+7. Publish the page and share the URL with your guests.
 
 == Frequently Asked Questions ==
 
@@ -77,6 +82,10 @@ Yes. Each page with the Event Photo Album block operates independently with its 
 = Can I moderate photos before they appear? =
 
 Yes, with a small amount of custom code. Developers can use the `egps_photo_requires_moderation` filter to enable moderation. See the README on GitHub for details.
+
+= Can I hide the header and footer on the event page? =
+
+Yes. In the site editor, assign the "Event Album (Full Screen)" page template to your event page. This removes the header, footer, and sidebar so guests see only the photo album.
 
 = Can I limit how many photos each guest uploads? =
 

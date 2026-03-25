@@ -45,8 +45,8 @@ You can also use [WordPress Playground](https://developer.wordpress.org/playgrou
 npm run lint:js         # Lint JavaScript
 npm run lint:css        # Lint CSS
 npm run format          # Format code
-composer phpcs          # PHP CodeSniffer
-composer phplint        # PHP syntax check
+composer run lint       # PHP CodeSniffer
+composer run lint:fix   # PHP CodeSniffer autofix
 ```
 
 ### Testing
@@ -66,20 +66,21 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 
 | File | Purpose |
 |------|---------|
-| `src/class-block.php` | Block registration, pattern, and pattern category |
+| `src/class-block.php` | Block registration, pattern, pattern category, and page template |
 | `src/class-cookie.php` | HMAC-signed cookie management for guest sessions |
 | `src/class-rest.php` | REST API endpoints (auth, upload, gallery) |
 | `src/class-upload.php` | File upload handling and MIME type validation |
 | `src/class-admin.php` | Admin page for QR code generation (Tools > Event QR Codes) |
 | `src/blocks/event-album/` | Block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/admin/` | React app for the QR code admin page (components, utilities, styles) |
+| `templates/page-event-album.html` | Full-screen page template (no header, footer, or sidebar) |
 
 ### Guest flow
 
 1. **Password** — Guest enters the event password (or arrives via `?key=` URL parameter).
 2. **Registration** — Guest provides their name (and optionally table name via `?table=` parameter or form field).
 3. **Consent** — Guest accepts the consent message (customizable via InnerBlocks in the editor).
-4. **Gallery** — Guest can upload photos and browse the shared album with 15-second auto-polling.
+4. **Gallery** — Guest can upload photos and browse the shared album with 15-second auto-polling. Features a floating upload button, upload progress banner, lightbox viewer, and a "new photos" notification banner.
 
 ### QR Code Admin Page
 
@@ -93,6 +94,10 @@ The page lists all published pages containing the Event Photo Album block. For e
 - Preview the QR code live and download it as a PNG.
 
 QR codes are generated client-side using [qr-code-styling](https://www.npmjs.com/package/qr-code-styling). No data is saved — styling choices are ephemeral.
+
+### Page template
+
+The plugin registers an "Event Album (Full Screen)" page template (`page-event-album`) via `register_block_template()`. It shows only the site logo and page content — no header, footer, or sidebar — for a distraction-free photo browsing experience. Assign it to an event page in the site editor.
 
 ### Block attributes
 
@@ -110,7 +115,7 @@ All endpoints are under the `event-guest-photos-sharing/v1` namespace.
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| POST | `/auth/{page_id}` | Guest registration (`action=register`) and consent (`action=consent`) |
+| POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), and consent (`action=consent`) |
 | POST | `/photos/{page_id}` | Photo upload (requires authenticated guest with consent) |
 | GET | `/photos/{page_id}` | Gallery retrieval with pagination and polling support |
 
