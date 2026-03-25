@@ -84,6 +84,12 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
+= 1.1.0 =
+
+* New: The photo gallery now feels more immersive on mobile — photos are larger and fill the screen edge-to-edge, inspired by popular photo gallery apps.
+* New: Upload buttons are now a floating action button that stays visible as you scroll through photos, making it easier to share your pictures at any time.
+* New: A new "Event Album (Full Screen)" page template is available in the site editor — it removes the header, footer, and sidebar for a distraction-free photo browsing experience.
+
 = 1.0.2 =
 
 * Fix: Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
