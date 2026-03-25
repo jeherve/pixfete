@@ -166,7 +166,9 @@ class Admin {
 				'permalink'        => get_permalink( $page->ID ),
 				'password'         => $attrs['password'] ?? '',
 				'enableTableNames' => $attrs['enableTableNames'] ?? false,
+				'dateRangeEnd'     => $attrs['dateRangeEnd'] ?? '',
 				'logoDataUrl'      => self::get_logo_data_url( $page->ID ),
+				'archive'          => Archive::get_archive( $page->ID ),
 			);
 		}
 

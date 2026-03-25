@@ -184,6 +184,69 @@ class AdminTest extends TestCase {
 	}
 
 	/**
+	 * Test that enqueue_scripts includes archive data for each event page.
+	 */
+	public function test_enqueue_scripts_includes_archive_data(): void {
+		$mock_page           = new \stdClass();
+		$mock_page->ID       = 42;
+		$mock_page->post_name = 'wedding';
+
+		Functions\expect( 'get_posts' )->once()->andReturn( array( $mock_page ) );
+		Functions\expect( 'get_the_title' )->once()->with( 42 )->andReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/wedding' );
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( false );
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
+		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'parse_blocks' )->once()->andReturn(
+			array(
+				array(
+					'blockName' => 'event-guest-photos-sharing/event-album',
+					'attrs'     => array(
+						'password'     => 'secret',
+						'dateRangeEnd' => '2026-01-01',
+					),
+				),
+			)
+		);
+
+		// Archive data for this page.
+		Functions\expect( 'get_option' )
+			->with( 'egps_zip_archives', array() )
+			->andReturn(
+				array(
+					42 => array(
+						'status'     => 'complete',
+						'url'        => 'https://example.com/uploads/egps-archives/egps-archive-42-abc123.zip',
+						'created_at' => 1742900000,
+					),
+				)
+			);
+
+		$captured_data = null;
+		Functions\expect( 'wp_enqueue_script' )->once();
+		Functions\expect( 'wp_enqueue_style' )->once();
+		Functions\expect( 'wp_localize_script' )
+			->once()
+			->withArgs(
+				function ( $handle, $object_name, $data ) use ( &$captured_data ) {
+					$captured_data = $data;
+					return true;
+				}
+			);
+
+		Admin::enqueue_scripts( 'settings_page_event-guest-photos-sharing' );
+
+		$this->assertArrayHasKey( 'archive', $captured_data['pages'][0] );
+		$this->assertSame( 'complete', $captured_data['pages'][0]['archive']['status'] );
+		$this->assertSame(
+			'https://example.com/uploads/egps-archives/egps-archive-42-abc123.zip',
+			$captured_data['pages'][0]['archive']['url']
+		);
+		$this->assertArrayHasKey( 'dateRangeEnd', $captured_data['pages'][0] );
+		$this->assertSame( '2026-01-01', $captured_data['pages'][0]['dateRangeEnd'] );
+	}
+
+	/**
 	 * Test that page titles with HTML entities are decoded before passing to JavaScript.
 	 *
 	 * WordPress's get_the_title() returns HTML-encoded strings (e.g. &amp; for &).
@@ -221,6 +284,9 @@ class AdminTest extends TestCase {
 					),
 				)
 			);
+
+		// Stub the get_option call introduced by Archive::get_archive().
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$captured_data = null;
 		Functions\expect( 'wp_enqueue_script' )->once();
