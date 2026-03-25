@@ -29,6 +29,8 @@
 	"homepage": "https://github.com/jeherve/event-guest-photos-sharing#readme",
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.2",
 		"@wordpress/env": "10.36.0",
 		"@wordpress/prettier-config": "4.36.0",
 		"@wordpress/scripts": "31.1.0"
