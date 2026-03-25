@@ -466,14 +466,3 @@
 	}
 }
 
-// ─── Template logo (outside block scope — sibling in template) ──
-
-.egps-template-logo {
-	padding: 12px 16px;
-
-	/* stylelint-disable-next-line no-descending-specificity */
-	img {
-		max-height: 40px;
-		width: auto;
-	}
-}

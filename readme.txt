@@ -93,6 +93,10 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
+= 1.1.1 =
+
+* Improved: The event page template now uses your theme's own colors and spacing instead of a fixed dark background, so it blends naturally with any theme.
+
 = 1.1.0 =
 
 * New: You can now see upload progress when sharing photos — a banner shows which photo is being uploaded and how many remain.

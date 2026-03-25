@@ -27,7 +27,6 @@ export function AdminPage() {
 
 	const handlePageChange = (pageId) => {
 		setSelectedPageId(pageId);
-		const page = pages.find((p) => p.id === pageId);
 		setConfig({ ...DEFAULT_CONFIG });
 	};
 
