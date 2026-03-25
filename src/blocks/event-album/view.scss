@@ -137,6 +137,10 @@
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 12px;
+
+		&[hidden] {
+			display: none;
+		}
 	}
 
 	.egps-fab-scrim {
@@ -144,6 +148,10 @@
 		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
 		z-index: 99998;
+
+		&[hidden] {
+			display: none;
+		}
 	}
 
 	.egps-fab-menu {
@@ -152,6 +160,10 @@
 		align-items: flex-end;
 		gap: 12px;
 		z-index: 99999;
+
+		&[hidden] {
+			display: none;
+		}
 	}
 
 	.egps-fab-option {
