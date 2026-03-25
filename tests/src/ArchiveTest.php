@@ -195,6 +195,206 @@ class ArchiveTest extends TestCase {
 	}
 
 	/**
+	 * Helper to create a mock page object.
+	 *
+	 * @param int    $id        Page ID.
+	 * @param string $post_name Post slug.
+	 * @return \stdClass
+	 */
+	private function make_mock_page( int $id, string $post_name = 'event' ): \stdClass {
+		$page            = new \stdClass();
+		$page->ID        = $id;
+		$page->post_name = $post_name;
+		return $page;
+	}
+
+	/**
+	 * Test that check_events skips pages whose event has not ended.
+	 */
+	public function test_check_events_skips_future_events(): void {
+		$page = $this->make_mock_page( 42 );
+
+		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'parse_blocks' )->once()->andReturn(
+			array(
+				array(
+					'blockName' => 'event-guest-photos-sharing/event-album',
+					'attrs'     => array( 'dateRangeEnd' => '2099-12-31' ),
+				),
+			)
+		);
+
+		// Should use site timezone to determine "today".
+		Functions\expect( 'wp_timezone' )->once()->andReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\expect( 'wp_date' )->once()->andReturn( '2026-03-25' );
+		Functions\expect( 'get_option' )->with( 'egps_zip_archives', array() )->andReturn( array() );
+
+		// Should NOT schedule a batch.
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::check_events();
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that check_events skips pages that already have an archive entry.
+	 */
+	public function test_check_events_skips_existing_archives(): void {
+		$page = $this->make_mock_page( 42 );
+
+		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'parse_blocks' )->once()->andReturn(
+			array(
+				array(
+					'blockName' => 'event-guest-photos-sharing/event-album',
+					'attrs'     => array( 'dateRangeEnd' => '2026-01-01' ),
+				),
+			)
+		);
+		Functions\expect( 'wp_timezone' )->once()->andReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\expect( 'wp_date' )->once()->andReturn( '2026-03-25' );
+
+		// Already has an archive.
+		Functions\expect( 'get_option' )
+			->with( 'egps_zip_archives', array() )
+			->andReturn( array( 42 => array( 'status' => 'complete' ) ) );
+
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::check_events();
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that check_events skips pages with no attachments.
+	 */
+	public function test_check_events_skips_pages_with_no_attachments(): void {
+		$page = $this->make_mock_page( 42 );
+
+		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'parse_blocks' )->once()->andReturn(
+			array(
+				array(
+					'blockName' => 'event-guest-photos-sharing/event-album',
+					'attrs'     => array( 'dateRangeEnd' => '2026-01-01' ),
+				),
+			)
+		);
+		Functions\expect( 'wp_timezone' )->once()->andReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\expect( 'wp_date' )->once()->andReturn( '2026-03-25' );
+		Functions\expect( 'get_option' )->with( 'egps_zip_archives', array() )->andReturn( array() );
+
+		// No attachments — WP_Query mock returns 0 found_posts.
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts        = array();
+		$GLOBALS['egps_wp_query_mock']->found_posts  = 0;
+
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::check_events();
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that check_events schedules a batch for a qualifying event.
+	 */
+	public function test_check_events_schedules_batch_for_ended_event(): void {
+		$page = $this->make_mock_page( 42 );
+
+		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'parse_blocks' )->once()->andReturn(
+			array(
+				array(
+					'blockName' => 'event-guest-photos-sharing/event-album',
+					'attrs'     => array( 'dateRangeEnd' => '2026-01-01' ),
+				),
+			)
+		);
+		Functions\expect( 'wp_timezone' )->once()->andReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\expect( 'wp_date' )->once()->andReturn( '2026-03-25' );
+
+		// get_option will be called twice: once by check_events to check existing archives,
+		// once by update_archive to read before writing.
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default = false ) {
+				if ( $name === 'egps_zip_archives' ) {
+					return array();
+				}
+				return $default;
+			}
+		);
+
+		// Has attachments.
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts        = array( (object) array( 'ID' => 100 ) );
+		$GLOBALS['egps_wp_query_mock']->found_posts  = 5;
+
+		Functions\expect( 'wp_generate_password' )
+			->once()
+			->with( 12, false )
+			->andReturn( 'abc123def456' );
+
+		Functions\expect( 'update_option' )
+			->once()
+			->withArgs(
+				function ( $name, $value ) {
+					return $name === 'egps_zip_archives'
+						&& $value[42]['status'] === 'pending'
+						&& $value[42]['token'] === 'abc123def456';
+				}
+			);
+
+		Functions\expect( 'wp_schedule_single_event' )
+			->once()
+			->withArgs(
+				function ( $timestamp, $hook, $args ) {
+					return is_int( $timestamp )
+						&& $hook === 'egps_archive_build_batch'
+						&& $args === array( 42 );
+				}
+			);
+
+		Archive::check_events();
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that check_events skips pages with no dateRangeEnd set.
+	 */
+	public function test_check_events_skips_pages_without_end_date(): void {
+		$page = $this->make_mock_page( 42 );
+
+		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'parse_blocks' )->once()->andReturn(
+			array(
+				array(
+					'blockName' => 'event-guest-photos-sharing/event-album',
+					'attrs'     => array(),
+				),
+			)
+		);
+
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::check_events();
+
+		$this->assertTrue( true );
+	}
+
+	/**
 	 * Test that delete_archive removes an entry.
 	 */
 	public function test_delete_archive_removes_entry(): void {
