@@ -66,7 +66,7 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 
 | File | Purpose |
 |------|---------|
-| `src/class-block.php` | Block registration, pattern, pattern category, and page template |
+| `src/class-block.php` | Block registration and page template |
 | `src/class-cookie.php` | HMAC-signed cookie management for guest sessions |
 | `src/class-rest.php` | REST API endpoints (auth, upload, gallery) |
 | `src/class-upload.php` | File upload handling and MIME type validation |

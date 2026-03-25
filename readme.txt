@@ -16,7 +16,7 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 
 **How it works:**
 
-1. Create a page in the block editor and add the Event Photo Album block (or use the provided pattern).
+1. Create a page in the block editor and add the Event Photo Album block.
 2. Configure a password for the event, optionally set a date range and enable table names.
 3. Share the page URL (or a QR code with the password embedded) with your guests.
 4. Guests enter the password, provide their name, accept a consent message, then upload and view photos.
@@ -44,7 +44,7 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 
 1. Upload the plugin to your WordPress site and activate it.
 2. Create a new page in the block editor.
-3. Add the "Event Photo Album" block, or select the "Event Photo Album" pattern (under the "Event" category).
+3. Add the "Event Photo Album" block.
 4. Configure the event password and settings in the block sidebar:
    * Set or regenerate the event password.
    * Optionally restrict uploads to a specific date range.
@@ -96,6 +96,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 = 1.1.1 =
 
 * Improved: The event page template now uses your theme's own colors and spacing instead of a fixed dark background, so it blends naturally with any theme.
+* Removed: The "Event Photo Album" block pattern has been removed — use the "Event Album (Full Screen)" page template instead for a quicker setup.
 
 = 1.1.0 =
 
@@ -107,7 +108,6 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 * Fix: The consent message now displays correctly on the front end instead of appearing blank above the "I Accept" button.
 * Fix: Returning guests who already entered their name no longer see a "CSRF token is required" error when accepting the consent message.
 * Fix: Tapping "Load more" to see older photos no longer causes a JavaScript error in the browser console.
-* Fix: Inserting the Event Photo Album pattern no longer triggers a block validation error in the editor.
 * Fix: Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
 * Fix: Custom consent messages entered in the block editor are now saved correctly and no longer disappear after refreshing the page.
 
