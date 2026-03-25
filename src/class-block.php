@@ -31,6 +31,13 @@ class Block {
 	private const PATTERN_CATEGORY = 'event-guest-photos-sharing';
 
 	/**
+	 * Template slug for the full-screen event album page.
+	 *
+	 * @var string
+	 */
+	private const TEMPLATE_SLUG = 'page-event-album';
+
+	/**
 	 * Register the block, pattern category, and block pattern.
 	 *
 	 * @return void
@@ -73,6 +80,18 @@ class Block {
 				'categories' => array( self::PATTERN_CATEGORY ),
 				'postTypes'  => array( 'page' ),
 				'content'    => $pattern_content,
+			)
+		);
+
+		// 4. Register the full-screen page template.
+		$template_content = (string) file_get_contents( EGPS_PLUGIN_DIR . 'templates/page-event-album.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
+		wp_register_block_template(
+			'event-guest-photos-sharing//' . self::TEMPLATE_SLUG,
+			array(
+				'title'       => esc_html__( 'Event Album (Full Screen)', 'event-guest-photos-sharing' ),
+				'description' => esc_html__( 'A minimal template for the event photo album — just the site logo and page content, no header or footer.', 'event-guest-photos-sharing' ),
+				'content'     => $template_content,
+				'post_types'  => array( 'page' ),
 			)
 		);
 	}

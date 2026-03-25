@@ -66,6 +66,9 @@ class BlockTest extends TestCase {
 		Functions\expect( 'register_block_pattern' )
 			->once();
 
+		Functions\expect( 'wp_register_block_template' )
+			->once();
+
 		Block::register();
 
 		$this->assertSame(
@@ -96,6 +99,9 @@ class BlockTest extends TestCase {
 			);
 
 		Functions\expect( 'register_block_pattern' )
+			->once();
+
+		Functions\expect( 'wp_register_block_template' )
 			->once();
 
 		Block::register();
@@ -136,6 +142,9 @@ class BlockTest extends TestCase {
 				}
 			);
 
+		Functions\expect( 'wp_register_block_template' )
+			->once();
+
 		Block::register();
 
 		$this->assertSame(
@@ -165,6 +174,9 @@ class BlockTest extends TestCase {
 					return true;
 				}
 			);
+
+		Functions\expect( 'wp_register_block_template' )
+			->once();
 
 		Block::register();
 
@@ -197,6 +209,9 @@ class BlockTest extends TestCase {
 				}
 			);
 
+		Functions\expect( 'wp_register_block_template' )
+			->once();
+
 		Block::register();
 
 		$this->assertArrayHasKey( 'postTypes', $captured_args );
@@ -227,6 +242,9 @@ class BlockTest extends TestCase {
 					return true;
 				}
 			);
+
+		Functions\expect( 'wp_register_block_template' )
+			->once();
 
 		Block::register();
 
@@ -259,6 +277,9 @@ class BlockTest extends TestCase {
 				}
 			);
 
+		Functions\expect( 'wp_register_block_template' )
+			->once();
+
 		Block::register();
 
 		$this->assertArrayHasKey( 'title', $captured_args );
@@ -286,12 +307,69 @@ class BlockTest extends TestCase {
 				}
 			);
 
+		Functions\expect( 'wp_register_block_template' )
+			->once();
+
 		Block::register();
 
 		$this->assertStringNotContainsString(
 			'"password"',
 			$captured_args['content'],
 			'Pattern content must not include a password attribute.'
+		);
+	}
+
+	// ─── §6d: Template registration ─────────────────────────────────
+
+	/**
+	 * Test that register() calls wp_register_block_template for the event album template.
+	 */
+	public function test_register_calls_wp_register_block_template(): void {
+		$captured_id   = null;
+		$captured_args = null;
+
+		Functions\expect( 'register_block_type' )
+			->once();
+
+		Functions\expect( 'register_block_pattern_category' )
+			->once();
+
+		Functions\expect( 'register_block_pattern' )
+			->once();
+
+		Functions\expect( 'wp_register_block_template' )
+			->once()
+			->withArgs(
+				function ( $id, $args ) use ( &$captured_id, &$captured_args ) {
+					$captured_id   = $id;
+					$captured_args = $args;
+					return true;
+				}
+			);
+
+		Block::register();
+
+		$this->assertSame(
+			'event-guest-photos-sharing//page-event-album',
+			$captured_id,
+			'Template ID must follow the plugin-slug//template-slug format.'
+		);
+		$this->assertArrayHasKey( 'title', $captured_args );
+		$this->assertSame(
+			'Event Album (Full Screen)',
+			$captured_args['title'],
+			'Template title must be "Event Album (Full Screen)".'
+		);
+		$this->assertArrayHasKey( 'content', $captured_args );
+		$this->assertStringContainsString(
+			'wp:post-content',
+			$captured_args['content'],
+			'Template content must include a post-content block.'
+		);
+		$this->assertStringContainsString(
+			'wp:site-logo',
+			$captured_args['content'],
+			'Template content must include a site-logo block.'
 		);
 	}
 }
