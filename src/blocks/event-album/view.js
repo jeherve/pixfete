@@ -525,7 +525,7 @@ const { state } = store('event-guest-photos-sharing', {
 		*loadMore() {
 			state.currentPage += 1;
 			const { actions } = store('event-guest-photos-sharing');
-			yield* actions.loadPhotos();
+			yield actions.loadPhotos();
 		},
 
 		/**
