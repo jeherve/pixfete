@@ -57,9 +57,11 @@ class Block {
 			. '<h2 class="wp-block-heading">' . $heading_text . '</h2>'
 			. '<!-- /wp:heading -->'
 			. '<!-- wp:event-guest-photos-sharing/event-album -->'
+			. '<div class="wp-block-event-guest-photos-sharing-event-album">'
 			. '<!-- wp:paragraph -->'
 			. '<p>' . $consent_text . '</p>'
 			. '<!-- /wp:paragraph -->'
+			. '</div>'
 			. '<!-- /wp:event-guest-photos-sharing/event-album -->'
 			. '</div>'
 			. '<!-- /wp:group -->';

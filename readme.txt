@@ -89,6 +89,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 * Fix: Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
 * Fix: The consent message now displays correctly on the front end instead of appearing blank above the "I Accept" button.
 * Fix: Returning guests who already entered their name no longer see a "CSRF token is required" error when accepting the consent message.
+* Fix: Inserting the Event Photo Album pattern no longer triggers a block validation error in the editor.
 
 = 1.0.1 =
 
