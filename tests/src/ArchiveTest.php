@@ -188,6 +188,9 @@ class ArchiveTest extends TestCase {
 		Functions\expect( 'wp_clear_scheduled_hook' )
 			->once()
 			->with( 'egps_daily_archive_check' );
+		Functions\expect( 'wp_clear_scheduled_hook' )
+			->once()
+			->with( 'egps_archive_build_batch' );
 
 		Archive::unschedule_cron();
 
@@ -392,6 +395,382 @@ class ArchiveTest extends TestCase {
 		Archive::check_events();
 
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that process_batch initializes the ZIP on a pending entry.
+	 *
+	 * Simulates a single batch that processes all attachments (fewer than batch size),
+	 * so the archive should complete in one pass.
+	 */
+	public function test_process_batch_completes_small_archive(): void {
+		$entry = array(
+			'status'      => 'pending',
+			'token'       => 'abc123def456',
+			'last_offset' => 0,
+		);
+
+		// get_option is called by get_archive and update_archive.
+		Functions\when( 'get_option' )
+			->alias(
+				function ( $name, $default = false ) use ( $entry ) {
+					if ( $name === 'egps_zip_archives' ) {
+						return array( 42 => $entry );
+					}
+					return $default;
+				}
+			);
+
+		// Directory setup — use a real temp directory so ZipArchive can write files.
+		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/egps-archives';
+		mkdir( $archive_dir, 0777, true );
+
+		$upload_dir = array(
+			'basedir' => $base_dir,
+			'baseurl' => 'https://example.com/wp-content/uploads',
+		);
+		Functions\expect( 'wp_get_upload_dir' )->andReturn( $upload_dir );
+		Functions\when( 'wp_mkdir_p' )->justReturn( true );
+
+		/**
+		 * Filter: egps_archive_directory — let it pass through.
+		 * Filter: egps_archive_batch_size — let it pass through.
+		 */
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) {
+				return $value;
+			}
+		);
+
+		// Mock attachment query — 2 attachments, under batch size.
+		$att1     = new \stdClass();
+		$att1->ID = 100;
+		$att2     = new \stdClass();
+		$att2->ID = 101;
+
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1, $att2 );
+		$GLOBALS['egps_wp_query_mock']->found_posts  = 2;
+
+		// Mock file paths — create real temp files so ZipArchive can add them.
+		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
+		$tmp2 = tempnam( sys_get_temp_dir(), 'egps' );
+		file_put_contents( $tmp1, 'fake image data 1' );
+		file_put_contents( $tmp2, 'fake image data 2' );
+
+		Functions\when( 'wp_get_original_image_path' )->alias(
+			function ( $id ) use ( $tmp1, $tmp2 ) {
+				return $id === 100 ? $tmp1 : $tmp2;
+			}
+		);
+		Functions\when( 'get_attached_file' )->alias(
+			function ( $id ) use ( $tmp1, $tmp2 ) {
+				return $id === 100 ? $tmp1 : $tmp2;
+			}
+		);
+
+		// Mock basenames for the ZIP entry names.
+		Functions\when( 'wp_basename' )->alias( 'basename' );
+
+		// Capture the final update_option call.
+		$captured_archives = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) use ( &$captured_archives ) {
+				if ( $name === 'egps_zip_archives' ) {
+					$captured_archives = $value;
+				}
+				return true;
+			}
+		);
+
+		// Should NOT reschedule since all attachments fit in one batch.
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::process_batch( 42 );
+
+		$this->assertSame( 'complete', $captured_archives[42]['status'] );
+		$this->assertArrayHasKey( 'created_at', $captured_archives[42] );
+		$this->assertArrayHasKey( 'url', $captured_archives[42] );
+		$this->assertArrayHasKey( 'file_path', $captured_archives[42] );
+		$this->assertArrayNotHasKey( 'last_offset', $captured_archives[42] );
+
+		// Clean up temp files.
+		@unlink( $tmp1 );
+		@unlink( $tmp2 );
+		// Clean up the generated ZIP and temp directory.
+		if ( isset( $captured_archives[42]['file_path'] ) && file_exists( $captured_archives[42]['file_path'] ) ) {
+			@unlink( $captured_archives[42]['file_path'] );
+		}
+		@unlink( $archive_dir . '/index.php' );
+		@rmdir( $archive_dir );
+		@rmdir( $base_dir );
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+	}
+
+	/**
+	 * Test that process_batch reschedules when more attachments remain.
+	 */
+	public function test_process_batch_reschedules_for_remaining_attachments(): void {
+		// Use a real temp directory so ZipArchive can write files.
+		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/egps-archives';
+		mkdir( $archive_dir, 0777, true );
+
+		$zip_path = $archive_dir . '/egps-archive-42-abc123def456.zip';
+
+		$entry = array(
+			'status'      => 'generating',
+			'token'       => 'abc123def456',
+			'last_offset' => 0,
+			'file_path'   => $zip_path,
+			'url'         => 'https://example.com/wp-content/uploads/egps-archives/egps-archive-42-abc123def456.zip',
+		);
+
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default = false ) use ( $entry ) {
+				if ( $name === 'egps_zip_archives' ) {
+					return array( 42 => $entry );
+				}
+				return $default;
+			}
+		);
+
+		$upload_dir = array(
+			'basedir' => $base_dir,
+			'baseurl' => 'https://example.com/wp-content/uploads',
+		);
+		Functions\expect( 'wp_get_upload_dir' )->andReturn( $upload_dir );
+		Functions\when( 'wp_mkdir_p' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			function ( $tag, $value ) {
+				// Use a tiny batch size so we trigger rescheduling with just 2 found.
+				if ( $tag === 'egps_archive_batch_size' ) {
+					return 1;
+				}
+				return $value;
+			}
+		);
+
+		// 1 attachment in this batch, but 2 total.
+		$att1     = new \stdClass();
+		$att1->ID = 100;
+
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1 );
+		$GLOBALS['egps_wp_query_mock']->found_posts  = 2;
+
+		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
+		file_put_contents( $tmp1, 'fake image data' );
+		Functions\when( 'wp_get_original_image_path' )->justReturn( $tmp1 );
+		Functions\when( 'get_attached_file' )->justReturn( $tmp1 );
+		Functions\when( 'wp_basename' )->alias( 'basename' );
+
+		$captured_archives = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) use ( &$captured_archives ) {
+				if ( $name === 'egps_zip_archives' ) {
+					$captured_archives = $value;
+				}
+				return true;
+			}
+		);
+
+		// Should reschedule for the next batch.
+		Functions\expect( 'wp_schedule_single_event' )
+			->once()
+			->withArgs(
+				function ( $timestamp, $hook, $args ) {
+					return $hook === 'egps_archive_build_batch'
+						&& $args === array( 42 );
+				}
+			);
+
+		Archive::process_batch( 42 );
+
+		$this->assertSame( 'generating', $captured_archives[42]['status'] );
+		$this->assertSame( 1, $captured_archives[42]['last_offset'] );
+
+		@unlink( $tmp1 );
+		if ( isset( $captured_archives[42]['file_path'] ) && file_exists( $captured_archives[42]['file_path'] ) ) {
+			@unlink( $captured_archives[42]['file_path'] );
+		}
+		@unlink( $archive_dir . '/index.php' );
+		@rmdir( $archive_dir );
+		@rmdir( $base_dir );
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+	}
+
+	/**
+	 * Test that process_batch skips missing files without failing.
+	 */
+	public function test_process_batch_skips_missing_files(): void {
+		$entry = array(
+			'status'      => 'pending',
+			'token'       => 'abc123def456',
+			'last_offset' => 0,
+		);
+
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default = false ) use ( $entry ) {
+				if ( $name === 'egps_zip_archives' ) {
+					return array( 42 => $entry );
+				}
+				return $default;
+			}
+		);
+
+		// Use a real temp directory so ZipArchive can write files.
+		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/egps-archives';
+		mkdir( $archive_dir, 0777, true );
+
+		$upload_dir = array(
+			'basedir' => $base_dir,
+			'baseurl' => 'https://example.com/wp-content/uploads',
+		);
+		Functions\expect( 'wp_get_upload_dir' )->andReturn( $upload_dir );
+		Functions\when( 'wp_mkdir_p' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias( fn( $tag, $value ) => $value );
+
+		$att1     = new \stdClass();
+		$att1->ID = 100;
+
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1 );
+		$GLOBALS['egps_wp_query_mock']->found_posts  = 1;
+
+		// Return a path that does not exist.
+		Functions\when( 'wp_get_original_image_path' )->justReturn( '/nonexistent/image.jpg' );
+		Functions\when( 'get_attached_file' )->justReturn( '/nonexistent/image.jpg' );
+		Functions\when( 'wp_basename' )->alias( 'basename' );
+
+		$captured_archives = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) use ( &$captured_archives ) {
+				if ( $name === 'egps_zip_archives' ) {
+					$captured_archives = $value;
+				}
+				return true;
+			}
+		);
+
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::process_batch( 42 );
+
+		// Should still complete even though the file was skipped.
+		$this->assertSame( 'complete', $captured_archives[42]['status'] );
+
+		// Clean up temp directory.
+		if ( isset( $captured_archives[42]['file_path'] ) && file_exists( $captured_archives[42]['file_path'] ) ) {
+			@unlink( $captured_archives[42]['file_path'] );
+		}
+		@unlink( $archive_dir . '/index.php' );
+		@rmdir( $archive_dir );
+		@rmdir( $base_dir );
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+	}
+
+	/**
+	 * Test that duplicate basenames get the attachment ID appended.
+	 */
+	public function test_process_batch_deduplicates_filenames(): void {
+		$entry = array(
+			'status'      => 'pending',
+			'token'       => 'abc123def456',
+			'last_offset' => 0,
+		);
+
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default = false ) use ( $entry ) {
+				if ( $name === 'egps_zip_archives' ) {
+					return array( 42 => $entry );
+				}
+				return $default;
+			}
+		);
+
+		// Use a real temp directory so ZipArchive can write files.
+		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/egps-archives';
+		mkdir( $archive_dir, 0777, true );
+
+		$upload_dir = array(
+			'basedir' => $base_dir,
+			'baseurl' => 'https://example.com/wp-content/uploads',
+		);
+		Functions\expect( 'wp_get_upload_dir' )->andReturn( $upload_dir );
+		Functions\when( 'wp_mkdir_p' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias( fn( $tag, $value ) => $value );
+
+		// Two attachments with the same basename.
+		$att1     = new \stdClass();
+		$att1->ID = 100;
+		$att2     = new \stdClass();
+		$att2->ID = 101;
+
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1, $att2 );
+		$GLOBALS['egps_wp_query_mock']->found_posts  = 2;
+
+		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
+		$tmp2 = tempnam( sys_get_temp_dir(), 'egps' );
+		file_put_contents( $tmp1, 'image data 1' );
+		file_put_contents( $tmp2, 'image data 2' );
+
+		// Both return the same basename.
+		Functions\when( 'wp_get_original_image_path' )->alias(
+			fn( $id ) => $id === 100 ? $tmp1 : $tmp2
+		);
+		Functions\when( 'get_attached_file' )->alias(
+			fn( $id ) => $id === 100 ? $tmp1 : $tmp2
+		);
+		// Force both to return the same name.
+		Functions\when( 'wp_basename' )->justReturn( 'IMG_0001.jpg' );
+
+		$captured_archives = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) use ( &$captured_archives ) {
+				if ( $name === 'egps_zip_archives' ) {
+					$captured_archives = $value;
+				}
+				return true;
+			}
+		);
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		Archive::process_batch( 42 );
+
+		// Verify the ZIP was created and contains 2 entries with different names.
+		$zip_path = $captured_archives[42]['file_path'] ?? '';
+		$this->assertFileExists( $zip_path );
+
+		$zip = new \ZipArchive();
+		$zip->open( $zip_path );
+		$this->assertSame( 2, $zip->numFiles );
+
+		$names = array();
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$names[] = $zip->getNameIndex( $i );
+		}
+		$zip->close();
+
+		// First keeps original name, second gets ID suffix.
+		$this->assertContains( 'IMG_0001.jpg', $names );
+		$this->assertContains( 'IMG_0001-101.jpg', $names );
+
+		@unlink( $tmp1 );
+		@unlink( $tmp2 );
+		@unlink( $zip_path );
+		@unlink( $archive_dir . '/index.php' );
+		@rmdir( $archive_dir );
+		@rmdir( $base_dir );
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
 	}
 
 	/**
