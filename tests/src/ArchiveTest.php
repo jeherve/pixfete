@@ -142,6 +142,59 @@ class ArchiveTest extends TestCase {
 	}
 
 	/**
+	 * Test that schedule_cron registers the daily event when not already scheduled.
+	 */
+	public function test_schedule_cron_registers_daily_event(): void {
+		Functions\expect( 'wp_next_scheduled' )
+			->once()
+			->with( 'egps_daily_archive_check' )
+			->andReturn( false );
+
+		Functions\expect( 'wp_schedule_event' )
+			->once()
+			->withArgs(
+				function ( $timestamp, $recurrence, $hook ) {
+					return is_int( $timestamp )
+						&& $recurrence === 'daily'
+						&& $hook === 'egps_daily_archive_check';
+				}
+			);
+
+		Archive::schedule_cron();
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that schedule_cron does not double-schedule when already registered.
+	 */
+	public function test_schedule_cron_skips_when_already_scheduled(): void {
+		Functions\expect( 'wp_next_scheduled' )
+			->once()
+			->with( 'egps_daily_archive_check' )
+			->andReturn( 1742900000 );
+
+		Functions\expect( 'wp_schedule_event' )->never();
+
+		Archive::schedule_cron();
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that unschedule_cron clears the scheduled hook.
+	 */
+	public function test_unschedule_cron_clears_hook(): void {
+		Functions\expect( 'wp_clear_scheduled_hook' )
+			->once()
+			->with( 'egps_daily_archive_check' );
+
+		Archive::unschedule_cron();
+
+		$this->assertTrue( true );
+	}
+
+	/**
 	 * Test that delete_archive removes an entry.
 	 */
 	public function test_delete_archive_removes_entry(): void {

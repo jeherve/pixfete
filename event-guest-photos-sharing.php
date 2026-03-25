@@ -33,3 +33,8 @@ add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Block::class, 're
 add_action( 'rest_api_init', array( new \Jeherve\Event_Guest_Photos_Sharing\REST(), 'register_routes' ) );
 add_action( 'admin_menu', array( \Jeherve\Event_Guest_Photos_Sharing\Admin::class, 'register_menu' ) );
 add_action( 'admin_enqueue_scripts', array( \Jeherve\Event_Guest_Photos_Sharing\Admin::class, 'enqueue_scripts' ) );
+add_action( \Jeherve\Event_Guest_Photos_Sharing\Archive::DAILY_HOOK, array( \Jeherve\Event_Guest_Photos_Sharing\Archive::class, 'check_events' ) );
+add_action( \Jeherve\Event_Guest_Photos_Sharing\Archive::BATCH_HOOK, array( \Jeherve\Event_Guest_Photos_Sharing\Archive::class, 'process_batch' ) );
+
+register_activation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Archive::class, 'schedule_cron' ) );
+register_deactivation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Archive::class, 'unschedule_cron' ) );

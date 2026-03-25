@@ -21,6 +21,20 @@ defined( 'ABSPATH' ) || exit;
 class Archive {
 
 	/**
+	 * Cron hook name for the daily archive check.
+	 *
+	 * @var string
+	 */
+	public const DAILY_HOOK = 'egps_daily_archive_check';
+
+	/**
+	 * Cron hook name for processing a single batch of attachments.
+	 *
+	 * @var string
+	 */
+	public const BATCH_HOOK = 'egps_archive_build_batch';
+
+	/**
 	 * Option name for storing archive metadata keyed by page ID.
 	 *
 	 * @var string
@@ -74,5 +88,28 @@ class Archive {
 		$archives = self::get_archives();
 		unset( $archives[ $page_id ] );
 		update_option( self::OPTION_NAME, $archives );
+	}
+
+	/**
+	 * Schedule the daily archive check cron event.
+	 *
+	 * Called on plugin activation. Registers a daily recurring event
+	 * that scans for completed events needing ZIP generation.
+	 */
+	public static function schedule_cron(): void {
+		if ( wp_next_scheduled( self::DAILY_HOOK ) ) {
+			return;
+		}
+
+		wp_schedule_event( time(), 'daily', self::DAILY_HOOK );
+	}
+
+	/**
+	 * Remove the daily archive check cron event.
+	 *
+	 * Called on plugin deactivation to clean up scheduled events.
+	 */
+	public static function unschedule_cron(): void {
+		wp_clear_scheduled_hook( self::DAILY_HOOK );
 	}
 }
