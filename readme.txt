@@ -96,6 +96,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 = 1.1.1 =
 
 * Improved: The event page template now uses your theme's own colors and spacing instead of a fixed dark background, so it blends naturally with any theme.
+* Improved: The photo upload button now only appears on mobile devices, where guests are most likely to snap and share photos.
 * Removed: The "Event Photo Album" block pattern has been removed — use the "Event Album (Full Screen)" page template instead for a quicker setup.
 
 = 1.1.0 =

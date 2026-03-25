@@ -133,10 +133,15 @@
 		bottom: 20px;
 		right: 20px;
 		z-index: 99999;
-		display: flex;
+		display: none; // Hidden on desktop — the FAB is meant for mobile guests uploading from their phones.
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 12px;
+
+		// Show the FAB only on narrow (mobile) viewports.
+		@media (max-width: 600px) {
+			display: flex;
+		}
 
 		&[hidden] {
 			display: none;
