@@ -14,11 +14,12 @@ __tests__
 /playwright-report
 /test-results
 
-# JS source files (PHP files in src/ are needed at runtime)
+# Admin JS source files (built into build/admin.js; not needed at runtime)
 /src/admin
-/src/blocks/event-album/*.js
-/src/blocks/event-album/*.scss
-/src/blocks/event-album/block.json
+
+# Block source JS/SCSS are intentionally kept — WordPress.org i18n tooling
+# (wp i18n make-pot / make-json) needs the raw source files to extract
+# translatable strings from JS.
 
 # Files
 webpack.config.js
