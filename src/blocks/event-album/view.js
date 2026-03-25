@@ -217,6 +217,9 @@ const { state } = store('event-guest-photos-sharing', {
 		 * @return {string} Banner text with current/total count.
 		 */
 		get uploadBannerText() {
+			if ( ! state.uploadTotal ) {
+				return '';
+			}
 			return `Uploading photo ${state.uploadCurrent} of ${state.uploadTotal}\u2026`;
 		},
 	},
