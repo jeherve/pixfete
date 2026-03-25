@@ -607,7 +607,9 @@ const { state } = store('event-guest-photos-sharing', {
 		 * Handle file selection for photo uploads.
 		 *
 		 * Uploads each selected file individually via the REST endpoint.
-		 * On success, prepends the new photo to the gallery.
+		 * Tracks progress via uploadTotal/uploadCurrent state for the
+		 * progress banner. Errors are collected and shown as a summary
+		 * after the entire batch completes.
 		 *
 		 * @param {Event} event The change event from the file input.
 		 */
@@ -617,10 +619,24 @@ const { state } = store('event-guest-photos-sharing', {
 				return;
 			}
 
+			// Guard against concurrent batches — if an upload is already
+			// in progress, ignore this file selection entirely.
+			if (state.isUploading) {
+				return;
+			}
+
+			const totalFiles = files.length;
+			state.uploadTotal = totalFiles;
+			state.uploadCurrent = 1;
+			state.uploadErrors = [];
 			state.errorMessage = '';
 			const ctx = getContext();
 
+			let index = 0;
 			for (const file of files) {
+				index++;
+				state.uploadCurrent = index;
+
 				try {
 					const formData = new FormData();
 					formData.append('photo', file);
@@ -633,7 +649,10 @@ const { state } = store('event-guest-photos-sharing', {
 
 					if (!response.ok) {
 						const errorData = yield response.json();
-						state.errorMessage = errorData.message || 'Upload failed. Please try again.';
+						state.uploadErrors = [
+							...state.uploadErrors,
+							errorData.message || 'Upload failed. Please try again.',
+						];
 						continue;
 					}
 
@@ -647,8 +666,22 @@ const { state } = store('event-guest-photos-sharing', {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
 				} catch {
-					state.errorMessage = 'Upload failed. Please check your connection and try again.';
+					state.uploadErrors = [
+						...state.uploadErrors,
+						'Upload failed. Please check your connection and try again.',
+					];
 				}
+			}
+
+			// Reset upload progress state.
+			state.uploadTotal = 0;
+			state.uploadCurrent = 0;
+
+			// Show error summary if any uploads failed.
+			if (state.uploadErrors.length === 1) {
+				state.errorMessage = state.uploadErrors[0];
+			} else if (state.uploadErrors.length > 1) {
+				state.errorMessage = `${state.uploadErrors.length} of ${totalFiles} photos failed to upload.`;
 			}
 
 			// Reset the file input so the same file can be selected again.
