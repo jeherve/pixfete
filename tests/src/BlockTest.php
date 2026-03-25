@@ -66,7 +66,7 @@ class BlockTest extends TestCase {
 		Functions\expect( 'register_block_pattern' )
 			->once();
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -101,7 +101,7 @@ class BlockTest extends TestCase {
 		Functions\expect( 'register_block_pattern' )
 			->once();
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -142,7 +142,7 @@ class BlockTest extends TestCase {
 				}
 			);
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -175,7 +175,7 @@ class BlockTest extends TestCase {
 				}
 			);
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -209,7 +209,7 @@ class BlockTest extends TestCase {
 				}
 			);
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -243,7 +243,7 @@ class BlockTest extends TestCase {
 				}
 			);
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -277,7 +277,7 @@ class BlockTest extends TestCase {
 				}
 			);
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -307,7 +307,7 @@ class BlockTest extends TestCase {
 				}
 			);
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once();
 
 		Block::register();
@@ -322,9 +322,9 @@ class BlockTest extends TestCase {
 	// ─── §6d: Template registration ─────────────────────────────────
 
 	/**
-	 * Test that register() calls wp_register_block_template for the event album template.
+	 * Test that register() calls register_block_template for the event album template.
 	 */
-	public function test_register_calls_wp_register_block_template(): void {
+	public function test_register_calls_register_block_template(): void {
 		$captured_id   = null;
 		$captured_args = null;
 
@@ -337,7 +337,7 @@ class BlockTest extends TestCase {
 		Functions\expect( 'register_block_pattern' )
 			->once();
 
-		Functions\expect( 'wp_register_block_template' )
+		Functions\expect( 'register_block_template' )
 			->once()
 			->withArgs(
 				function ( $id, $args ) use ( &$captured_id, &$captured_args ) {

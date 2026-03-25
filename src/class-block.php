@@ -85,7 +85,7 @@ class Block {
 
 		// 4. Register the full-screen page template.
 		$template_content = (string) file_get_contents( EGPS_PLUGIN_DIR . 'templates/page-event-album.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
-		wp_register_block_template(
+		register_block_template(
 			'event-guest-photos-sharing//' . self::TEMPLATE_SLUG,
 			array(
 				'title'       => esc_html__( 'Event Album (Full Screen)', 'event-guest-photos-sharing' ),
