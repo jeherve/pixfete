@@ -22,6 +22,7 @@ __tests__
 # translatable strings from JS.
 
 # Files
+jest.config.js
 webpack.config.js
 .wp-env.json
 .distignore

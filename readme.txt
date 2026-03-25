@@ -93,6 +93,12 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
+= 1.2.0 - TBD =
+
+**Added**
+
+* Photo archives are now automatically generated as ZIP files after events end, and can be downloaded from the settings page.
+
 = 1.1.1 - 2026-03-25 =
 
 **Changed**
