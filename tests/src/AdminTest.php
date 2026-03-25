@@ -44,13 +44,13 @@ class AdminTest extends TestCase {
 	}
 
 	/**
-	 * Test that register_menu() calls add_management_page with the correct slug and capability.
+	 * Test that register_menu() calls add_options_page with the correct slug and capability.
 	 */
-	public function test_register_menu_calls_add_management_page(): void {
+	public function test_register_menu_calls_add_options_page(): void {
 		$captured_slug       = null;
 		$captured_capability = null;
 
-		Functions\expect( 'add_management_page' )
+		Functions\expect( 'add_options_page' )
 			->once()
 			->withArgs(
 				function ( $page_title, $menu_title, $capability, $slug, $callback ) use ( &$captured_slug, &$captured_capability ) {
@@ -59,11 +59,11 @@ class AdminTest extends TestCase {
 					return true;
 				}
 			)
-			->andReturn( 'tools_page_event-qr-codes' );
+			->andReturn( 'settings_page_event-guest-photos-sharing' );
 
 		Admin::register_menu();
 
-		$this->assertSame( 'event-qr-codes', $captured_slug );
+		$this->assertSame( 'event-guest-photos-sharing', $captured_slug );
 		$this->assertSame( 'manage_options', $captured_capability );
 	}
 
@@ -177,7 +177,7 @@ class AdminTest extends TestCase {
 				}
 			);
 
-		Admin::enqueue_scripts( 'tools_page_event-qr-codes' );
+		Admin::enqueue_scripts( 'settings_page_event-guest-photos-sharing' );
 
 		// Mockery enforces the ->once() and ->withArgs() expectations above.
 		$this->assertTrue( true );

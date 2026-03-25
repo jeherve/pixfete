@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin class — registers the Tools > Event QR Codes page.
+ * Admin class — registers the Settings > Event Guest Photos Sharing page.
  *
  * @package Jeherve\Event_Guest_Photos_Sharing
  */
@@ -16,16 +16,16 @@ defined( 'ABSPATH' ) || exit;
  */
 class Admin {
 
-	private const MENU_SLUG     = 'event-qr-codes';
+	private const MENU_SLUG     = 'event-guest-photos-sharing';
 	private const SCRIPT_HANDLE = 'egps-qr-admin';
 
 	/**
-	 * Register the page under Tools in the WP admin menu.
+	 * Register the page under Settings in the WP admin menu.
 	 */
 	public static function register_menu(): void {
-		add_management_page(
-			__( 'Event QR Codes', 'event-guest-photos-sharing' ),
-			__( 'Event QR Codes', 'event-guest-photos-sharing' ),
+		add_options_page(
+			__( 'Event Guest Photos Sharing', 'event-guest-photos-sharing' ),
+			__( 'Event Guest Photos Sharing', 'event-guest-photos-sharing' ),
 			'manage_options',
 			self::MENU_SLUG,
 			array( static::class, 'render_page' )
@@ -45,7 +45,7 @@ class Admin {
 	 * @param string $hook_suffix The current admin page hook suffix.
 	 */
 	public static function enqueue_scripts( string $hook_suffix ): void {
-		if ( 'tools_page_' . self::MENU_SLUG !== $hook_suffix ) {
+		if ( 'settings_page_' . self::MENU_SLUG !== $hook_suffix ) {
 			return;
 		}
 

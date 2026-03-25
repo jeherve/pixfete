@@ -58,6 +58,7 @@ export function AdminPage() {
 
 	return (
 		<div className="egps-qr-admin">
+			<h2>{__('QR Code Generator', 'event-guest-photos-sharing')}</h2>
 			<PageSelector pages={pages} selectedPageId={selectedPageId} onChange={handlePageChange} />
 			<div className="egps-qr-admin-columns">
 				<QrConfigPanel page={selectedPage} config={configWithLogo} onConfigChange={setConfig} />
