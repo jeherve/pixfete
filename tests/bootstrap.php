@@ -266,3 +266,4 @@ require_once dirname( __DIR__ ) . '/src/class-upload.php';
 require_once dirname( __DIR__ ) . '/src/class-rest.php';
 require_once dirname( __DIR__ ) . '/src/class-block.php';
 require_once dirname( __DIR__ ) . '/src/class-admin.php';
+require_once dirname( __DIR__ ) . '/src/class-archive.php';
