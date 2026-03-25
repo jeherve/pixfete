@@ -86,6 +86,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 = 1.1.0 =
 
+* New: You can now see upload progress when sharing photos — a banner shows which photo is being uploaded and how many remain.
 * New: The photo gallery now feels more immersive on mobile — photos are larger and fill the screen edge-to-edge, inspired by popular photo gallery apps.
 * New: Upload buttons are now a floating action button that stays visible as you scroll through photos, making it easier to share your pictures at any time.
 * New: A new "Event Album (Full Screen)" page template is available in the site editor — it removes the header, footer, and sidebar for a distraction-free photo browsing experience.
