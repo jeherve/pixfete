@@ -86,6 +86,13 @@
 	text-align: center;
 }
 
+.egps-archive-section {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 20px;
+	margin-top: 16px;
+}
+
 @media ( max-width: 782px ) {
 
 	.egps-qr-admin-columns {

@@ -3,6 +3,7 @@ import { __ } from '@wordpress/i18n';
 import { PageSelector } from './PageSelector';
 import { QrConfigPanel } from './QrConfigPanel';
 import { QrPreview } from './QrPreview';
+import { ArchiveStatus } from './ArchiveStatus';
 import { buildUrl } from '../utils/build-url';
 
 const DEFAULT_CONFIG = {
@@ -58,8 +59,9 @@ export function AdminPage() {
 
 	return (
 		<div className="egps-qr-admin">
-			<h2>{__('QR Code Generator', 'event-guest-photos-sharing')}</h2>
 			<PageSelector pages={pages} selectedPageId={selectedPageId} onChange={handlePageChange} />
+
+			<h2>{__('QR Code Generator', 'event-guest-photos-sharing')}</h2>
 			<div className="egps-qr-admin-columns">
 				<QrConfigPanel page={selectedPage} config={configWithLogo} onConfigChange={setConfig} />
 				<QrPreview
@@ -68,6 +70,11 @@ export function AdminPage() {
 					tableName={config.includeTable ? config.tableName : ''}
 					config={configWithLogo}
 				/>
+			</div>
+
+			<h2>{__('Photo Archive', 'event-guest-photos-sharing')}</h2>
+			<div className="egps-archive-section">
+				<ArchiveStatus archive={selectedPage.archive} dateRangeEnd={selectedPage.dateRangeEnd || ''} />
 			</div>
 		</div>
 	);
