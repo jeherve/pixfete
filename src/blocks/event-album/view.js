@@ -88,6 +88,7 @@ const { state } = store('event-guest-photos-sharing', {
 		consentNonce: '',
 		lightboxOpen: false,
 		lightboxPhoto: { full: '', guest_name: '' },
+		fabOpen: false,
 		latestUploadedAt: 0,
 		pollingId: 0,
 
@@ -134,6 +135,18 @@ const { state } = store('event-guest-photos-sharing', {
 		 */
 		get isGalleryView() {
 			return state.currentView === 'gallery';
+		},
+
+		/**
+		 * Whether the FAB should be visible.
+		 *
+		 * Hidden when uploads are disabled (outside date range),
+		 * when the lightbox is open, or when not in gallery view.
+		 *
+		 * @return {boolean} True if FAB should be shown.
+		 */
+		get showFab() {
+			return state.isGalleryView && state.isUploadEnabled && !state.lightboxOpen;
 		},
 
 		/**
@@ -647,6 +660,62 @@ const { state } = store('event-guest-photos-sharing', {
 			}
 			state.lightboxOpen = false;
 			state.lightboxPhoto = { full: '', guest_name: '' };
+		},
+
+		/**
+		 * Toggle the FAB expanded/collapsed state.
+		 */
+		toggleFab() {
+			state.fabOpen = !state.fabOpen;
+			if (state.fabOpen) {
+				// Move focus to first sub-button after the DOM updates.
+				window.requestAnimationFrame(() => {
+					const firstBtn = document.querySelector('.egps-fab-menu .egps-fab-btn');
+					if (firstBtn) {
+						firstBtn.focus();
+					}
+				});
+			}
+		},
+
+		/**
+		 * Close the FAB menu.
+		 */
+		closeFab() {
+			state.fabOpen = false;
+			// Return focus to the main FAB button.
+			const mainBtn = document.querySelector('.egps-fab-btn--main');
+			if (mainBtn) {
+				mainBtn.focus();
+			}
+		},
+
+		/**
+		 * Handle Escape key press to close the FAB.
+		 *
+		 * @param {KeyboardEvent} event The keydown event.
+		 */
+		handleFabKeydown(event) {
+			if (event.key === 'Escape' && state.fabOpen) {
+				const { actions } = store('event-guest-photos-sharing');
+				actions.closeFab();
+			}
+		},
+
+		/**
+		 * Trigger the camera file input (with capture attribute).
+		 */
+		triggerCapture() {
+			state.fabOpen = false;
+			document.getElementById('egps-file-capture')?.click();
+		},
+
+		/**
+		 * Trigger the gallery file input (with multiple attribute).
+		 */
+		triggerGallery() {
+			state.fabOpen = false;
+			document.getElementById('egps-file-gallery')?.click();
 		},
 	},
 });
