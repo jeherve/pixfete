@@ -89,16 +89,10 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 * New: The photo gallery now feels more immersive on mobile — photos are larger and fill the screen edge-to-edge, inspired by popular photo gallery apps.
 * New: Upload buttons are now a floating action button that stays visible as you scroll through photos, making it easier to share your pictures at any time.
 * New: A new "Event Album (Full Screen)" page template is available in the site editor — it removes the header, footer, and sidebar for a distraction-free photo browsing experience.
-
-= 1.0.2 =
-
 * Fix: Entering a wrong password no longer locks you out with a "CSRF token is invalid" error on every subsequent attempt.
 * Fix: The consent message now displays correctly on the front end instead of appearing blank above the "I Accept" button.
 * Fix: Returning guests who already entered their name no longer see a "CSRF token is required" error when accepting the consent message.
 * Fix: Inserting the Event Photo Album pattern no longer triggers a block validation error in the editor.
-
-= 1.0.1 =
-
 * Fix: Entering a wrong event password now shows an error immediately instead of letting you continue to the name entry screen.
 * Fix: Custom consent messages entered in the block editor are now saved correctly and no longer disappear after refreshing the page.
 
