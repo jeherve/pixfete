@@ -70,9 +70,10 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 | `src/class-cookie.php` | HMAC-signed cookie management for guest sessions |
 | `src/class-rest.php` | REST API endpoints (auth, upload, gallery) |
 | `src/class-upload.php` | File upload handling and MIME type validation |
-| `src/class-admin.php` | Admin settings page with QR code generation (Settings > Event Guest Photos Sharing) |
+| `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Event Guest Photos Sharing) |
+| `src/class-archive.php` | Cron-based ZIP archive generation for completed event photos |
 | `src/blocks/event-album/` | Block assets (edit.js, view.js, render.php, block.json, styles) |
-| `src/admin/` | React app for the QR code admin page (components, utilities, styles) |
+| `src/admin/` | React app for the admin page (QR code generator, archive status, components, utilities, styles) |
 | `templates/page-event-album.html` | Full-screen page template (no header, footer, or sidebar) |
 
 ### Guest flow
@@ -98,6 +99,14 @@ The page lists all published pages containing the Event Photo Album block. For e
 - Preview the QR code live and download it as a PNG.
 
 QR codes are generated client-side using [qr-code-styling](https://www.npmjs.com/package/qr-code-styling). No data is saved — styling choices are ephemeral.
+
+#### Photo Archive
+
+After an event ends (based on the `dateRangeEnd` block attribute), the plugin automatically generates a ZIP archive containing all original, full-resolution guest photos. A daily cron job detects completed events and processes archives in batches of 50 attachments at a time, so it works reliably even on shared hosting with strict PHP time limits.
+
+Archive status is displayed in the admin page below the QR Code Generator. Admins see the current state (queued, generating, ready, or failed) and can download the ZIP once it's complete.
+
+Archives are stored in `wp-content/uploads/egps-archives/` with randomized filenames that are hard to guess. Archive metadata (status, file path, URL) is tracked in the `egps_zip_archives` WordPress option, keyed by page ID.
 
 ### Page template
 
@@ -161,6 +170,8 @@ Guest photo attachments store the following metadata:
 | `egps_honeypot_field_name` | `'email'` | Name of the honeypot form field for spam protection |
 | `egps_gallery_query_args` | WP_Query args array | Gallery endpoint query arguments |
 | `egps_photo_response` | Photo data array | Individual photo data in gallery API responses |
+| `egps_archive_batch_size` | `50` | Number of attachments processed per ZIP generation batch |
+| `egps_archive_directory` | `uploads/egps-archives/` | Absolute path to the ZIP archive storage directory |
 
 ### Actions
 

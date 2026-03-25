@@ -37,6 +37,7 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 * Customizable consent message via the block editor.
 * Optional table name tracking for seating assignments.
 * Date range support — uploads automatically stop when the event is over.
+* Automatic photo archive — after your event ends, a ZIP file with all original photos is generated automatically and available for download from the settings page.
 * Optional photo moderation — require approval before photos appear in the gallery.
 * Extensible via WordPress hooks and filters.
 
@@ -86,6 +87,10 @@ Yes, with a small amount of custom code. Developers can use the `egps_photo_requ
 = Can I hide the header and footer on the event page? =
 
 Yes. In the site editor, assign the "Event Album (Full Screen)" page template to your event page. This removes the header, footer, and sidebar so guests see only the photo album.
+
+= How do I download all photos from an event? =
+
+After your event ends (based on the end date you set in the block settings), the plugin automatically generates a ZIP file with all original, full-resolution photos. Go to Settings > Event Guest Photos Sharing, select the event page, and you'll see a "Download ZIP" button in the Photo Archive section. No action needed — the archive is created in the background after the event date passes.
 
 = Can I limit how many photos each guest uploads? =
 
