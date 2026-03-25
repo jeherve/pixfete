@@ -188,6 +188,17 @@ $egps_context = array(
 				/>
 			</div>
 
+			<?php // Upload progress banner — visible while files are uploading. ?>
+			<div
+				data-wp-bind--hidden="!state.isUploading"
+				class="egps-upload-progress"
+				role="status"
+				aria-live="polite"
+			>
+				<span class="egps-upload-progress-bar"></span>
+				<span data-wp-text="state.uploadBannerText"></span>
+			</div>
+
 			<?php // New photos banner. ?>
 			<div
 				data-wp-bind--hidden="!state.newPhotoCount"
