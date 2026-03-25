@@ -197,6 +197,10 @@ add_action( 'egps_after_photo_upload', function ( $attachment_id, $page_id ) {
 }, 10, 2 );
 ```
 
+## Credits
+
+- [QR Code Styling](https://github.com/kozakdenys/qr-code-styling) — QR code generator library, MIT license.
+
 ## License
 
 GPL-2.0-or-later
