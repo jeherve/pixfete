@@ -126,40 +126,111 @@
 		}
 	}
 
-	// ─── Upload buttons ─────────────────────────────────────────────
+	// ─── Floating Action Button ─────────────────────────────────────
 
-	.egps-upload {
+	.egps-fab-container {
+		position: fixed;
+		bottom: 20px;
+		right: 20px;
+		z-index: 99999;
 		display: flex;
-		gap: 8px;
-		padding: 16px;
-		justify-content: center;
-		flex-wrap: wrap;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 12px;
+	}
 
-		.egps-upload-btn {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			padding: 10px 20px;
-			background: #f0f0f0;
-			border: 1px solid #ddd;
-			border-radius: 6px;
-			font-size: 14px;
-			font-weight: 600;
-			cursor: pointer;
-			transition: background-color 0.15s ease;
+	.egps-fab-scrim {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.4);
+		z-index: 99998;
+	}
+
+	.egps-fab-menu {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 12px;
+		z-index: 99999;
+	}
+
+	.egps-fab-option {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		opacity: 0;
+		transform: translateY(8px);
+		animation: egps-fab-slide-up 0.2s ease forwards;
+
+		&:nth-child(1) {
+			animation-delay: 0.05s;
+		}
+
+		&:nth-child(2) {
+			animation-delay: 0.1s;
+		}
+	}
+
+	@keyframes egps-fab-slide-up {
+
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.egps-fab-label {
+		background: rgba(255, 255, 255, 0.95);
+		color: #1e1e1e;
+		padding: 8px 14px;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 500;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+		white-space: nowrap;
+		pointer-events: none;
+	}
+
+	.egps-fab-btn {
+		border: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #fff;
+		transition: background-color 0.15s ease;
+		padding: 0;
+
+		&--main {
+			width: 56px;
+			height: 56px;
+			border-radius: 50%;
+			background: #007cba;
+			box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+			z-index: 99999;
 
 			&:hover {
-				background: #e0e0e0;
+				background: #005a87;
 			}
 
-			// Hide the native file input.
-			input[type="file"] {
-				position: absolute;
-				width: 0;
-				height: 0;
-				overflow: hidden;
-				opacity: 0;
-				pointer-events: none;
+			.egps-fab-icon {
+				transition: transform 0.2s ease;
+			}
+
+			&[aria-expanded="true"] .egps-fab-icon {
+				transform: rotate(45deg);
+			}
+		}
+
+		&--secondary {
+			width: 44px;
+			height: 44px;
+			border-radius: 50%;
+			background: #007cba;
+			box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+
+			&:hover {
+				background: #005a87;
 			}
 		}
 	}
