@@ -91,6 +91,9 @@ const { state } = store('event-guest-photos-sharing', {
 		fabOpen: false,
 		latestUploadedAt: 0,
 		pollingId: 0,
+		uploadTotal: 0,
+		uploadCurrent: 0,
+		uploadErrors: [],
 
 		/**
 		 * Whether the current view is the loading view.
@@ -194,6 +197,27 @@ const { state } = store('event-guest-photos-sharing', {
 				return '1 new photo \u2014 tap to see';
 			}
 			return `${count} new photos \u2014 tap to see`;
+		},
+
+		/**
+		 * Whether an upload batch is currently in progress.
+		 *
+		 * @return {boolean} True if files are being uploaded.
+		 */
+		get isUploading() {
+			return state.uploadTotal > 0;
+		},
+
+		/**
+		 * Build the text for the upload progress banner.
+		 *
+		 * Shows which file in the batch is currently uploading,
+		 * e.g. "Uploading photo 2 of 5…".
+		 *
+		 * @return {string} Banner text with current/total count.
+		 */
+		get uploadBannerText() {
+			return `Uploading photo ${state.uploadCurrent} of ${state.uploadTotal}\u2026`;
 		},
 	},
 
