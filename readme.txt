@@ -1,10 +1,10 @@
 === Event Guest Photos Sharing ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 Requires at least: 6.9
 Requires PHP: 8.3
-Tested up to: 6.9
+Tested up to: 7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
