@@ -3,6 +3,7 @@
 /.git
 /.wordpress-org
 /tests
+__tests__
 /node_modules
 /docs
 /.superpowers
