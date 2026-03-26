@@ -171,6 +171,11 @@ class CleanupTest extends TestCase {
 			->once()
 			->with( 'egps_archive_build_batch', array( 42 ) );
 
+		// No slideshow pages reference this event.
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array() );
+
 		// The page itself must be force-deleted.
 		Functions\expect( 'wp_delete_post' )
 			->once()
@@ -197,6 +202,7 @@ class CleanupTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 2, $result['deleted_attachments'] );
 		$this->assertTrue( $result['deleted_archive'] );
+		$this->assertSame( 0, $result['deleted_slideshow_pages'] );
 		$this->assertTrue( $result['deleted_page'] );
 
 		// Verify action was fired with the right arguments.
@@ -248,6 +254,11 @@ class CleanupTest extends TestCase {
 		// wp_delete_file must never be called when there is no archive.
 		Functions\expect( 'wp_delete_file' )->never();
 
+		// No slideshow pages reference this event.
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array() );
+
 		Functions\expect( 'wp_delete_post' )->once()->with( 42, true );
 
 		Functions\expect( 'do_action' )->once()->withAnyArgs();
@@ -259,7 +270,192 @@ class CleanupTest extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( 0, $result['deleted_attachments'] );
 		$this->assertFalse( $result['deleted_archive'] );
+		$this->assertSame( 0, $result['deleted_slideshow_pages'] );
 		$this->assertTrue( $result['deleted_page'] );
+	}
+
+	/**
+	 * Test that slideshow pages referencing the deleted event are also removed.
+	 *
+	 * When a page contains an event-slideshow block whose eventPageId matches
+	 * the event being deleted, that page should be permanently deleted to
+	 * avoid orphaned slideshow pages pointing at non-existent events.
+	 */
+	public function test_delete_event_removes_slideshow_pages(): void {
+		// Make the page pass REST::validate_page().
+		Functions\expect( 'get_post_status' )->once()->with( 42 )->andReturn( 'publish' );
+		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
+		Functions\expect( 'has_block' )
+			->once()
+			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->andReturn( true );
+
+		// get_post_field is called twice: once by validate_page() and once
+		// for the slideshow page content check.
+		Functions\expect( 'get_post_field' )
+			->andReturnUsing(
+				function ( $field, $post_id ) {
+					if ( 42 === $post_id || 'post_content' === $field && 42 === $post_id ) {
+						return '<!-- wp:event-guest-photos-sharing/event-album -->';
+					}
+					if ( 200 === $post_id ) {
+						return '<!-- wp:event-guest-photos-sharing/event-slideshow {"eventPageId":42} /-->';
+					}
+					return '';
+				}
+			);
+
+		// parse_blocks is called twice: once for validate_page(), once for
+		// the slideshow page content.
+		Functions\expect( 'parse_blocks' )
+			->andReturnUsing(
+				function ( $content ) {
+					if ( str_contains( $content, 'event-album' ) ) {
+						return array(
+							array(
+								'blockName' => 'event-guest-photos-sharing/event-album',
+								'attrs'     => array(),
+							),
+						);
+					}
+					return array(
+						array(
+							'blockName'   => 'event-guest-photos-sharing/event-slideshow',
+							'attrs'       => array( 'eventPageId' => 42 ),
+							'innerBlocks' => array(),
+						),
+					);
+				}
+			);
+
+		// No attachments.
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts       = array();
+		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+
+		// No archive.
+		Functions\expect( 'get_option' )
+			->once()
+			->with( 'egps_zip_archives', array() )
+			->andReturn( array() );
+
+		Functions\expect( 'wp_delete_file' )->never();
+
+		// get_posts returns one slideshow page referencing event 42.
+		$slideshow_page     = new \stdClass();
+		$slideshow_page->ID = 200;
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array( $slideshow_page ) );
+
+		// wp_delete_post should be called twice: once for slideshow page 200,
+		// once for the event page 42.
+		$deleted_post_ids = array();
+		Functions\expect( 'wp_delete_post' )
+			->twice()
+			->withArgs(
+				function ( $id, $force ) use ( &$deleted_post_ids ) {
+					$deleted_post_ids[] = $id;
+					return true === $force;
+				}
+			);
+
+		Functions\expect( 'do_action' )->once()->withAnyArgs();
+
+		$result = Cleanup::delete_event( 42 );
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 1, $result['deleted_slideshow_pages'] );
+		$this->assertContains( 200, $deleted_post_ids, 'Slideshow page 200 should be deleted' );
+		$this->assertContains( 42, $deleted_post_ids, 'Event page 42 should be deleted' );
+	}
+
+	/**
+	 * Test that slideshow pages referencing a different event are NOT removed.
+	 *
+	 * A slideshow page whose eventPageId points to a different event must
+	 * survive the deletion of the current event. Only exact matches should
+	 * be removed.
+	 */
+	public function test_delete_event_does_not_remove_unrelated_slideshow_pages(): void {
+		// Make the page pass REST::validate_page().
+		Functions\expect( 'get_post_status' )->once()->with( 42 )->andReturn( 'publish' );
+		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
+		Functions\expect( 'has_block' )
+			->once()
+			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->andReturn( true );
+
+		Functions\expect( 'get_post_field' )
+			->andReturnUsing(
+				function ( $field, $post_id ) {
+					if ( 42 === $post_id ) {
+						return '<!-- wp:event-guest-photos-sharing/event-album -->';
+					}
+					if ( 300 === $post_id ) {
+						// This slideshow references event 99, not event 42.
+						return '<!-- wp:event-guest-photos-sharing/event-slideshow {"eventPageId":99} /-->';
+					}
+					return '';
+				}
+			);
+
+		Functions\expect( 'parse_blocks' )
+			->andReturnUsing(
+				function ( $content ) {
+					if ( str_contains( $content, 'event-album' ) ) {
+						return array(
+							array(
+								'blockName' => 'event-guest-photos-sharing/event-album',
+								'attrs'     => array(),
+							),
+						);
+					}
+					return array(
+						array(
+							'blockName'   => 'event-guest-photos-sharing/event-slideshow',
+							'attrs'       => array( 'eventPageId' => 99 ),
+							'innerBlocks' => array(),
+						),
+					);
+				}
+			);
+
+		// No attachments.
+		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
+		$GLOBALS['egps_wp_query_mock']->posts       = array();
+		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+
+		// No archive.
+		Functions\expect( 'get_option' )
+			->once()
+			->with( 'egps_zip_archives', array() )
+			->andReturn( array() );
+
+		Functions\expect( 'wp_delete_file' )->never();
+
+		// get_posts returns a slideshow page referencing a DIFFERENT event.
+		$unrelated_page     = new \stdClass();
+		$unrelated_page->ID = 300;
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array( $unrelated_page ) );
+
+		// wp_delete_post should only be called once — for the event page itself.
+		Functions\expect( 'wp_delete_post' )
+			->once()
+			->with( 42, true );
+
+		Functions\expect( 'do_action' )->once()->withAnyArgs();
+
+		$result = Cleanup::delete_event( 42 );
+
+		unset( $GLOBALS['egps_wp_query_mock'] );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $result['deleted_slideshow_pages'] );
 	}
 
 	/**
@@ -300,6 +496,12 @@ class CleanupTest extends TestCase {
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
+
+		// No slideshow pages reference this event.
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array() );
+
 		Functions\expect( 'wp_delete_post' )->once()->with( 42, true );
 
 		$action_fired   = false;
@@ -329,6 +531,7 @@ class CleanupTest extends TestCase {
 		$this->assertIsArray( $action_summary );
 		$this->assertArrayHasKey( 'deleted_attachments', $action_summary );
 		$this->assertArrayHasKey( 'deleted_archive', $action_summary );
+		$this->assertArrayHasKey( 'deleted_slideshow_pages', $action_summary );
 		$this->assertArrayHasKey( 'deleted_page', $action_summary );
 	}
 }

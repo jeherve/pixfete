@@ -35,13 +35,14 @@ class Cleanup {
 	 *
 	 * Deletes in dependency order to avoid leaving orphans if an early step
 	 * fails: attachments first (they belong to the page), then the ZIP archive
-	 * (its option entry references the page), then the page itself.
+	 * (its option entry references the page), then any slideshow pages that
+	 * reference this event, and finally the event page itself.
 	 *
 	 * After deletion, fires the `egps_after_event_cleanup` action so other
 	 * code (audit logging, cache invalidation, etc.) can react.
 	 *
 	 * @param int $page_id The event page ID to delete.
-	 * @return array{deleted_attachments: int, deleted_archive: bool, deleted_page: true}|WP_Error
+	 * @return array{deleted_attachments: int, deleted_archive: bool, deleted_slideshow_pages: int, deleted_page: true}|WP_Error
 	 *         Summary array on success, WP_Error if the page is invalid.
 	 */
 	public static function delete_event( int $page_id ): array|WP_Error {
@@ -95,16 +96,41 @@ class Cleanup {
 			wp_clear_scheduled_hook( Archive::BATCH_HOOK, array( $page_id ) );
 		}
 
-		// Step 3: Delete the event page itself.
+		// Step 3: Delete slideshow pages that reference this event.
+		// Slideshow blocks live on separate pages and reference the event via
+		// an eventPageId attribute. When the event is removed, these pages
+		// become orphans — they would render an empty or broken slideshow.
+		// We search for pages containing the slideshow block name and then
+		// verify the parsed block attributes to avoid false positives.
+		$deleted_slideshow_pages = 0;
+		$slideshow_pages         = get_posts(
+			array(
+				'post_type'   => 'page',
+				'post_status' => array( 'publish', 'draft', 'private' ),
+				'numberposts' => 100,
+				's'           => 'event-guest-photos-sharing/event-slideshow',
+			)
+		);
+		foreach ( $slideshow_pages as $slideshow_page ) {
+			$content = get_post_field( 'post_content', $slideshow_page->ID );
+			$blocks  = parse_blocks( $content );
+			if ( self::has_slideshow_for_event( $blocks, $page_id ) ) {
+				wp_delete_post( $slideshow_page->ID, true );
+				++$deleted_slideshow_pages;
+			}
+		}
+
+		// Step 4: Delete the event page itself.
 		// force=true skips the trash, matching the destructive intent of this
 		// operation. Attachments were already removed above so WordPress will
 		// not attempt to re-delete them during post deletion.
 		wp_delete_post( $page_id, true );
 
 		$summary = array(
-			'deleted_attachments' => $deleted_attachments,
-			'deleted_archive'     => $deleted_archive,
-			'deleted_page'        => true,
+			'deleted_attachments'     => $deleted_attachments,
+			'deleted_archive'         => $deleted_archive,
+			'deleted_slideshow_pages' => $deleted_slideshow_pages,
+			'deleted_page'            => true,
 		);
 
 		/**
@@ -118,12 +144,40 @@ class Cleanup {
 		 *
 		 * @param int   $page_id The deleted event page ID.
 		 * @param array $summary Deletion summary with keys:
-		 *                       - deleted_attachments (int)  Number of attachments removed.
-		 *                       - deleted_archive     (bool) Whether a ZIP archive was removed.
-		 *                       - deleted_page        (true) Always true at this point.
+		 *                       - deleted_attachments    (int)  Number of attachments removed.
+		 *                       - deleted_archive        (bool) Whether a ZIP archive was removed.
+		 *                       - deleted_slideshow_pages (int) Number of orphaned slideshow pages removed.
+		 *                       - deleted_page           (true) Always true at this point.
 		 */
 		do_action( 'egps_after_event_cleanup', $page_id, $summary );
 
 		return $summary;
+	}
+
+	/**
+	 * Recursively check if any block is a slideshow referencing the given event page.
+	 *
+	 * When deleting an event, we need to find slideshow pages that point to it.
+	 * Slideshow blocks may be nested inside group blocks, columns, or other
+	 * container blocks, so a flat search is not sufficient — we must walk the
+	 * entire inner-block tree to find matches.
+	 *
+	 * @param array $blocks  Parsed blocks array from parse_blocks().
+	 * @param int   $page_id The event page ID to match against.
+	 * @return bool True if a matching slideshow block is found.
+	 */
+	private static function has_slideshow_for_event( array $blocks, int $page_id ): bool {
+		foreach ( $blocks as $block ) {
+			if (
+				'event-guest-photos-sharing/event-slideshow' === ( $block['blockName'] ?? '' )
+				&& ( (int) ( $block['attrs']['eventPageId'] ?? 0 ) ) === $page_id
+			) {
+				return true;
+			}
+			if ( ! empty( $block['innerBlocks'] ) && self::has_slideshow_for_event( $block['innerBlocks'], $page_id ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

@@ -140,6 +140,12 @@ class RestCleanupTest extends TestCase {
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
+
+		// No slideshow pages reference this event.
+		Functions\expect( 'get_posts' )
+			->once()
+			->andReturn( array() );
+
 		Functions\expect( 'wp_delete_post' )->once()->with( 42, true );
 		Functions\expect( 'do_action' )->once()->withAnyArgs();
 
