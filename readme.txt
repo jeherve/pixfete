@@ -108,6 +108,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 **Added**
 
+* New Event Slideshow block for projecting submitted photos onto a big screen during your event. The slideshow displays photos one at a time with smooth crossfade transitions, automatically cycling through submissions as guests upload them.
 * When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
 
 **Fixed**
