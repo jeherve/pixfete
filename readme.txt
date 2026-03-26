@@ -96,6 +96,12 @@ After your event ends (based on the end date you set in the block settings), the
 
 Not by default, but developers can use the `egps_max_uploads_per_guest` filter to set per-event limits. See the README on GitHub for the full list of available hooks.
 
+== Screenshots ==
+
+1. Event page on mobile with the photo gallery and upload button.
+2. Template selection in the site editor to choose the full-screen layout.
+3. Block settings in the editor sidebar to configure the event password, date range, and table name tracking.
+
 == Changelog ==
 
 = 1.2.0 - TBD =
