@@ -4,6 +4,7 @@ import { PageSelector } from './PageSelector';
 import { QrConfigPanel } from './QrConfigPanel';
 import { QrPreview } from './QrPreview';
 import { ArchiveStatus } from './ArchiveStatus';
+import { EventCleanup } from './EventCleanup';
 import { buildUrl } from '../utils/build-url';
 
 const DEFAULT_CONFIG = {
@@ -29,6 +30,15 @@ export function AdminPage() {
 	const handlePageChange = (pageId) => {
 		setSelectedPageId(pageId);
 		setConfig({ ...DEFAULT_CONFIG });
+	};
+
+	const handleEventDeleted = (deletedPageId) => {
+		// Remove the deleted page from the pages array and select the next available page.
+		const remainingPages = pages.filter((p) => p.id !== deletedPageId);
+		// Mutate the original array so the selector updates.
+		// (pages comes from egpsQrAdmin which is a global — we replace it in place.)
+		egpsQrAdmin.pages = remainingPages;
+		setSelectedPageId(remainingPages.length ? remainingPages[0].id : null);
 	};
 
 	if (!pages.length) {
@@ -75,6 +85,15 @@ export function AdminPage() {
 			<h2>{__('Photo Archive', 'event-guest-photos-sharing')}</h2>
 			<div className="egps-archive-section">
 				<ArchiveStatus archive={selectedPage.archive} dateRangeEnd={selectedPage.dateRangeEnd || ''} />
+			</div>
+
+			<h2>{__('Event Cleanup', 'event-guest-photos-sharing')}</h2>
+			<div className="egps-cleanup-section">
+				<EventCleanup
+					pageId={selectedPage.id}
+					dateRangeEnd={selectedPage.dateRangeEnd || ''}
+					onEventDeleted={handleEventDeleted}
+				/>
 			</div>
 		</div>
 	);
