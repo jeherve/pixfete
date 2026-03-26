@@ -42,6 +42,11 @@ $egps_context = array(
 	data-wp-context='<?php echo esc_attr( wp_json_encode( $egps_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
 	<div class="egps-app">
+		<?php // Not-started view — shown when the event date hasn't arrived yet. ?>
+		<div data-wp-bind--hidden="!state.isNotStartedView" class="egps-not-started">
+			<p><?php esc_html_e( "You\u{2019}re a little early! This event hasn\u{2019}t started yet \u{2014} check back soon.", 'event-guest-photos-sharing' ); ?></p>
+		</div>
+
 		<?php // Loading view. ?>
 		<div data-wp-bind--hidden="!state.isLoadingView" class="egps-loading">
 			<p><?php esc_html_e( 'Loading…', 'event-guest-photos-sharing' ); ?></p>
