@@ -258,7 +258,6 @@ const { state } = store('event-guest-photos-sharing', {
 		 * which view to show first.
 		 */
 		init() {
-			const ctx = getContext();
 			// Read URL parameters before cleaning.
 			const url = new URL(window.location.href);
 			const keyParam = url.searchParams.get('key');
@@ -285,6 +284,9 @@ const { state } = store('event-guest-photos-sharing', {
 			}
 
 			// Read the cookie to determine initial state.
+			// ctx is retrieved here (after the early return) to satisfy the
+			// no-unused-vars-before-return lint rule.
+			const ctx = getContext();
 			const cookie = readCookie(ctx.pageId);
 
 			if (cookie && cookie.consent === true) {

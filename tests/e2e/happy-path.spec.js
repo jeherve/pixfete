@@ -172,3 +172,76 @@ test.describe('Event Guest Photos Sharing - Happy Path', () => {
 		await expect(lightbox).toBeHidden();
 	});
 });
+
+test.describe('Event Guest Photos Sharing - Future Event', () => {
+	test('Guest sees "not yet" message for a future event', async ({ page }) => {
+		// Log in as admin to create the page.
+		await page.goto('/wp-login.php');
+		await page.fill('#user_login', 'admin');
+		await page.fill('#user_pass', 'password');
+		await page.click('#wp-submit');
+		await page.waitForURL('**/wp-admin/**');
+
+		// Get a REST nonce.
+		const nonce = await page.evaluate(async () => {
+			const response = await fetch('/wp-admin/admin-ajax.php?action=rest-nonce');
+			return response.text();
+		});
+
+		// Create a page with a future dateRangeStart.
+		const blockContent =
+			'<!-- wp:event-guest-photos-sharing/event-album {"password":"FutureTest1","dateRangeStart":"2099-12-31"} -->\n<!-- wp:paragraph -->\n<p>Consent text.</p>\n<!-- /wp:paragraph -->\n<!-- /wp:event-guest-photos-sharing/event-album -->';
+
+		const result = await page.evaluate(
+			async ({ content, wpNonce }) => {
+				const response = await fetch('/wp-json/wp/v2/pages', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-WP-Nonce': wpNonce,
+					},
+					body: JSON.stringify({
+						title: 'Future Event Test',
+						content,
+						status: 'publish',
+					}),
+				});
+				const data = await response.json();
+				return { ok: response.ok, link: data.link };
+			},
+			{ content: blockContent, wpNonce: nonce }
+		);
+
+		expect(result.ok).toBeTruthy();
+
+		// Visit as guest (new context clears admin cookies).
+		const guestContext = await page.context().browser().newContext();
+		const guestPage = await guestContext.newPage();
+
+		let loaded = false;
+		for (let attempt = 0; attempt < 3; attempt++) {
+			await guestPage.goto(result.link, { waitUntil: 'networkidle' });
+			if (
+				await guestPage
+					.locator('.egps-not-started')
+					.isVisible({ timeout: 5000 })
+					.catch(() => false)
+			) {
+				loaded = true;
+				break;
+			}
+			await guestPage.waitForTimeout(2000);
+		}
+
+		expect(loaded).toBeTruthy();
+
+		// Verify the friendly message is visible.
+		await expect(guestPage.locator('.egps-not-started')).toBeVisible();
+		await expect(guestPage.locator('.egps-not-started')).toContainText('not started yet');
+
+		// Verify no password form is shown.
+		await expect(guestPage.locator('#egps-password')).toBeHidden();
+
+		await guestContext.close();
+	});
+});
