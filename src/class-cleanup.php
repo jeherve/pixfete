@@ -89,6 +89,10 @@ class Cleanup {
 			}
 			Archive::delete_archive( $page_id );
 			$deleted_archive = true;
+
+			// Clear any scheduled batch cron jobs for this page so they don't
+			// fire after the archive and page have been deleted.
+			wp_clear_scheduled_hook( Archive::BATCH_HOOK, array( $page_id ) );
 		}
 
 		// Step 3: Delete the event page itself.

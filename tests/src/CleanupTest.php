@@ -166,6 +166,11 @@ class CleanupTest extends TestCase {
 			)
 			->andReturn( true );
 
+		// Any orphaned batch cron jobs for this page must be cleared.
+		Functions\expect( 'wp_clear_scheduled_hook' )
+			->once()
+			->with( 'egps_archive_build_batch', array( 42 ) );
+
 		// The page itself must be force-deleted.
 		Functions\expect( 'wp_delete_post' )
 			->once()
