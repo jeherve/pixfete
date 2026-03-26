@@ -1,12 +1,13 @@
 <?php
 /**
  * Register REST API endpoints for guest authentication, photo upload,
- * and gallery retrieval.
+ * gallery retrieval, and event cleanup.
  *
  * Handles the two-step auth flow: registration (password validation,
  * cookie creation) and consent (cookie update). Also handles photo
- * uploads with MIME/image validation and gallery retrieval with
- * pagination. Uses CSRF tokens stored as transients and HMAC-signed
+ * uploads with MIME/image validation, gallery retrieval with
+ * pagination, and event cleanup for removing all uploaded photos.
+ * Uses CSRF tokens stored as transients and HMAC-signed
  * cookies for stateless guest auth.
  *
  * @package Jeherve\Event_Guest_Photos_Sharing
@@ -25,7 +26,7 @@ use WP_REST_Response;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST API controller for guest authentication, photo upload, and gallery endpoints.
+ * REST API controller for guest authentication, photo upload, gallery, and event cleanup endpoints.
  */
 class REST extends WP_REST_Controller {
 
@@ -934,8 +935,6 @@ class REST extends WP_REST_Controller {
 
 		return true;
 	}
-
-	// ─── Event cleanup endpoint ─────────────────────────────────────
 
 	/**
 	 * Permission callback for the event cleanup (DELETE) endpoint.
