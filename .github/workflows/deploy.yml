@@ -15,16 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.3
-        tools: composer
-        coverage: none
-
-    - name: Install Composer dependencies
-      run: composer install --no-dev
-
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
