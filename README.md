@@ -52,7 +52,7 @@ composer run lint:fix   # PHP CodeSniffer autofix
 ### Testing
 
 ```bash
-composer phpunit        # PHP unit tests
+composer run phpunit    # PHP unit tests
 npm run test:unit       # JavaScript unit tests
 npm run test:e2e        # Playwright end-to-end tests
 npm run test:e2e:headed # E2E tests with browser visible
@@ -184,7 +184,7 @@ Guest photo attachments store the following metadata:
 | `egps_gallery_query_args` | WP_Query args array | Gallery endpoint query arguments |
 | `egps_photo_response` | Photo data array | Individual photo data in gallery API responses |
 | `egps_archive_batch_size` | `50` | Number of attachments processed per ZIP generation batch |
-| `egps_archive_directory` | `uploads/egps-archives/` | Absolute path to the ZIP archive storage directory |
+| `egps_archive_directory` | `{uploads_basedir}/egps-archives` | Absolute path to the ZIP archive storage directory |
 
 ### Actions
 

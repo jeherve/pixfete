@@ -556,18 +556,20 @@ class REST extends WP_REST_Controller {
 
 		// 7. Check per-guest upload limit.
 		$cookie_payload = Cookie::get_for_page( $page_id );
+		$guest_id       = null !== $cookie_payload ? Cookie::guest_id( $cookie_payload ) : '';
 
 		/**
 		 * Filters the maximum number of uploads per guest.
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param int $max_uploads Maximum uploads per guest. Default 0 (unlimited).
+		 * @param int    $max_uploads Maximum uploads per guest. Default 0 (unlimited).
+		 * @param string $guest_id    SHA-256 hash identifying the guest.
+		 * @param int    $page_id     The event page ID.
 		 */
-		$max_uploads = (int) apply_filters( 'egps_max_uploads_per_guest', 0 );
+		$max_uploads = (int) apply_filters( 'egps_max_uploads_per_guest', 0, $guest_id, $page_id );
 		if ( $max_uploads > 0 && null !== $cookie_payload ) {
-			$guest_id = Cookie::guest_id( $cookie_payload );
-			$query    = new WP_Query(
+			$query = new WP_Query(
 				array(
 					'post_type'      => 'attachment',
 					'post_parent'    => $page_id,
