@@ -13,6 +13,7 @@ wordpress/
 
 # Tools
 .superpowers/
+.worktrees/
 
 # Playwright
 test-results/
