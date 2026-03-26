@@ -4,10 +4,11 @@
  * @package
  */
 
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { useBlockProps, InspectorControls, InnerBlocks } from '@wordpress/block-editor';
 import { PanelBody, TextControl, ToggleControl, Button, DatePicker } from '@wordpress/components';
 import { useEffect } from '@wordpress/element';
+import { useDispatch } from '@wordpress/data';
 
 /**
  * Generate a random alphanumeric password of a given length.
@@ -22,6 +23,16 @@ function generatePassword(length = 12) {
 	const values = crypto.getRandomValues(new Uint32Array(length));
 	return Array.from(values, (v) => charset[v % charset.length]).join('');
 }
+
+/**
+ * Minimum password length enforced in the editor.
+ *
+ * This must stay in sync with the server-side default for the
+ * `egps_password_min_length` filter (currently 8).
+ *
+ * @type {number}
+ */
+const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * Template for InnerBlocks — a single paragraph with placeholder text.
@@ -50,6 +61,19 @@ export default function Edit({ attributes, setAttributes }) {
 	const { password, eventVersion, dateRangeStart, dateRangeEnd, enableTableNames } = attributes;
 
 	const blockProps = useBlockProps();
+	const { lockPostSaving, unlockPostSaving } = useDispatch('core/editor');
+	const isTooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+
+	// Lock saving when the password is too short so the admin cannot
+	// publish or update the post with an invalid password.
+	useEffect(() => {
+		if (isTooShort) {
+			lockPostSaving('egps-password-too-short');
+		} else {
+			unlockPostSaving('egps-password-too-short');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isTooShort]);
 
 	// Auto-generate password on first insertion.
 	useEffect(() => {
@@ -90,7 +114,18 @@ export default function Edit({ attributes, setAttributes }) {
 						label={__('Event Password', 'event-guest-photos-sharing')}
 						value={password}
 						onChange={(value) => setAttributes({ password: value })}
-						help={__('Guests will use this password to access the album.', 'event-guest-photos-sharing')}
+						help={
+							isTooShort
+								? sprintf(
+										/* translators: %d: minimum number of characters required for the event password */
+										__(
+											'Password must be at least %d characters. Guests will not be able to access the album until this is fixed.',
+											'event-guest-photos-sharing'
+										),
+										MIN_PASSWORD_LENGTH
+									)
+								: __('Guests will use this password to access the album.', 'event-guest-photos-sharing')
+						}
 						__nextHasNoMarginBottom
 					/>
 					<Button variant="secondary" onClick={handleRegeneratePassword} style={{ marginTop: '8px' }}>
