@@ -104,7 +104,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
-= 1.2.1 - unreleased =
+= 1.3.0 - unreleased =
 
 **Added**
 
