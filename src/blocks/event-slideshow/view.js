@@ -216,6 +216,10 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 
 				if (response.status === 401 || response.status === 403) {
 					state.currentView = 'password';
+					if (state.advanceId) {
+						clearInterval(state.advanceId);
+						state.advanceId = null;
+					}
 					return;
 				}
 
@@ -286,6 +290,10 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 						state.currentView = 'password';
 						clearInterval(state.pollingId);
 						state.pollingId = null;
+						if (state.advanceId) {
+							clearInterval(state.advanceId);
+							state.advanceId = null;
+						}
 						return;
 					}
 
@@ -294,7 +302,14 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 					}
 
 					const newPhotos = await response.json();
+
+					// If we were in backoff mode, restart polling at the normal rate.
+					const wasBackingOff = state.consecutiveFailures > 0;
 					state.consecutiveFailures = 0;
+					if (wasBackingOff && state.pollingId) {
+						clearInterval(state.pollingId);
+						state.pollingId = setInterval(poll, POLL_INTERVAL);
+					}
 
 					if (newPhotos.length === 0) {
 						return;
@@ -361,4 +376,7 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 	},
 });
 
+// Forward reference: `actions` is used inside init(), submitPassword(), etc.
+// This works because those functions are only invoked after module load completes,
+// at which point this destructuring has already run.
 const { actions } = store('event-guest-photos-sharing/slideshow');

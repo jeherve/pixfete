@@ -34,20 +34,32 @@ async function fetchEventAttributes(pageId) {
 	const { parse } = await import('@wordpress/block-serialization-default-parser');
 	const blocks = parse(content);
 
-	for (const block of blocks) {
-		if (block.blockName === 'event-guest-photos-sharing/event-album') {
-			return block.attrs;
-		}
-		if (block.innerBlocks) {
-			for (const inner of block.innerBlocks) {
-				if (inner.blockName === 'event-guest-photos-sharing/event-album') {
-					return inner.attrs;
+	/**
+	 * Recursively search a block tree for the event-album block.
+	 *
+	 * Matches the PHP-side `has_slideshow_for_event` pattern so that the
+	 * event-album block is found regardless of nesting depth (e.g. inside
+	 * Group, Columns, or other container blocks).
+	 *
+	 * @param {Array} searchBlocks Parsed blocks to search.
+	 * @return {Object|null} The event-album block's attributes, or null.
+	 */
+	function findBlockAttrs(searchBlocks) {
+		for (const block of searchBlocks) {
+			if (block.blockName === 'event-guest-photos-sharing/event-album') {
+				return block.attrs;
+			}
+			if (block.innerBlocks) {
+				const found = findBlockAttrs(block.innerBlocks);
+				if (found) {
+					return found;
 				}
 			}
 		}
+		return null;
 	}
 
-	return null;
+	return findBlockAttrs(blocks);
 }
 
 /**
