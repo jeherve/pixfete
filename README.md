@@ -68,12 +68,13 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 |------|---------|
 | `src/class-block.php` | Block registration and page template |
 | `src/class-cookie.php` | HMAC-signed cookie management for guest sessions |
-| `src/class-rest.php` | REST API endpoints (auth, upload, gallery) |
+| `src/class-rest.php` | REST API endpoints (auth, upload, gallery, cleanup) |
 | `src/class-upload.php` | File upload handling and MIME type validation |
 | `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Event Guest Photos Sharing) |
 | `src/class-archive.php` | Cron-based ZIP archive generation for completed event photos |
+| `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive) |
 | `src/blocks/event-album/` | Block assets (edit.js, view.js, render.php, block.json, styles) |
-| `src/admin/` | React app for the admin page (QR code generator, archive status, components, utilities, styles) |
+| `src/admin/` | React app for the admin page (QR code generator, archive status, event cleanup, components, utilities, styles) |
 | `templates/page-event-album.html` | Full-screen page template (no header, footer, or sidebar) |
 
 ### Guest flow
@@ -108,6 +109,17 @@ Archive status is displayed in the admin page below the QR Code Generator. Admin
 
 Archives are stored in `wp-content/uploads/egps-archives/` with randomized filenames that are hard to guess. Archive metadata (status, file path, URL) is tracked in the `egps_zip_archives` WordPress option, keyed by page ID.
 
+#### Event Cleanup
+
+Once an event has ended (or if no end date is set), a cleanup section appears below the Photo Archive. Clicking "Delete Event Data" permanently removes all traces of the event:
+
+1. All guest-uploaded photos (attachment posts and files on disk).
+2. The ZIP archive file and its option entry.
+3. Any orphaned batch cron jobs for the archive.
+4. The event page itself.
+
+This action requires the `delete_post` capability for the specific page and cannot be undone. A browser confirmation dialog is shown before proceeding.
+
 ### Page template
 
 The plugin registers an "Event Album (Full Screen)" page template (`page-event-album`) via `register_block_template()`. It shows only the site logo and page content — no header, footer, or sidebar — for a distraction-free photo browsing experience. Assign it to an event page in the site editor.
@@ -131,6 +143,7 @@ All endpoints are under the `event-guest-photos-sharing/v1` namespace.
 | POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), and consent (`action=consent`) |
 | POST | `/photos/{page_id}` | Photo upload (requires authenticated guest with consent) |
 | GET | `/photos/{page_id}` | Gallery retrieval with pagination and polling support |
+| DELETE | `/events/{page_id}` | Permanently delete an event page and all associated data (admin only) |
 
 **Gallery query parameters:**
 
@@ -178,6 +191,7 @@ Guest photo attachments store the following metadata:
 | Action | Description |
 |--------|-------------|
 | `egps_after_photo_upload` | Fires after a photo is uploaded and saved. Receives `$attachment_id`, `$page_id` |
+| `egps_after_event_cleanup` | Fires after all event data is permanently deleted. Receives `$page_id`, `$summary` |
 
 ### Examples
 
