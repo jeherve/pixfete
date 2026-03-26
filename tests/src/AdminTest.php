@@ -247,6 +247,51 @@ class AdminTest extends TestCase {
 	}
 
 	/**
+	 * Test that get_logo_data_url() detects MIME from content when wp_check_filetype()
+	 * returns an empty type string (e.g. for extensionless URLs or unrecognised file types).
+	 *
+	 * Without this detection, the data URL is generated as "data:;base64,…" (missing MIME type),
+	 * which prevents the QR code library from rendering the logo image.
+	 */
+	public function test_get_logo_data_url_detects_png_mime_from_content(): void {
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/egps-test-noext-png' );
+		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
+		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => '', 'ext' => '' ) );
+
+		$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
+		file_put_contents( '/tmp/egps-test-noext-png', $png );
+
+		$result = Admin::get_logo_data_url( 1 );
+
+		$this->assertStringStartsWith( 'data:image/png;base64,', $result );
+
+		unlink( '/tmp/egps-test-noext-png' );
+	}
+
+	/**
+	 * Test that get_logo_data_url() detects SVG content and uses the correct MIME type
+	 * when wp_check_filetype() cannot determine it from the URL.
+	 *
+	 * WordPress blocks SVG in its allowed MIME types by default, so wp_check_filetype()
+	 * returns an empty type for SVG files. Without content-based detection, the data URL
+	 * would use image/png for SVG content, causing the browser to fail loading the image.
+	 */
+	public function test_get_logo_data_url_detects_svg_mime_from_content(): void {
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/egps-test-noext-svg' );
+		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
+		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => '', 'ext' => '' ) );
+
+		$svg = '<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
+		file_put_contents( '/tmp/egps-test-noext-svg', $svg );
+
+		$result = Admin::get_logo_data_url( 1 );
+
+		$this->assertStringStartsWith( 'data:image/svg+xml;base64,', $result );
+
+		unlink( '/tmp/egps-test-noext-svg' );
+	}
+
+	/**
 	 * Test that page titles with HTML entities are decoded before passing to JavaScript.
 	 *
 	 * WordPress's get_the_title() returns HTML-encoded strings (e.g. &amp; for &).

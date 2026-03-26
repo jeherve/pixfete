@@ -134,8 +134,42 @@ class Admin {
 		}
 
 		$filetype = wp_check_filetype( $url );
-		$mime     = $filetype['type'] ?? 'image/png';
+		$mime     = ! empty( $filetype['type'] ) ? $filetype['type'] : self::detect_mime_from_content( $contents );
 		return 'data:' . $mime . ';base64,' . base64_encode( $contents ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- encoding binary image data for a data URI, not obfuscating code.
+	}
+
+	/**
+	 * Detect the MIME type from file contents by checking magic bytes and signatures.
+	 *
+	 * Used as a fallback when wp_check_filetype() cannot determine the type from the
+	 * URL alone (e.g. extensionless URLs or file types not in WordPress's allowed list).
+	 *
+	 * @param string $contents The raw file contents.
+	 * @return string The detected MIME type, defaulting to 'image/png' if unrecognised.
+	 */
+	private static function detect_mime_from_content( string $contents ): string {
+		// SVG files start with an XML declaration or an <svg tag.
+		if ( str_starts_with( $contents, '<?xml' ) || str_starts_with( $contents, '<svg' ) ) {
+			return 'image/svg+xml';
+		}
+
+		// JPEG magic bytes: FF D8 FF.
+		if ( str_starts_with( $contents, "\xFF\xD8\xFF" ) ) {
+			return 'image/jpeg';
+		}
+
+		// GIF magic bytes: GIF87a or GIF89a.
+		if ( str_starts_with( $contents, 'GIF87a' ) || str_starts_with( $contents, 'GIF89a' ) ) {
+			return 'image/gif';
+		}
+
+		// WebP magic bytes: RIFF....WEBP.
+		if ( str_starts_with( $contents, 'RIFF' ) && substr( $contents, 8, 4 ) === 'WEBP' ) {
+			return 'image/webp';
+		}
+
+		// Default to PNG (PNG magic bytes: \x89PNG, but also serves as a safe fallback).
+		return 'image/png';
 	}
 
 	/**

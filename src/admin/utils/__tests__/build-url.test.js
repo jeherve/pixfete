@@ -35,4 +35,29 @@ describe('buildUrl', () => {
 			'https://example.com/wedding/?key=secret123'
 		);
 	});
+
+	describe('plain permalink structure (query string in permalink)', () => {
+		const plainPage = {
+			permalink: 'https://example.com/?page_id=6',
+			password: 'secret123',
+		};
+
+		test('uses & separator when permalink already contains ?', () => {
+			expect(buildUrl(plainPage, { includePassword: true, includeTable: false, tableName: '' })).toBe(
+				'https://example.com/?page_id=6&key=secret123'
+			);
+		});
+
+		test('appends both params with & when permalink has query string', () => {
+			expect(buildUrl(plainPage, { includePassword: true, includeTable: true, tableName: 'Table 5' })).toBe(
+				'https://example.com/?page_id=6&key=secret123&table=Table%205'
+			);
+		});
+
+		test('returns plain permalink unchanged when no options selected', () => {
+			expect(buildUrl(plainPage, { includePassword: false, includeTable: false, tableName: '' })).toBe(
+				'https://example.com/?page_id=6'
+			);
+		});
+	});
 });

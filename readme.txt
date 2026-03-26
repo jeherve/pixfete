@@ -111,6 +111,11 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 * Photo archives are now automatically generated as ZIP files after events end, and can be downloaded from the settings page.
 * Site administrators can now permanently delete all traces of an event (page, photos, and archive) from the admin settings page.
 
+**Fixed**
+
+* QR codes now generate correctly on sites using plain permalink structures (e.g. ?page_id=6).
+* The QR code preview no longer fails to render when the site icon is an SVG image.
+
 = 1.1.1 - 2026-03-25 =
 
 **Changed**

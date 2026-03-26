@@ -9,5 +9,10 @@ export function buildUrl(page, { includePassword, includeTable, tableName }) {
 		params.push('table=' + encodeURIComponent(tableName));
 	}
 
-	return params.length ? page.permalink + '?' + params.join('&') : page.permalink;
+	if (!params.length) {
+		return page.permalink;
+	}
+
+	const separator = page.permalink.includes('?') ? '&' : '?';
+	return page.permalink + separator + params.join('&');
 }
