@@ -105,18 +105,21 @@ class Cleanup {
 		$deleted_slideshow_pages = 0;
 		$slideshow_pages         = get_posts(
 			array(
-				'post_type'   => 'page',
-				'post_status' => array( 'publish', 'draft', 'private' ),
-				'numberposts' => 100,
-				's'           => 'event-guest-photos-sharing/event-slideshow',
+				'post_type'      => 'page',
+				'post_status'    => array( 'publish', 'draft', 'private' ),
+				'numberposts'    => 100,
+				's'              => 'event-guest-photos-sharing/event-slideshow',
+				'search_columns' => array( 'post_content' ),
+				'no_found_rows'  => true,
 			)
 		);
 		foreach ( $slideshow_pages as $slideshow_page ) {
 			$content = get_post_field( 'post_content', $slideshow_page->ID );
 			$blocks  = parse_blocks( $content );
 			if ( self::has_slideshow_for_event( $blocks, $page_id ) ) {
-				wp_delete_post( $slideshow_page->ID, true );
-				++$deleted_slideshow_pages;
+				if ( false !== wp_delete_post( $slideshow_page->ID, true ) ) {
+					++$deleted_slideshow_pages;
+				}
 			}
 		}
 
