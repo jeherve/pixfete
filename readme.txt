@@ -110,6 +110,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 * Photo archives are now automatically generated as ZIP files after events end, and can be downloaded from the settings page.
 * Site administrators can now permanently delete all traces of an event (page, photos, and archive) from the admin settings page.
+* When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
 
 **Fixed**
 
