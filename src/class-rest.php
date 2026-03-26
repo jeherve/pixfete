@@ -4,7 +4,9 @@
  * gallery retrieval, and event cleanup.
  *
  * Handles the two-step auth flow: registration (password validation,
- * cookie creation) and consent (cookie update). Also handles photo
+ * cookie creation) and consent (cookie update), as well as the
+ * one-step slideshow auth flow (password validation with consent
+ * pre-granted). Also handles photo
  * uploads with MIME/image validation, gallery retrieval with
  * pagination, and event cleanup for removing all uploaded photos.
  * Uses CSRF tokens stored as transients and HMAC-signed
@@ -94,7 +96,7 @@ class REST extends WP_REST_Controller {
 	/**
 	 * Handle the auth endpoint request.
 	 *
-	 * Routes to register or consent based on the action body param.
+	 * Routes to register, consent, or slideshow_auth based on the action body param.
 	 *
 	 * @param WP_REST_Request $request The REST request.
 	 * @return array|WP_REST_Response|WP_Error Response data or error.
@@ -120,10 +122,13 @@ class REST extends WP_REST_Controller {
 			case 'consent':
 				return self::handle_consent( $request, $page_id, $page_result );
 
+			case 'slideshow_auth':
+				return self::handle_slideshow_auth( $request, $page_id, $page_result );
+
 			default:
 				return new WP_Error(
 					'egps_invalid_action',
-					'The action must be "validate_password", "register", or "consent".',
+					'The action must be "validate_password", "register", "consent", or "slideshow_auth".',
 					array( 'status' => 400 )
 				);
 		}
@@ -398,6 +403,119 @@ class REST extends WP_REST_Controller {
 		return rest_ensure_response(
 			array(
 				'state' => 'gallery',
+			)
+		);
+	}
+
+	/**
+	 * Handle the slideshow_auth action.
+	 *
+	 * Simplified auth flow for the slideshow block: validates the event
+	 * password and immediately sets a cookie with consent pre-granted.
+	 * No registration step or personal data collection is needed because
+	 * the slideshow is display-only.
+	 *
+	 * The cookie is created with guest_name='Slideshow', consent=true,
+	 * and an empty table_name. This allows the slideshow frontend to
+	 * access the gallery endpoint without a separate consent step.
+	 *
+	 * @param WP_REST_Request $request     The REST request.
+	 * @param int             $page_id     The validated page ID.
+	 * @param array           $block_attrs Block attributes from validate_page.
+	 * @return array|WP_REST_Response|WP_Error Response data or error.
+	 */
+	private static function handle_slideshow_auth( WP_REST_Request $request, int $page_id, array $block_attrs ): array|WP_REST_Response|WP_Error {
+		// 1. Verify CSRF token (one-time use — consumed on success).
+		$nonce_error = self::verify_csrf_nonce( $request, $page_id );
+		if ( null !== $nonce_error ) {
+			return $nonce_error;
+		}
+
+		// 2. Issue a fresh CSRF nonce immediately after consuming the old one.
+		$fresh_token = wp_generate_password( 32, false );
+		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+
+		// 3. Check honeypot field.
+		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+		$honeypot_value = $request->get_param( $honeypot_field );
+		if ( ! empty( $honeypot_value ) ) {
+			return new WP_Error(
+				'egps_invalid_password',
+				'The password is incorrect.',
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
+			);
+		}
+
+		// 4. Validate password is present.
+		$password = $request->get_param( 'password' );
+		if ( empty( $password ) ) {
+			return new WP_Error(
+				'egps_missing_fields',
+				'The password field is required.',
+				array(
+					'status' => 400,
+					'nonce'  => $fresh_token,
+				)
+			);
+		}
+
+		// 5. Validate password minimum length.
+		$block_password = $block_attrs['password'] ?? '';
+
+		/** This filter is documented in self::handle_register(). */
+		$min_length = (int) apply_filters( 'egps_password_min_length', 8 );
+
+		if ( strlen( $block_password ) < $min_length ) {
+			return new WP_Error(
+				'egps_invalid_password',
+				'The password is incorrect.',
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
+			);
+		}
+
+		// 6. Validate password with timing-safe comparison.
+		if ( ! hash_equals( $block_password, $password ) ) {
+			return new WP_Error(
+				'egps_invalid_password',
+				'The password is incorrect.',
+				array(
+					'status' => 403,
+					'nonce'  => $fresh_token,
+				)
+			);
+		}
+
+		// 7. Build cookie payload with pre-granted consent.
+		$event_version = $block_attrs['eventVersion'] ?? 1;
+		$now           = time();
+
+		/** This filter is documented in self::handle_register(). */
+		$expiry_duration = (int) apply_filters( 'egps_cookie_expiry_duration', 30 * DAY_IN_SECONDS );
+
+		$payload = array(
+			'page_id'       => $page_id,
+			'event_version' => $event_version,
+			'guest_name'    => 'Slideshow',
+			'table_name'    => '',
+			'consent'       => true,
+			'registered_at' => $now,
+			'expires_at'    => $now + $expiry_duration,
+		);
+
+		// 8. Sign and set cookie.
+		Cookie::set_for_page( $payload );
+
+		// 9. Return success response with the fresh nonce.
+		return rest_ensure_response(
+			array(
+				'state' => 'slideshow',
+				'nonce' => $fresh_token,
 			)
 		);
 	}

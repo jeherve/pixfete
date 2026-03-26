@@ -833,6 +833,126 @@ class RestAuthTest extends TestCase {
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
+	// ─── action=slideshow_auth ───────────────────────────────────────
+
+	/**
+	 * Test that slideshow_auth validates the password and sets a cookie
+	 * with consent=true and guest_name='Slideshow'.
+	 *
+	 * The slideshow is display-only so no personal data is collected:
+	 * consent is pre-granted and the guest name is hard-coded.
+	 */
+	public function test_slideshow_auth_sets_cookie_with_consent_true(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce-token' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'rest_ensure_response' )->alias(
+			function ( $data ) {
+				return $data;
+			}
+		);
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$GLOBALS['egps_setcookie_last_call'] = null;
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'slideshow_auth',
+				'password' => 'correct-password',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertIsArray( $response );
+		$this->assertSame( 'slideshow', $response['state'] );
+		$this->assertArrayHasKey( 'nonce', $response );
+		$this->assertSame( 'fresh-nonce-token', $response['nonce'] );
+
+		// Verify cookie was set with consent=true.
+		$call = $GLOBALS['egps_setcookie_last_call'];
+		$this->assertNotNull( $call, 'setcookie must have been called.' );
+		$this->assertSame( 'egps_42', $call['name'] );
+
+		// Decode cookie payload and verify consent is true and guest_name is 'Slideshow'.
+		$parts       = explode( '.', $call['value'] );
+		$base64      = strtr( $parts[0], '-_', '+/' );
+		$json        = base64_decode( $base64, true );
+		$new_payload = json_decode( $json, true );
+
+		$this->assertTrue( $new_payload['consent'] );
+		$this->assertSame( 'Slideshow', $new_payload['guest_name'] );
+		$this->assertSame( '', $new_payload['table_name'] );
+	}
+
+	/**
+	 * Test that slideshow_auth rejects an incorrect password.
+	 *
+	 * Same behaviour as the register action: a wrong password returns a
+	 * 403 error with a fresh nonce so the client can retry.
+	 */
+	public function test_slideshow_auth_rejects_wrong_password(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'slideshow_auth',
+				'password' => 'wrong-password',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 403, $response->get_error_data()['status'] );
+
+		$error_data = $response->get_error_data();
+		$this->assertArrayHasKey( 'nonce', $error_data );
+	}
+
+	/**
+	 * Test that slideshow_auth rejects an empty password with a 400 error.
+	 *
+	 * An empty password is a missing-fields error, not an authentication
+	 * failure, so the status code is 400 rather than 403.
+	 */
+	public function test_slideshow_auth_rejects_empty_password(): void {
+		$this->stub_valid_page( 42, 'correct-password', 1 );
+		$this->stub_valid_nonce( 'valid-nonce-token', 42 );
+
+		Functions\when( 'wp_generate_password' )->justReturn( 'fresh-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request = $this->make_request(
+			array(
+				'page_id'  => 42,
+				'action'   => 'slideshow_auth',
+				'password' => '',
+			),
+			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+		);
+
+		$response = REST::handle_auth( $request );
+
+		$this->assertInstanceOf( WP_Error::class, $response );
+		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 400, $response->get_error_data()['status'] );
+	}
+
 	// ─── §4c: validate_page helper ────────────────────────────────────
 
 	/**
