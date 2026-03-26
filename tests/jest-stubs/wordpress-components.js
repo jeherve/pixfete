@@ -2,8 +2,10 @@
 // The actual implementation is mocked per-test with jest.mock().
 module.exports = {
 	Button: () => null,
+	DatePicker: () => null,
 	Spinner: () => null,
 	TextControl: () => null,
+	ToggleControl: () => null,
 	SelectControl: () => null,
 	CheckboxControl: () => null,
 	Panel: () => null,
