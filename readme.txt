@@ -115,6 +115,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 * QR codes now generate correctly on sites using plain permalink structures (e.g. ?page_id=6).
 * The QR code preview no longer fails to render when the site icon is an SVG image.
+* Event passwords shorter than 8 characters are now flagged in the editor with a clear warning, preventing a confusing "incorrect password" error for guests.
 
 = 1.1.1 - 2026-03-25 =
 
