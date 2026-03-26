@@ -105,6 +105,32 @@ const { state } = store('event-guest-photos-sharing', {
 		},
 
 		/**
+		 * Whether the event has started based on the dateStart attribute.
+		 *
+		 * Compares today's date (YYYY-MM-DD) against the block's dateStart.
+		 * If no dateStart is set, the event is considered started.
+		 *
+		 * @return {boolean} True if the event has started or no start date is set.
+		 */
+		get isEventStarted() {
+			const ctx = getContext();
+			if (!ctx.dateStart) {
+				return true;
+			}
+			const today = new Date().toISOString().substring(0, 10);
+			return today >= ctx.dateStart;
+		},
+
+		/**
+		 * Whether the current view is the "not started" view.
+		 *
+		 * @return {boolean} True if showing the "event not started" message.
+		 */
+		get isNotStartedView() {
+			return state.currentView === 'not-started';
+		},
+
+		/**
 		 * Whether the current view is the password entry view.
 		 *
 		 * @return {boolean} True if showing password form.
