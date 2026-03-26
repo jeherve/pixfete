@@ -181,18 +181,18 @@ const { state } = store('event-guest-photos-sharing', {
 		/**
 		 * Whether photo uploads are currently enabled based on the event date range.
 		 *
-		 * Checks the dateStart and dateEnd from the block context against the
-		 * current date. If no dates are set, uploads are always enabled.
+		 * Delegates the start-date check to isEventStarted to avoid duplicating
+		 * the dateStart comparison logic. Also checks dateEnd to disable uploads
+		 * once the event has ended. If no dates are set, uploads are always enabled.
 		 *
 		 * @return {boolean} True if uploads are allowed.
 		 */
 		get isUploadEnabled() {
-			const ctx = getContext();
-			const today = new Date().toISOString().substring(0, 10);
-
-			if (ctx.dateStart && today < ctx.dateStart) {
+			if (!state.isEventStarted) {
 				return false;
 			}
+			const ctx = getContext();
+			const today = new Date().toISOString().substring(0, 10);
 			if (ctx.dateEnd && today > ctx.dateEnd) {
 				return false;
 			}
@@ -276,6 +276,13 @@ const { state } = store('event-guest-photos-sharing', {
 
 			// Clean URL parameters.
 			cleanUrlParams();
+
+			// Short-circuit for future events — show a friendly message
+			// instead of the auth flow when the event hasn't started yet.
+			if (!state.isEventStarted) {
+				state.currentView = 'not-started';
+				return;
+			}
 
 			// Read the cookie to determine initial state.
 			const cookie = readCookie(ctx.pageId);
