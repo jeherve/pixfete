@@ -29,8 +29,10 @@ require_once EGPS_PLUGIN_DIR . 'src/class-block.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-admin.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-archive.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-cleanup.php';
+require_once EGPS_PLUGIN_DIR . 'src/class-slideshow.php';
 
 add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Block::class, 'register' ) );
+add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Slideshow::class, 'register' ) );
 add_action( 'rest_api_init', array( new \Jeherve\Event_Guest_Photos_Sharing\REST(), 'register_routes' ) );
 add_action( 'admin_menu', array( \Jeherve\Event_Guest_Photos_Sharing\Admin::class, 'register_menu' ) );
 add_action( 'admin_enqueue_scripts', array( \Jeherve\Event_Guest_Photos_Sharing\Admin::class, 'enqueue_scripts' ) );

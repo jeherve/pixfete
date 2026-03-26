@@ -268,3 +268,4 @@ require_once dirname( __DIR__ ) . '/src/class-block.php';
 require_once dirname( __DIR__ ) . '/src/class-admin.php';
 require_once dirname( __DIR__ ) . '/src/class-archive.php';
 require_once dirname( __DIR__ ) . '/src/class-cleanup.php';
+require_once dirname( __DIR__ ) . '/src/class-slideshow.php';
