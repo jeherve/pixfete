@@ -104,19 +104,27 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 == Changelog ==
 
+= 1.2.1 - unreleased =
+
+**Added**
+
+* When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
+
+**Fixed**
+
+* Event passwords shorter than 8 characters are now flagged in the editor with a clear warning, preventing a confusing "incorrect password" error for guests.
+
 = 1.2.0 - 2026-03-26 =
 
 **Added**
 
 * Photo archives are now automatically generated as ZIP files after events end, and can be downloaded from the settings page.
 * Site administrators can now permanently delete all traces of an event (page, photos, and archive) from the admin settings page.
-* When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
 
 **Fixed**
 
 * QR codes now generate correctly on sites using plain permalink structures (e.g. ?page_id=6).
 * The QR code preview no longer fails to render when the site icon is an SVG image.
-* Event passwords shorter than 8 characters are now flagged in the editor with a clear warning, preventing a confusing "incorrect password" error for guests.
 
 = 1.1.1 - 2026-03-25 =
 
