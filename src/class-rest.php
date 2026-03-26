@@ -78,6 +78,16 @@ class REST extends WP_REST_Controller {
 				'permission_callback' => array( static::class, 'check_gallery_permission' ),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/events/(?P<page_id>\d+)',
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( static::class, 'handle_cleanup' ),
+				'permission_callback' => array( static::class, 'check_cleanup_permission' ),
+			)
+		);
 	}
 
 	/**
@@ -923,5 +933,68 @@ class REST extends WP_REST_Controller {
 		}
 
 		return true;
+	}
+
+	// ─── Event cleanup endpoint ─────────────────────────────────────
+
+	/**
+	 * Permission callback for the event cleanup (DELETE) endpoint.
+	 *
+	 * Verifies that the currently authenticated WordPress user holds the
+	 * delete_post capability for the target event page. This relies on the
+	 * standard WP REST nonce (X-WP-Nonce) to establish user identity — no
+	 * separate CSRF or guest-cookie mechanism is used here.
+	 *
+	 * Returning true allows WordPress to proceed to the handle_cleanup()
+	 * callback. Returning a WP_Error short-circuits the request and sends
+	 * the error response directly to the client.
+	 *
+	 * @param WP_REST_Request $request The incoming REST request, which must
+	 *                                  include a valid X-WP-Nonce header.
+	 * @return true|WP_Error True if the user has permission, WP_Error with
+	 *                        code egps_forbidden and HTTP 403 if not.
+	 */
+	public static function check_cleanup_permission( WP_REST_Request $request ): true|WP_Error {
+		$page_id = (int) $request->get_param( 'page_id' );
+
+		if ( ! current_user_can( 'delete_post', $page_id ) ) {
+			return new WP_Error(
+				'egps_forbidden',
+				'You do not have permission to delete this event.',
+				array( 'status' => 403 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Handle the event cleanup (DELETE) request.
+	 *
+	 * Delegates all deletion work to Cleanup::delete_event(), which
+	 * validates the page, removes all guest photo attachments, deletes any
+	 * ZIP archive, and permanently removes the event page itself.
+	 *
+	 * On success, returns a 200 response containing a summary array with
+	 * the counts and flags reported by Cleanup::delete_event(). On failure
+	 * (e.g., invalid page or deletion error), the WP_Error returned by
+	 * Cleanup::delete_event() is propagated directly so that WordPress can
+	 * serialise it as a standard REST error response.
+	 *
+	 * @param WP_REST_Request $request The incoming REST request. The page_id
+	 *                                  route param must match a valid, published
+	 *                                  event page containing our block.
+	 * @return WP_REST_Response|WP_Error 200 response with deletion summary on
+	 *                                    success, or a WP_Error on failure.
+	 */
+	public static function handle_cleanup( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$page_id = (int) $request->get_param( 'page_id' );
+
+		$result = Cleanup::delete_event( $page_id );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response( $result, 200 );
 	}
 }
