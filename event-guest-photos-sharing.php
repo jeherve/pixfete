@@ -4,7 +4,7 @@
  * Plugin URI: https://herve.bz/my-plugins/event-guest-photos-sharing/
  * Description: Allow your guests to share their photos of your event in a shared photo album, and display those photos live!
  * Author: Jeremy Herve
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author URI: https://herve.bzh/
  * License: GPL-2.0-or-later
  * Text Domain: event-guest-photos-sharing
@@ -18,7 +18,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EGPS_VERSION', '1.1.0' );
+define( 'EGPS_VERSION', '1.2.0' );
 define( 'EGPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EGPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

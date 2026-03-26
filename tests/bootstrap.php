@@ -27,7 +27,7 @@ if ( ! defined( 'EGPS_PLUGIN_URL' ) ) {
 }
 
 if ( ! defined( 'EGPS_VERSION' ) ) {
-	define( 'EGPS_VERSION', '1.1.0' );
+	define( 'EGPS_VERSION', '1.2.0' );
 }
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
