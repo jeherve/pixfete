@@ -1,8 +1,15 @@
-# Event Guest Photos Sharing
-
-A WordPress plugin that lets event guests share photos in a shared album — no account required.
-
-Guests enter a shared password, provide their name, accept a consent message, then upload and browse photos in a real-time gallery.
+<div align="center">
+	<img src=".wordpress-org/icon-256x256.png" width="200" height="200">
+	<h1>Posts On This Day</h1>
+	<p>
+		<b>A WordPress plugin that lets event guests share photos in a shared album — no account required.</b>
+		<br>
+		Guests enter a shared password, provide their name, accept a consent message, then upload and browse photos in a real-time gallery.
+	</p>
+	<br>
+	<br>
+	<br>
+</div>
 
 ## Requirements
 
