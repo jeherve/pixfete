@@ -66,7 +66,10 @@ npm run test:e2e:headed # E2E tests with browser visible
 
 ## Architecture
 
-The plugin registers a single block (`event-guest-photos-sharing/event-album`) and a REST API under the `event-guest-photos-sharing/v1` namespace.
+The plugin registers two blocks and a REST API under the `event-guest-photos-sharing/v1` namespace:
+
+- **Event Photo Album** (`event-guest-photos-sharing/event-album`) — the main guest-facing block for uploading and browsing photos.
+- **Event Slideshow** (`event-guest-photos-sharing/event-slideshow`) — a full-screen projection block that cycles through submitted photos with crossfade transitions.
 
 ### Source files
 
@@ -78,10 +81,13 @@ The plugin registers a single block (`event-guest-photos-sharing/event-album`) a
 | `src/class-upload.php` | File upload handling and MIME type validation |
 | `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Event Guest Photos Sharing) |
 | `src/class-archive.php` | Cron-based ZIP archive generation for completed event photos |
-| `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive) |
-| `src/blocks/event-album/` | Block assets (edit.js, view.js, render.php, block.json, styles) |
+| `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
+| `src/class-slideshow.php` | Slideshow block registration and page template |
+| `src/blocks/event-album/` | Event Photo Album block assets (edit.js, view.js, render.php, block.json, styles) |
+| `src/blocks/event-slideshow/` | Event Slideshow block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/admin/` | React app for the admin page (QR code generator, archive status, event cleanup, components, utilities, styles) |
-| `templates/page-event-album.html` | Full-screen page template (no header, footer, or sidebar) |
+| `templates/page-event-album.html` | Full-screen page template for the event album (site logo + content) |
+| `templates/page-event-slideshow.html` | Full-screen page template for the slideshow (content only, black background) |
 
 ### Guest flow
 
@@ -122,15 +128,51 @@ Once an event has ended (or if no end date is set), a cleanup section appears be
 1. All guest-uploaded photos (attachment posts and files on disk).
 2. The ZIP archive file and its option entry.
 3. Any orphaned batch cron jobs for the archive.
-4. The event page itself.
+4. Any pages containing an Event Slideshow block linked to this event.
+5. The event page itself.
 
 This action requires the `delete_post` capability for the specific page and cannot be undone. A browser confirmation dialog is shown before proceeding.
 
-### Page template
+### Page templates
 
-The plugin registers an "Event Album (Full Screen)" page template (`page-event-album`) via `register_block_template()`. It shows only the site logo and page content — no header, footer, or sidebar — for a distraction-free photo browsing experience. Assign it to an event page in the site editor.
+The plugin registers two page templates via `register_block_template()`:
 
-### Block attributes
+- **Event Album (Full Screen)** (`page-event-album`) — Shows only the site logo and page content — no header, footer, or sidebar — for a distraction-free photo browsing experience. Assign it to an event page in the site editor.
+- **Event Slideshow (Full Screen)** (`page-event-slideshow`) — Even more minimal: just the page content on a black background, optimized for projection displays. Assign it to a page containing the Event Slideshow block.
+
+### Event Slideshow block
+
+The Event Slideshow block is designed for projecting photos onto a big screen during an event. It lives on a separate page from the event album and references it via the `eventPageId` attribute.
+
+**How it works:**
+
+1. Create a new page and add the Event Slideshow block.
+2. In the block settings, select the event page containing the Event Photo Album block. The password and date range are synced automatically.
+3. Adjust the transition interval (default: 5 seconds per photo).
+4. Assign the "Event Slideshow (Full Screen)" template and open the page on the projector.
+5. Enter the event password once — the slideshow starts automatically, showing a waiting screen until the first photo arrives.
+
+**Slideshow features:**
+
+- Full-viewport display with blurred photo background (no black bars).
+- Crossfade transitions between photos (~1 second).
+- Guest name and table name displayed in a floating pill overlay.
+- 5-second polling for near-real-time photo display.
+- Automatic backoff on network failures (recovers when connection returns).
+- Respects `prefers-reduced-motion` for transitions and animations.
+
+**Slideshow block attributes:**
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `password` | string | `""` | Event password (synced from the event page) |
+| `eventVersion` | integer | `1` | Tracks password regeneration |
+| `dateRangeStart` | string | `""` | Event start date (YYYY-MM-DD) |
+| `dateRangeEnd` | string | `""` | Event end date (YYYY-MM-DD) |
+| `interval` | integer | `5` | Seconds per photo (min: 2, max: 30) |
+| `eventPageId` | integer | `0` | ID of the event page whose photos to display |
+
+### Event Photo Album block attributes
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -146,7 +188,7 @@ All endpoints are under the `event-guest-photos-sharing/v1` namespace.
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), and consent (`action=consent`) |
+| POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), consent (`action=consent`), and slideshow auth (`action=slideshow_auth`) |
 | POST | `/photos/{page_id}` | Photo upload (requires authenticated guest with consent) |
 | GET | `/photos/{page_id}` | Gallery retrieval with pagination and polling support |
 | DELETE | `/events/{page_id}` | Permanently delete an event page and all associated data (admin only) |

@@ -39,6 +39,7 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 * Date range support — uploads automatically stop when the event is over.
 * Automatic photo archive — after your event ends, a ZIP file with all original photos is generated automatically and available for download from the settings page.
 * Optional photo moderation — require approval before photos appear in the gallery.
+* Event Slideshow block — project photos onto a big screen during your event. Photos cycle one at a time with smooth crossfade transitions, automatically showing new submissions as guests upload them.
 * Extensible via WordPress hooks and filters.
 
 == Installation ==
@@ -91,6 +92,10 @@ Yes. In the site editor, assign the "Event Album (Full Screen)" page template to
 = How do I download all photos from an event? =
 
 After your event ends (based on the end date you set in the block settings), the plugin automatically generates a ZIP file with all original, full-resolution photos. Go to Settings > Event Guest Photos Sharing, select the event page, and you'll see a "Download ZIP" button in the Photo Archive section. No action needed — the archive is created in the background after the event date passes.
+
+= Can I show photos on a projector during the event? =
+
+Yes! Add the Event Slideshow block to a separate page and link it to your event page. The slideshow displays photos full-screen with crossfade transitions, automatically cycling through submissions. Set it up on a laptop connected to a projector and it runs hands-free — new photos appear as guests upload them. You can adjust how long each photo stays on screen in the block settings.
 
 = Can I limit how many photos each guest uploads? =
 
