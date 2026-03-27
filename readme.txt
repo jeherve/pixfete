@@ -8,24 +8,26 @@ Tested up to: 7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Allow guests at your event to share their photos in a shared album — no account required.
+Allow guests at your event to share their photos in a shared album — no sign-up, no app, just scan and share.
 
 == Description ==
 
-Event Guest Photos Sharing lets event and wedding planners create pages where guests can upload and browse photos without creating an account.
+Event Guest Photos Sharing lets event and wedding planners create pages where guests can upload and browse photos together — with zero friction.
+
+Guests don't need to create an account, download an app, or even know the URL. They scan a QR code at the venue (or tap a link you send via email, WhatsApp, or any messaging app) and start sharing photos right away. Nothing gets in the way.
 
 **How it works:**
 
 1. Create a page in the block editor and add the Event Photo Album block.
 2. Configure a password for the event, optionally set a date range and enable table names.
-3. Share the page URL (or a QR code with the password embedded) with your guests.
-4. Guests enter the password, provide their name, accept a consent message, then upload and view photos.
+3. Share the page with your guests — print QR codes for table cards, or send the link via email, WhatsApp, or text.
+4. Guests scan, enter their name, and start uploading and browsing photos immediately.
 
 **Features:**
 
-* Mobile-first guest experience — designed for phones at events.
-* No guest accounts required — password-based access with cookie authentication.
-* Password protection with QR code support for easy access.
+* Zero friction for guests — no account, no app install, no sign-up. Scan a QR code or tap a link and start sharing instantly.
+* Mobile-first experience — designed for phones at events.
+* Password protection with QR code support — embed the password in the QR code so guests go straight in.
 * Built-in QR code generator (Settings > Event Guest Photos Sharing) — create styled, downloadable QR codes with custom colors, corner styles, and embedded logos.
 * Real-time gallery with automatic polling for new photos.
 * Immersive photo grid — photos fill the screen edge-to-edge on mobile for a gallery-app feel.
