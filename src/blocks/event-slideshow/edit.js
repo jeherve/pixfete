@@ -1,5 +1,5 @@
 /**
- * Editor component for the Event Slideshow block.
+ * Editor component for the Live Photo Wall block.
  *
  * Provides inspector controls for selecting the parent event page (whose
  * photos will be displayed) and configuring the transition interval. When
@@ -157,7 +157,7 @@ export default function Edit({ attributes, setAttributes }) {
 						</Notice>
 					)}
 				</PanelBody>
-				<PanelBody title={__('Slideshow Settings', 'event-guest-photos-sharing')} initialOpen={true}>
+				<PanelBody title={__('Photo Wall Settings', 'event-guest-photos-sharing')} initialOpen={true}>
 					<RangeControl
 						label={__('Seconds per photo', 'event-guest-photos-sharing')}
 						value={interval}
@@ -174,11 +174,11 @@ export default function Edit({ attributes, setAttributes }) {
 
 			<Placeholder
 				icon="slides"
-				label={__('Event Slideshow', 'event-guest-photos-sharing')}
+				label={__('Live Photo Wall', 'event-guest-photos-sharing')}
 				instructions={
 					eventPageId > 0 && password
 						? __(
-								'Slideshow is configured. Photos will appear here during the event.',
+								'Photo wall is configured. Photos will appear here during the event.',
 								'event-guest-photos-sharing'
 							)
 						: __('Select an event page in the block settings to get started.', 'event-guest-photos-sharing')

@@ -39,7 +39,7 @@ Event Guest Photos Sharing lets event and wedding planners create pages where gu
 * Date range support — uploads automatically stop when the event is over.
 * Automatic photo archive — after your event ends, a ZIP file with all original photos is generated automatically and available for download from the settings page.
 * Optional photo moderation — require approval before photos appear in the gallery.
-* Event Slideshow block — project photos onto a big screen during your event. Photos cycle one at a time with smooth crossfade transitions, automatically showing new submissions as guests upload them.
+* Live Photo Wall block — project photos onto a big screen during your event. Photos cycle one at a time with smooth crossfade transitions, automatically showing new submissions as guests upload them.
 * Extensible via WordPress hooks and filters.
 
 == Installation ==
@@ -95,7 +95,7 @@ After your event ends (based on the end date you set in the block settings), the
 
 = Can I show photos on a projector during the event? =
 
-Yes! Add the Event Slideshow block to a separate page and link it to your event page. The slideshow displays photos full-screen with crossfade transitions, automatically cycling through submissions. Set it up on a laptop connected to a projector and it runs hands-free — new photos appear as guests upload them. You can adjust how long each photo stays on screen in the block settings.
+Yes! Add the Live Photo Wall block to a separate page and link it to your event page. The photo wall displays photos full-screen with crossfade transitions, automatically cycling through submissions. Set it up on a laptop connected to a projector and it runs hands-free — new photos appear as guests upload them. You can adjust how long each photo stays on screen in the block settings.
 
 = Can I limit how many photos each guest uploads? =
 
@@ -113,7 +113,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 
 **Added**
 
-* New Event Slideshow block for projecting submitted photos onto a big screen during your event. The slideshow displays photos one at a time with smooth crossfade transitions, automatically cycling through submissions as guests upload them.
+* New Live Photo Wall block for projecting submitted photos onto a big screen during your event. The photo wall displays photos one at a time with smooth crossfade transitions, automatically cycling through submissions as guests upload them.
 * When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
 
 **Fixed**

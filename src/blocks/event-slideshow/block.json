@@ -3,10 +3,10 @@
     "apiVersion": 3,
     "name": "event-guest-photos-sharing/event-slideshow",
     "version": "1.0.0",
-    "title": "Event Slideshow",
+    "title": "Live Photo Wall",
     "category": "media",
     "icon": "slides",
-    "description": "A full-screen slideshow for projecting event photos.",
+    "description": "A full-screen live photo wall for projecting event photos.",
     "textdomain": "event-guest-photos-sharing",
     "attributes": {
         "password": {

@@ -103,9 +103,9 @@ class SlideshowTest extends TestCase {
 		);
 		$this->assertArrayHasKey( 'title', $captured_args );
 		$this->assertSame(
-			'Event Slideshow (Full Screen)',
+			'Live Photo Wall (Full Screen)',
 			$captured_args['title'],
-			'Template title must be "Event Slideshow (Full Screen)".'
+			'Template title must be "Live Photo Wall (Full Screen)".'
 		);
 		$this->assertArrayHasKey( 'content', $captured_args );
 		$this->assertStringContainsString(

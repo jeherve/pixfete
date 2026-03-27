@@ -51,8 +51,8 @@ class Slideshow {
 		register_block_template(
 			'event-guest-photos-sharing//' . self::TEMPLATE_SLUG,
 			array(
-				'title'       => esc_html__( 'Event Slideshow (Full Screen)', 'event-guest-photos-sharing' ),
-				'description' => esc_html__( 'A minimal full-screen template for projecting event photos. No header or footer — just the slideshow.', 'event-guest-photos-sharing' ),
+				'title'       => esc_html__( 'Live Photo Wall (Full Screen)', 'event-guest-photos-sharing' ),
+				'description' => esc_html__( 'A minimal full-screen template for projecting event photos. No header or footer — just the photo wall.', 'event-guest-photos-sharing' ),
 				'content'     => $template_content,
 				'post_types'  => array( 'page' ),
 			)

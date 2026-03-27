@@ -69,7 +69,7 @@ npm run test:e2e:headed # E2E tests with browser visible
 The plugin registers two blocks and a REST API under the `event-guest-photos-sharing/v1` namespace:
 
 - **Event Photo Album** (`event-guest-photos-sharing/event-album`) — the main guest-facing block for uploading and browsing photos.
-- **Event Slideshow** (`event-guest-photos-sharing/event-slideshow`) — a full-screen projection block that cycles through submitted photos with crossfade transitions.
+- **Live Photo Wall** (`event-guest-photos-sharing/event-slideshow`) — a full-screen projection block that cycles through submitted photos with crossfade transitions.
 
 ### Source files
 
@@ -82,12 +82,12 @@ The plugin registers two blocks and a REST API under the `event-guest-photos-sha
 | `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Event Guest Photos Sharing) |
 | `src/class-archive.php` | Cron-based ZIP archive generation for completed event photos |
 | `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
-| `src/class-slideshow.php` | Slideshow block registration and page template |
+| `src/class-slideshow.php` | Live Photo Wall block registration and page template |
 | `src/blocks/event-album/` | Event Photo Album block assets (edit.js, view.js, render.php, block.json, styles) |
-| `src/blocks/event-slideshow/` | Event Slideshow block assets (edit.js, view.js, render.php, block.json, styles) |
+| `src/blocks/event-slideshow/` | Live Photo Wall block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/admin/` | React app for the admin page (QR code generator, archive status, event cleanup, components, utilities, styles) |
 | `templates/page-event-album.html` | Full-screen page template for the event album (site logo + content) |
-| `templates/page-event-slideshow.html` | Full-screen page template for the slideshow (content only, black background) |
+| `templates/page-event-slideshow.html` | Full-screen page template for the photo wall (content only, black background) |
 
 ### Guest flow
 
@@ -128,7 +128,7 @@ Once an event has ended (or if no end date is set), a cleanup section appears be
 1. All guest-uploaded photos (attachment posts and files on disk).
 2. The ZIP archive file and its option entry.
 3. Any orphaned batch cron jobs for the archive.
-4. Any pages containing an Event Slideshow block linked to this event.
+4. Any pages containing a Live Photo Wall block linked to this event.
 5. The event page itself.
 
 This action requires the `delete_post` capability for the specific page and cannot be undone. A browser confirmation dialog is shown before proceeding.
@@ -138,21 +138,21 @@ This action requires the `delete_post` capability for the specific page and cann
 The plugin registers two page templates via `register_block_template()`:
 
 - **Event Album (Full Screen)** (`page-event-album`) — Shows only the site logo and page content — no header, footer, or sidebar — for a distraction-free photo browsing experience. Assign it to an event page in the site editor.
-- **Event Slideshow (Full Screen)** (`page-event-slideshow`) — Even more minimal: just the page content on a black background, optimized for projection displays. Assign it to a page containing the Event Slideshow block.
+- **Live Photo Wall (Full Screen)** (`page-event-slideshow`) — Even more minimal: just the page content on a black background, optimized for projection displays. Assign it to a page containing the Live Photo Wall block.
 
-### Event Slideshow block
+### Live Photo Wall block
 
-The Event Slideshow block is designed for projecting photos onto a big screen during an event. It lives on a separate page from the event album and references it via the `eventPageId` attribute.
+The Live Photo Wall block is designed for projecting photos onto a big screen during an event. It lives on a separate page from the event album and references it via the `eventPageId` attribute.
 
 **How it works:**
 
-1. Create a new page and add the Event Slideshow block.
+1. Create a new page and add the Live Photo Wall block.
 2. In the block settings, select the event page containing the Event Photo Album block. The password and date range are synced automatically.
 3. Adjust the transition interval (default: 5 seconds per photo).
-4. Assign the "Event Slideshow (Full Screen)" template and open the page on the projector.
-5. Enter the event password once — the slideshow starts automatically, showing a waiting screen until the first photo arrives.
+4. Assign the "Live Photo Wall (Full Screen)" template and open the page on the projector.
+5. Enter the event password once — the photo wall starts automatically, showing a waiting screen until the first photo arrives.
 
-**Slideshow features:**
+**Photo wall features:**
 
 - Full-viewport display with blurred photo background (no black bars).
 - Crossfade transitions between photos (~1 second).
@@ -161,7 +161,7 @@ The Event Slideshow block is designed for projecting photos onto a big screen du
 - Automatic backoff on network failures (recovers when connection returns).
 - Respects `prefers-reduced-motion` for transitions and animations.
 
-**Slideshow block attributes:**
+**Live Photo Wall block attributes:**
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
