@@ -8,40 +8,40 @@ Tested up to: 7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Allow guests at your event to share their photos in a shared album — no sign-up, no app, just scan and share.
+Allow guests at your event to share photos in a shared album. They just scan a QR code and start sharing.
 
 == Description ==
 
-Event Guest Photos Sharing lets event and wedding planners create pages where guests can upload and browse photos together — with zero friction.
+Event Guest Photos Sharing lets event and wedding planners create pages where guests can upload and browse photos together.
 
-Guests don't need to create an account, download an app, or even know the URL. They scan a QR code at the venue (or tap a link you send via email, WhatsApp, or any messaging app) and start sharing photos right away. Nothing gets in the way.
+Your guests don't need to create an account or download an app. They scan a QR code at the venue, or tap a link you send them via email, WhatsApp, or text, and they're in. They can start sharing photos right away.
 
 **How it works:**
 
 1. Create a page in the block editor and add the Event Photo Album block.
-2. Configure a password for the event, optionally set a date range and enable table names.
-3. Share the page with your guests — print QR codes for table cards, or send the link via email, WhatsApp, or text.
-4. Guests scan, enter their name, and start uploading and browsing photos immediately.
+2. Configure a password for the event. You can also set a date range and enable table names.
+3. Share the page with your guests. Print QR codes for table cards, or send the link via email, WhatsApp, or text.
+4. Guests scan, enter their name, and start uploading and browsing photos.
 
 **Features:**
 
-* Zero friction for guests — no account, no app install, no sign-up. Scan a QR code or tap a link and start sharing instantly.
-* Mobile-first experience — designed for phones at events.
-* Password protection with QR code support — embed the password in the QR code so guests go straight in.
-* Built-in QR code generator (Settings > Event Guest Photos Sharing) — create styled, downloadable QR codes with custom colors, corner styles, and embedded logos.
-* Real-time gallery with automatic polling for new photos.
-* Immersive photo grid — photos fill the screen edge-to-edge on mobile for a gallery-app feel.
+* Guests don't need an account or an app. They scan a QR code or tap a link and start sharing right away.
+* Designed for phones at events, so the experience feels natural on mobile.
+* Password-protected pages with QR code support. You can embed the password in the QR code so guests go straight in.
+* Built-in QR code generator (Settings > Event Guest Photos Sharing) with custom colors, corner styles, and logo support.
+* The gallery updates in real time as new photos come in.
+* Photos fill the screen edge-to-edge on mobile for an immersive, gallery-app feel.
 * Lightbox viewer for full-size photos.
-* Floating upload button that stays visible as you scroll through photos.
-* Upload progress banner — see which photo is being uploaded and how many remain.
-* Camera capture and gallery picker for uploads (supports multiple file selection).
-* Full-screen page template — remove the header, footer, and sidebar for distraction-free photo browsing.
+* A floating upload button stays visible as you scroll, so it's always easy to share another photo.
+* Upload progress banner shows which photo is being uploaded and how many are left.
+* Camera capture and gallery picker for uploads, with support for selecting multiple files at once.
+* A full-screen page template removes the header, footer, and sidebar for distraction-free browsing.
 * Customizable consent message via the block editor.
 * Optional table name tracking for seating assignments.
-* Date range support — uploads automatically stop when the event is over.
-* Automatic photo archive — after your event ends, a ZIP file with all original photos is generated automatically and available for download from the settings page.
-* Optional photo moderation — require approval before photos appear in the gallery.
-* Live Photo Wall block — project photos onto a big screen during your event. Photos cycle one at a time with smooth crossfade transitions, automatically showing new submissions as guests upload them.
+* Date range support so uploads stop automatically when the event is over.
+* After your event ends, a ZIP file with all original photos is generated automatically. You can download it from the settings page.
+* Optional photo moderation if you want to approve photos before they appear in the gallery.
+* Live Photo Wall block for projecting photos onto a big screen during your event. Photos cycle one at a time with smooth crossfade transitions, and new submissions show up as guests upload them.
 * Extensible via WordPress hooks and filters.
 
 == Installation ==
