@@ -121,6 +121,10 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 **Fixed**
 
 * Event passwords shorter than 8 characters are now flagged in the editor with a clear warning, preventing a confusing "incorrect password" error for guests.
+* Event names with special characters (like "John & Jane's Wedding") now display correctly in the Live Photo Wall block sidebar instead of showing raw HTML codes.
+* The Live Photo Wall block now appears in the block editor as expected.
+* The Live Photo Wall now loads photos correctly on sites using plain permalink structures.
+* The Live Photo Wall password form and other views now display correctly instead of being hidden behind the loading screen.
 
 = 1.2.0 - 2026-03-26 =
 

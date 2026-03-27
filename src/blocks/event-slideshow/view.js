@@ -210,7 +210,11 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 			const ctx = getContext();
 
 			try {
-				const response = yield fetch(`${ctx.restBase}/photos/${ctx.eventPageId}?per_page=${PER_PAGE}&page=1`, {
+				const url = new URL(`${ctx.restBase}/photos/${ctx.eventPageId}`);
+				url.searchParams.set('per_page', PER_PAGE);
+				url.searchParams.set('page', '1');
+
+				const response = yield fetch(url, {
 					credentials: 'same-origin',
 				});
 
@@ -253,10 +257,11 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 
 			for (let page = 2; page <= maxPages; page++) {
 				try {
-					const response = yield fetch(
-						`${ctx.restBase}/photos/${ctx.eventPageId}?per_page=${PER_PAGE}&page=${page}`,
-						{ credentials: 'same-origin' }
-					);
+					const pageUrl = new URL(`${ctx.restBase}/photos/${ctx.eventPageId}`);
+					pageUrl.searchParams.set('per_page', PER_PAGE);
+					pageUrl.searchParams.set('page', page);
+
+					const response = yield fetch(pageUrl, { credentials: 'same-origin' });
 					const photos = yield response.json();
 					state.photos = [...state.photos, ...photos];
 
@@ -281,10 +286,11 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 
 			const poll = async () => {
 				try {
-					const response = await fetch(
-						`${restBase}/photos/${eventPageId}?since=${state.latestUploadedAt}&per_page=${PER_PAGE}`,
-						{ credentials: 'same-origin' }
-					);
+					const pollUrl = new URL(`${restBase}/photos/${eventPageId}`);
+					pollUrl.searchParams.set('since', state.latestUploadedAt);
+					pollUrl.searchParams.set('per_page', PER_PAGE);
+
+					const response = await fetch(pollUrl, { credentials: 'same-origin' });
 
 					if (response.status === 401 || response.status === 403) {
 						state.currentView = 'password';

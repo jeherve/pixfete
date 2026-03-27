@@ -13,6 +13,7 @@ import { PanelBody, ComboboxControl, RangeControl, Button, Placeholder, Notice }
 import { useSelect } from '@wordpress/data';
 import { useState, useCallback } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { decodeEntities } from '@wordpress/html-entities';
 
 /**
  * Fetches the event-album block attributes from a given page via the WP REST API.
@@ -84,7 +85,7 @@ export default function Edit({ attributes, setAttributes }) {
 		});
 		return (allPages || []).map((page) => ({
 			value: page.id,
-			label: page.title.rendered || __('(no title)', 'event-guest-photos-sharing'),
+			label: decodeEntities(page.title.rendered) || __('(no title)', 'event-guest-photos-sharing'),
 		}));
 	}, []);
 
