@@ -2,9 +2,9 @@
 	<img src=".wordpress-org/icon-256x256.png" width="200" height="200">
 	<h1>Event Guest Photos Sharing</h1>
 	<p>
-		<b>A WordPress plugin that lets event guests share photos in a shared album — no account required.</b>
+		<b>A WordPress plugin that lets event guests share photos in a shared album. They just scan a QR code and start sharing.</b>
 		<br>
-		Guests enter a shared password, provide their name, accept a consent message, then upload and browse photos in a real-time gallery.
+		Guests don't need an account or an app. They scan a QR code or tap a link, enter their name, and start uploading and browsing photos in a real-time gallery.
 	</p>
 	<br>
 	<br>
