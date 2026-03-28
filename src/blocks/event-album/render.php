@@ -34,6 +34,23 @@ $egps_context = array(
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'event-guest-photos-sharing/v1' ),
 );
+
+// Detect whether the current visitor is an assigned moderator for this event.
+$egps_is_moderator = false;
+if ( is_user_logged_in() ) {
+	$egps_is_moderator = \Jeherve\Event_Guest_Photos_Sharing\Moderator::is_moderator_for_page(
+		get_current_user_id(),
+		get_the_ID()
+	);
+}
+
+if ( $egps_is_moderator ) {
+	$egps_context['isModerator'] = true;
+	$egps_context['restNonce']   = wp_create_nonce( 'wp_rest' );
+} else {
+	$egps_context['isModerator'] = false;
+	$egps_context['restNonce']   = '';
+}
 ?>
 <div
 	<?php echo get_block_wrapper_attributes(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
@@ -123,6 +140,16 @@ $egps_context = array(
 
 		<?php // Gallery view. ?>
 		<div data-wp-bind--hidden="!state.isGalleryView">
+			<?php // Moderation banner — visible only to assigned moderators. ?>
+			<div
+				data-wp-bind--hidden="!state.isModerator"
+				class="egps-moderation-banner"
+				role="status"
+			>
+				<span aria-hidden="true">&#x1f6e1;&#xfe0f;</span>
+				<?php esc_html_e( 'Moderating — tap the X on a photo to remove it', 'event-guest-photos-sharing' ); ?>
+			</div>
+
 			<?php // Upload FAB — hidden when date range has expired or lightbox is open. ?>
 			<div
 				data-wp-bind--hidden="!state.showFab"
@@ -225,6 +252,13 @@ $egps_context = array(
 							loading="lazy"
 						/>
 						<span class="egps-photo-name" data-wp-text="context.item.guest_name"></span>
+						<button
+							data-wp-bind--hidden="!state.isModerator"
+							class="egps-delete-badge"
+							data-wp-on--click="actions.deletePhoto"
+							aria-label="<?php esc_attr_e( 'Delete this photo', 'event-guest-photos-sharing' ); ?>"
+							type="button"
+						>&times;</button>
 					</div>
 				</template>
 			</div>
