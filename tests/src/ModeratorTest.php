@@ -250,4 +250,129 @@ class ModeratorTest extends TestCase {
 
 		$this->assertTrue( $result );
 	}
+
+	/**
+	 * Stub get_post_field and parse_blocks to return a block array
+	 * containing the event-album block with a given moderators attribute.
+	 *
+	 * This helper simulates a page whose post_content contains the
+	 * event-album block, allowing is_moderator_for_page() to be tested
+	 * without a real database or WordPress install.
+	 *
+	 * @param int   $page_id    The page ID to stub content for.
+	 * @param array $moderators Array of user IDs assigned as moderators.
+	 */
+	private function stub_page_with_moderators( int $page_id, array $moderators ): void {
+		$block_content = '<!-- wp:event-guest-photos-sharing/event-album -->';
+
+		Functions\expect( 'get_post_field' )
+			->once()
+			->with( 'post_content', $page_id )
+			->andReturn( $block_content );
+
+		Functions\expect( 'parse_blocks' )
+			->once()
+			->with( $block_content )
+			->andReturn(
+				array(
+					array(
+						'blockName'  => 'event-guest-photos-sharing/event-album',
+						'attrs'      => array( 'moderators' => $moderators ),
+						'innerBlocks' => array(),
+					),
+				)
+			);
+	}
+
+	/**
+	 * Test that a user listed in the moderators attribute is recognised.
+	 *
+	 * When a user has the egps_moderate_photos capability and their ID
+	 * appears in the block's moderators array, is_moderator_for_page()
+	 * should return true.
+	 */
+	public function testIsModeratorForPageReturnsTrueForAssignedUser(): void {
+		$this->stub_page_with_moderators( 42, array( 5, 10 ) );
+
+		Functions\when( 'current_user_can' )->alias(
+			function ( string $cap ) {
+				return 'egps_moderate_photos' === $cap;
+			}
+		);
+
+		$this->assertTrue( Moderator::is_moderator_for_page( 5, 42 ) );
+	}
+
+	/**
+	 * Test that a user NOT listed in the moderators attribute is rejected.
+	 *
+	 * Even though other moderators exist for the page, a user whose ID
+	 * is not in the array should not be treated as a moderator.
+	 */
+	public function testIsModeratorForPageReturnsFalseForUnassignedUser(): void {
+		$this->stub_page_with_moderators( 42, array( 5, 10 ) );
+
+		Functions\when( 'current_user_can' )->alias(
+			function ( string $cap ) {
+				return 'egps_moderate_photos' === $cap;
+			}
+		);
+
+		$this->assertFalse( Moderator::is_moderator_for_page( 99, 42 ) );
+	}
+
+	/**
+	 * Test that an admin in the moderators list is recognised via manage_options.
+	 *
+	 * Administrators who hold manage_options (but not necessarily the custom
+	 * egps_moderate_photos cap) should still pass the capability gate when
+	 * their ID appears in the moderators array.
+	 */
+	public function testIsModeratorForPageReturnsTrueForAdminInList(): void {
+		$this->stub_page_with_moderators( 10, array( 1 ) );
+
+		Functions\when( 'current_user_can' )->alias(
+			function ( string $cap ) {
+				return 'manage_options' === $cap;
+			}
+		);
+
+		$this->assertTrue( Moderator::is_moderator_for_page( 1, 10 ) );
+	}
+
+	/**
+	 * Test that a user in the moderators list but without the required
+	 * capability is rejected.
+	 *
+	 * The capability check is a prerequisite — even if the user's ID
+	 * appears in the block attribute, they must hold egps_moderate_photos
+	 * or manage_options to be considered a moderator.
+	 */
+	public function testIsModeratorForPageReturnsFalseWithoutCapability(): void {
+		Functions\when( 'current_user_can' )->alias(
+			function () {
+				return false;
+			}
+		);
+
+		$this->assertFalse( Moderator::is_moderator_for_page( 5, 42 ) );
+	}
+
+	/**
+	 * Test that an empty moderators array means no one is a moderator.
+	 *
+	 * When the block has no moderators assigned, even a user with the
+	 * correct capability should not be treated as a moderator for that page.
+	 */
+	public function testIsModeratorForPageReturnsFalseWhenNoModerators(): void {
+		$this->stub_page_with_moderators( 42, array() );
+
+		Functions\when( 'current_user_can' )->alias(
+			function ( string $cap ) {
+				return 'egps_moderate_photos' === $cap;
+			}
+		);
+
+		$this->assertFalse( Moderator::is_moderator_for_page( 5, 42 ) );
+	}
 }

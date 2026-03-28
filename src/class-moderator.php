@@ -33,6 +33,16 @@ class Moderator {
 	const CAPABILITY = 'egps_moderate_photos';
 
 	/**
+	 * Block name for the event album block.
+	 *
+	 * Used to locate the block in parsed post content when resolving
+	 * per-page moderator assignments.
+	 *
+	 * @var string
+	 */
+	const BLOCK_NAME = 'event-guest-photos-sharing/event-album';
+
+	/**
 	 * Register the egps_moderator role with minimal capabilities.
 	 *
 	 * Called on plugin activation. The role grants only `read` (required for
@@ -135,6 +145,64 @@ class Moderator {
 		}
 
 		return $show;
+	}
+
+	/**
+	 * Check whether a user is an assigned moderator for a specific page.
+	 *
+	 * Each event-album block stores a `moderators` attribute listing the
+	 * user IDs that may moderate photos on that page. This method combines
+	 * a capability gate (the user must hold `egps_moderate_photos` or
+	 * `manage_options`) with a per-page assignment check (the user's ID
+	 * must appear in the block's moderators array).
+	 *
+	 * @param int $user_id The user ID to check.
+	 * @param int $page_id The page ID containing the event-album block.
+	 *
+	 * @return bool True if the user is a moderator for the given page.
+	 */
+	public static function is_moderator_for_page( int $user_id, int $page_id ): bool {
+		if ( ! current_user_can( self::CAPABILITY ) && ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		$content = get_post_field( 'post_content', $page_id );
+		$blocks  = parse_blocks( $content );
+		$attrs   = self::find_block_attrs( $blocks );
+
+		if ( null === $attrs ) {
+			return false;
+		}
+
+		$moderators = $attrs['moderators'] ?? array();
+
+		return in_array( $user_id, $moderators, true );
+	}
+
+	/**
+	 * Recursively search parsed blocks for the event-album block.
+	 *
+	 * Walks the block tree depth-first to find the first instance of the
+	 * event-album block and returns its attributes. This is needed because
+	 * the block may be nested inside a Group, Column, or other wrapper block.
+	 *
+	 * @param array $blocks Array of parsed block arrays from parse_blocks().
+	 *
+	 * @return array|null The block's attributes array, or null if the block was not found.
+	 */
+	private static function find_block_attrs( array $blocks ): ?array {
+		foreach ( $blocks as $block ) {
+			if ( self::BLOCK_NAME === ( $block['blockName'] ?? '' ) ) {
+				return $block['attrs'] ?? array();
+			}
+			if ( ! empty( $block['innerBlocks'] ) ) {
+				$found = self::find_block_attrs( $block['innerBlocks'] );
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+		}
+		return null;
 	}
 
 	/**
