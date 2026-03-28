@@ -10,6 +10,8 @@ declare( strict_types=1 );
 namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
 
 use Brain\Monkey;
+use Brain\Monkey\Actions;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Jeherve\Event_Guest_Photos_Sharing\Moderator;
 use PHPUnit\Framework\TestCase;
@@ -92,5 +94,160 @@ class ModeratorTest extends TestCase {
 		Moderator::unregister_role();
 
 		$this->assertSame( 'egps_moderator', $removed_role );
+	}
+
+	/**
+	 * Test that init() registers the dashboard lockout hooks.
+	 *
+	 * Verifies that admin_init, login_redirect, and show_admin_bar hooks
+	 * are registered so moderator-only users are kept out of wp-admin.
+	 */
+	public function testInitHooksDashboardLockout(): void {
+		Actions\expectAdded( 'admin_init' )
+			->once()
+			->with( array( Moderator::class, 'block_dashboard_access' ) );
+
+		Filters\expectAdded( 'login_redirect' )
+			->once()
+			->with( array( Moderator::class, 'redirect_after_login' ), 10, 3 );
+
+		Filters\expectAdded( 'show_admin_bar' )
+			->once()
+			->with( array( Moderator::class, 'hide_admin_bar' ) );
+
+		Moderator::init();
+
+		// Brain\Monkey expectations are verified in tearDown; add an
+		// explicit assertion so PHPUnit does not flag the test as risky.
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that block_dashboard_access redirects a moderator-only user.
+	 *
+	 * When a user's sole role is egps_moderator, they should be redirected
+	 * away from wp-admin to the site's home URL.
+	 */
+	public function testBlockDashboardAccessRedirectsModeratorOnly(): void {
+		$user = (object) array( 'roles' => array( 'egps_moderator' ) );
+
+		Functions\expect( 'wp_get_current_user' )
+			->once()
+			->andReturn( $user );
+
+		Functions\expect( 'wp_doing_ajax' )
+			->once()
+			->andReturn( false );
+
+		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+
+		// wp_safe_redirect throws to prevent the subsequent exit from
+		// killing the PHPUnit process. We catch the exception and verify
+		// that the redirect was called with the correct URL.
+		Functions\expect( 'wp_safe_redirect' )
+			->once()
+			->with( 'https://example.com' )
+			->andReturnUsing(
+				function () {
+					throw new \RuntimeException( 'redirect_triggered' );
+				}
+			);
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect_triggered' );
+
+		Moderator::block_dashboard_access();
+	}
+
+	/**
+	 * Test that block_dashboard_access allows users with multiple roles.
+	 *
+	 * A user who has administrator plus egps_moderator should not be
+	 * blocked from wp-admin because they have legitimate admin access.
+	 */
+	public function testBlockDashboardAccessAllowsMultiRoleUsers(): void {
+		$user = (object) array( 'roles' => array( 'administrator', 'egps_moderator' ) );
+
+		Functions\when( 'wp_doing_ajax' )->justReturn( false );
+
+		Functions\expect( 'wp_get_current_user' )
+			->once()
+			->andReturn( $user );
+
+		Functions\expect( 'wp_safe_redirect' )->never();
+
+		Moderator::block_dashboard_access();
+
+		// Brain\Monkey expectations are verified in tearDown; add an
+		// explicit assertion so PHPUnit does not flag the test as risky.
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Test that redirect_after_login returns home_url for moderator-only users.
+	 *
+	 * After login, moderator-only users should land on the front end,
+	 * not wp-admin, since they have no reason to access the dashboard.
+	 */
+	public function testRedirectAfterLoginRedirectsModeratorOnly(): void {
+		$user = (object) array( 'roles' => array( 'egps_moderator' ) );
+
+		Functions\expect( 'home_url' )
+			->once()
+			->andReturn( 'https://example.com' );
+
+		$result = Moderator::redirect_after_login( '/wp-admin/', '', $user );
+
+		$this->assertSame( 'https://example.com', $result );
+	}
+
+	/**
+	 * Test that redirect_after_login preserves the default redirect for other roles.
+	 *
+	 * Administrators and other roles should still land on their intended
+	 * post-login destination (usually wp-admin).
+	 */
+	public function testRedirectAfterLoginPreservesDefaultForOtherRoles(): void {
+		$user = (object) array( 'roles' => array( 'administrator' ) );
+
+		$result = Moderator::redirect_after_login( '/wp-admin/', '', $user );
+
+		$this->assertSame( '/wp-admin/', $result );
+	}
+
+	/**
+	 * Test that hide_admin_bar returns false for moderator-only users.
+	 *
+	 * The admin bar is irrelevant for moderator-only users since they
+	 * cannot access wp-admin. Hiding it keeps the front end clean.
+	 */
+	public function testHideAdminBarForModeratorOnly(): void {
+		$user = (object) array( 'roles' => array( 'egps_moderator' ) );
+
+		Functions\expect( 'wp_get_current_user' )
+			->once()
+			->andReturn( $user );
+
+		$result = Moderator::hide_admin_bar( true );
+
+		$this->assertFalse( $result );
+	}
+
+	/**
+	 * Test that hide_admin_bar preserves visibility for multi-role users.
+	 *
+	 * Users who have egps_moderator alongside another role (like administrator)
+	 * should still see the admin bar since they have legitimate admin access.
+	 */
+	public function testHideAdminBarPreservesForMultiRoleUsers(): void {
+		$user = (object) array( 'roles' => array( 'administrator', 'egps_moderator' ) );
+
+		Functions\expect( 'wp_get_current_user' )
+			->once()
+			->andReturn( $user );
+
+		$result = Moderator::hide_admin_bar( true );
+
+		$this->assertTrue( $result );
 	}
 }

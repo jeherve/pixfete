@@ -45,3 +45,5 @@ register_deactivation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing
 
 register_activation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Moderator::class, 'register_role' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Moderator::class, 'unregister_role' ) );
+
+\Jeherve\Event_Guest_Photos_Sharing\Moderator::init();
