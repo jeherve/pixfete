@@ -1,7 +1,7 @@
 <?php
 /**
  * Register REST API endpoints for guest authentication, photo upload,
- * gallery retrieval, and event cleanup.
+ * gallery retrieval, photo moderation, and event cleanup.
  *
  * Handles the two-step auth flow: registration (password validation,
  * cookie creation) and consent (cookie update), as well as the
@@ -28,7 +28,7 @@ use WP_REST_Response;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST API controller for guest authentication, photo upload, gallery, and event cleanup endpoints.
+ * REST API controller for guest authentication, photo upload, gallery, moderation, and event cleanup endpoints.
  */
 class REST extends WP_REST_Controller {
 
@@ -89,6 +89,43 @@ class REST extends WP_REST_Controller {
 				'methods'             => 'DELETE',
 				'callback'            => array( static::class, 'handle_cleanup' ),
 				'permission_callback' => array( static::class, 'check_cleanup_permission' ),
+			)
+		);
+
+		$this->register_moderation_route();
+	}
+
+	/**
+	 * Register the moderation endpoint for deleting individual photos.
+	 *
+	 * This route is separate from the bulk cleanup endpoint because it
+	 * targets a single attachment and uses moderator-level permissions
+	 * rather than administrator-level page-deletion capabilities.
+	 *
+	 * @return void
+	 */
+	private function register_moderation_route(): void {
+		register_rest_route(
+			self::NAMESPACE,
+			'/photos/(?P<page_id>\d+)/(?P<attachment_id>\d+)',
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => array( static::class, 'handle_moderation' ),
+				'permission_callback' => array( static::class, 'check_moderation_permission' ),
+				'args'                => array(
+					'page_id'       => array(
+						'required'          => true,
+						'validate_callback' => function ( $param ) {
+							return is_numeric( $param );
+						},
+					),
+					'attachment_id' => array(
+						'required'          => true,
+						'validate_callback' => function ( $param ) {
+							return is_numeric( $param );
+						},
+					),
+				),
 			)
 		);
 	}
@@ -1115,5 +1152,109 @@ class REST extends WP_REST_Controller {
 		}
 
 		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Permission callback for the photo moderation (DELETE) endpoint.
+	 *
+	 * Verifies that the current user is authenticated, holds the
+	 * moderation capability, is assigned as a moderator for the
+	 * specific page, and that the target attachment actually belongs
+	 * to that page. This layered approach prevents both unauthorized
+	 * access and cross-page deletion attacks.
+	 *
+	 * @param WP_REST_Request $request The incoming REST request containing
+	 *                                  page_id and attachment_id route params.
+	 *
+	 * @return true|WP_Error True when all checks pass, WP_Error otherwise.
+	 */
+	public static function check_moderation_permission( WP_REST_Request $request ): true|WP_Error {
+		$page_id       = (int) $request->get_param( 'page_id' );
+		$attachment_id = (int) $request->get_param( 'attachment_id' );
+
+		// 1. Must be logged in.
+		if ( ! is_user_logged_in() ) {
+			return new WP_Error(
+				'egps_unauthorized',
+				'You must be logged in to moderate photos.',
+				array( 'status' => 401 )
+			);
+		}
+
+		// 2. Must hold the moderation capability or be an admin.
+		if ( ! current_user_can( Moderator::CAPABILITY ) && ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'egps_forbidden',
+				'You do not have permission to moderate photos.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// 3. The page must be valid (published, correct type, contains our block).
+		$page_result = self::validate_page( $page_id );
+		if ( is_wp_error( $page_result ) ) {
+			return $page_result;
+		}
+
+		// 4. The user must be assigned as a moderator for this specific page.
+		$user_id = get_current_user_id();
+		if ( ! Moderator::is_moderator_for_page( $user_id, $page_id ) ) {
+			return new WP_Error(
+				'egps_forbidden',
+				'You are not assigned as a moderator for this event.',
+				array( 'status' => 403 )
+			);
+		}
+
+		// 5. The attachment must exist.
+		$attachment = get_post( $attachment_id );
+		if ( ! $attachment ) {
+			return new WP_Error(
+				'egps_not_found',
+				'The requested photo does not exist.',
+				array( 'status' => 404 )
+			);
+		}
+
+		// 6. The attachment must belong to the specified page.
+		if ( wp_get_post_parent_id( $attachment_id ) !== $page_id ) {
+			return new WP_Error(
+				'egps_forbidden',
+				'This photo does not belong to the specified event.',
+				array( 'status' => 403 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Handle the photo moderation (DELETE) request.
+	 *
+	 * Permanently removes a single guest-uploaded attachment. This is
+	 * the moderator's primary tool for removing inappropriate or
+	 * off-topic photos from an event album. The attachment is force-
+	 * deleted (bypassing trash) because guest photos have no revision
+	 * history worth preserving and lingering in trash would still
+	 * consume server storage.
+	 *
+	 * @param WP_REST_Request $request The incoming REST request containing
+	 *                                  the attachment_id route param.
+	 *
+	 * @return WP_REST_Response 204 on success, 404 if wp_delete_attachment fails.
+	 */
+	public static function handle_moderation( WP_REST_Request $request ): WP_REST_Response {
+		$attachment_id = (int) $request->get_param( 'attachment_id' );
+
+		$deleted = wp_delete_attachment( $attachment_id, true );
+
+		if ( ! $deleted ) {
+			return new WP_REST_Response(
+				array( 'message' => 'The photo could not be deleted.' ),
+				404
+			);
+		}
+
+		return new WP_REST_Response( null, 204 );
 	}
 }

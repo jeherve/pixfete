@@ -156,7 +156,7 @@ class RestPhotosTest extends TestCase {
 	public function test_register_routes_registers_photo_endpoints(): void {
 		$captured = array();
 		Functions\expect( 'register_rest_route' )
-			->times( 4 )
+			->times( 5 )
 			->withArgs(
 				function ( $namespace, $route, $args ) use ( &$captured ) {
 					$captured[] = array(
