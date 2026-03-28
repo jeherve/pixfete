@@ -30,6 +30,7 @@ require_once EGPS_PLUGIN_DIR . 'src/class-admin.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-archive.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-cleanup.php';
 require_once EGPS_PLUGIN_DIR . 'src/class-slideshow.php';
+require_once EGPS_PLUGIN_DIR . 'src/class-moderator.php';
 
 add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Block::class, 'register' ) );
 add_action( 'init', array( \Jeherve\Event_Guest_Photos_Sharing\Slideshow::class, 'register' ) );
@@ -41,3 +42,6 @@ add_action( \Jeherve\Event_Guest_Photos_Sharing\Archive::BATCH_HOOK, array( \Jeh
 
 register_activation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Archive::class, 'schedule_cron' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Archive::class, 'unschedule_cron' ) );
+
+register_activation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Moderator::class, 'register_role' ) );
+register_deactivation_hook( __FILE__, array( \Jeherve\Event_Guest_Photos_Sharing\Moderator::class, 'unregister_role' ) );
