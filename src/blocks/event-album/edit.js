@@ -6,9 +6,10 @@
 
 import { __, sprintf } from '@wordpress/i18n';
 import { useBlockProps, InspectorControls, InnerBlocks } from '@wordpress/block-editor';
-import { PanelBody, TextControl, ToggleControl, Button, DatePicker } from '@wordpress/components';
-import { useEffect } from '@wordpress/element';
+import { PanelBody, TextControl, ToggleControl, Button, DatePicker, FormTokenField } from '@wordpress/components';
+import { useEffect, useState } from '@wordpress/element';
 import { useDispatch } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Generate a random alphanumeric password of a given length.
@@ -58,7 +59,7 @@ const INNER_BLOCKS_TEMPLATE = [
  * @return {import('react').JSX.Element} Editor markup.
  */
 export default function Edit({ attributes, setAttributes }) {
-	const { password, eventVersion, dateRangeStart, dateRangeEnd, enableTableNames } = attributes;
+	const { password, eventVersion, dateRangeStart, dateRangeEnd, enableTableNames, moderators } = attributes;
 
 	const blockProps = useBlockProps();
 	const { lockPostSaving, unlockPostSaving } = useDispatch('core/editor');
@@ -91,6 +92,52 @@ export default function Edit({ attributes, setAttributes }) {
 			password: generatePassword(),
 			eventVersion: (eventVersion || 1) + 1,
 		});
+	};
+
+	// Moderator user search state.
+	const [moderatorSuggestions, setModeratorSuggestions] = useState([]);
+	const [moderatorTokens, setModeratorTokens] = useState([]);
+	const [allModeratorUsers, setAllModeratorUsers] = useState([]);
+
+	// Fetch moderator-capable users and resolve existing assignments on mount.
+	useEffect(() => {
+		apiFetch({ path: '/wp/v2/users?per_page=100&context=edit' }).then((users) => {
+			const eligible = users.filter(
+				(user) => user.capabilities?.egps_moderate_photos || user.capabilities?.manage_options
+			);
+			setAllModeratorUsers(eligible);
+			setModeratorSuggestions(eligible.map((user) => user.name));
+
+			if (moderators.length > 0) {
+				const tokens = moderators
+					.map((id) => {
+						const user = eligible.find((u) => u.id === id);
+						return user ? user.name : null;
+					})
+					.filter(Boolean);
+				setModeratorTokens(tokens);
+			}
+		});
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+	/**
+	 * Handle changes to the moderator token field.
+	 *
+	 * Converts display-name tokens back to user IDs and persists
+	 * them as the `moderators` block attribute so the server knows
+	 * which users are allowed to delete photos from this album.
+	 *
+	 * @param {string[]} tokens Display names selected in the FormTokenField.
+	 */
+	const onModeratorsChange = (tokens) => {
+		setModeratorTokens(tokens);
+		const ids = tokens
+			.map((name) => {
+				const user = allModeratorUsers.find((u) => u.name === name);
+				return user ? user.id : null;
+			})
+			.filter(Boolean);
+		setAttributes({ moderators: ids });
 	};
 
 	/**
@@ -179,6 +226,22 @@ export default function Edit({ attributes, setAttributes }) {
 						onChange={(value) => setAttributes({ enableTableNames: value })}
 						help={__('Ask guests which table they are seated at.', 'event-guest-photos-sharing')}
 						__nextHasNoMarginBottom
+					/>
+				</PanelBody>
+
+				<PanelBody title={__('Moderators', 'event-guest-photos-sharing')} initialOpen={false}>
+					<p className="egps-editor-help">
+						{__(
+							'Assign users who can delete photos from the live gallery on their phone. Users must have the Event Photo Moderator role.',
+							'event-guest-photos-sharing'
+						)}
+					</p>
+					<FormTokenField
+						label={__('Moderators', 'event-guest-photos-sharing')}
+						value={moderatorTokens}
+						suggestions={moderatorSuggestions}
+						onChange={onModeratorsChange}
+						__experimentalExpandOnFocus
 					/>
 				</PanelBody>
 			</InspectorControls>

@@ -28,6 +28,13 @@
         "enableTableNames": {
             "type": "boolean",
             "default": false
+        },
+        "moderators": {
+            "type": "array",
+            "items": {
+                "type": "number"
+            },
+            "default": []
         }
     },
     "supports": {
