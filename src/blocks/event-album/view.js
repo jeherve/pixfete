@@ -95,6 +95,15 @@ const { state } = store('event-guest-photos-sharing', {
 		uploadCurrent: 0,
 		uploadErrors: [],
 
+		/** Whether the current user is an assigned moderator for this event. */
+		isModerator: false,
+
+		/** WordPress REST API nonce for authenticated requests (moderators only). */
+		restNonce: '',
+
+		/** The attachment ID currently being deleted, or null if idle. */
+		deletingPhotoId: null,
+
 		/**
 		 * Whether the current view is the loading view.
 		 *
@@ -721,6 +730,59 @@ const { state } = store('event-guest-photos-sharing', {
 
 			// Reset the file input so the same file can be selected again.
 			event.target.value = '';
+		},
+
+		/**
+		 * Delete a photo via the moderation REST endpoint.
+		 *
+		 * Triggered by the delete badge on each photo in the grid.
+		 * Shows a confirmation dialog, sends a DELETE request, and
+		 * removes the photo from the local state on success.
+		 * Stops event propagation to prevent the lightbox from opening.
+		 *
+		 * @param {Event} event The click event from the delete badge.
+		 */
+		*deletePhoto(event) {
+			event.stopPropagation();
+
+			const ctx = getContext();
+			if (!ctx.item) {
+				return;
+			}
+
+			const photoId = ctx.item.id;
+			const guestName = ctx.item.guest_name;
+
+			// Native confirmation dialog.
+			// eslint-disable-next-line no-alert -- Intentional use of confirm for destructive action.
+			const confirmed = window.confirm(`${guestName} — delete this photo? This cannot be undone.`);
+
+			if (!confirmed) {
+				return;
+			}
+
+			state.deletingPhotoId = photoId;
+
+			try {
+				const response = yield window.fetch(`${ctx.restBase}/photos/${ctx.pageId}/${photoId}`, {
+					method: 'DELETE',
+					credentials: 'same-origin',
+					headers: {
+						'X-WP-Nonce': ctx.restNonce,
+					},
+				});
+
+				if (response.ok) {
+					// Remove the photo from local state.
+					state.photos = state.photos.filter((photo) => photo.id !== photoId);
+				} else {
+					state.errorMessage = 'Failed to delete photo. Please try again.';
+				}
+			} catch {
+				state.errorMessage = 'Network error. Please try again.';
+			} finally {
+				state.deletingPhotoId = null;
+			}
 		},
 
 		/**
