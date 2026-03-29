@@ -40,6 +40,7 @@ Your guests don't need to create an account or download an app. They scan a QR c
 * Optional table name tracking for seating assignments.
 * Date range support so uploads stop automatically when the event is over.
 * After your event ends, a ZIP file with all original photos is generated automatically. You can download it from the settings page.
+* Assign moderators who can remove inappropriate photos from the live gallery on their phone, without needing access to the WordPress dashboard.
 * Optional photo moderation if you want to approve photos before they appear in the gallery.
 * Live Photo Wall block for projecting photos onto a big screen during your event. Photos cycle one at a time with smooth crossfade transitions, and new submissions show up as guests upload them.
 * Extensible via WordPress hooks and filters.
@@ -82,6 +83,10 @@ Regenerating the password invalidates all existing guest sessions. Guests who au
 = Can I use this on multiple pages? =
 
 Yes. Each page with the Event Photo Album block operates independently with its own password, settings, and photo gallery. Only one Event Photo Album block is allowed per page.
+
+= Can I let someone help moderate photos during the event? =
+
+Yes. Create a WordPress user with the "Event Photo Moderator" role, then assign them as a moderator in the Event Photo Album block settings. They log in on their phone, visit the event page, and can tap to delete any inappropriate photo. They don't need access to the WordPress dashboard.
 
 = Can I moderate photos before they appear? =
 

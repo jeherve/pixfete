@@ -82,6 +82,7 @@ The plugin registers two blocks and a REST API under the `event-guest-photos-sha
 | `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Event Guest Photos Sharing) |
 | `src/class-archive.php` | Cron-based ZIP archive generation for completed event photos |
 | `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
+| `src/class-moderator.php` | Custom moderator role, dashboard lockout, and per-event moderator assignment checks |
 | `src/class-slideshow.php` | Live Photo Wall block registration and page template |
 | `src/blocks/event-album/` | Event Photo Album block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/blocks/event-slideshow/` | Live Photo Wall block assets (edit.js, view.js, render.php, block.json, styles) |
@@ -133,6 +134,27 @@ Once an event has ended (or if no end date is set), a cleanup section appears be
 
 This action requires the `delete_post` capability for the specific page and cannot be undone. A browser confirmation dialog is shown before proceeding.
 
+### Photo moderation
+
+Event hosts can assign moderators to remove inappropriate photos from the live gallery during an event. Moderators use their phones — no WordPress dashboard access needed.
+
+**Setup:**
+
+1. Create a WordPress user with the **Event Photo Moderator** role (`egps_moderator`). This role grants only `read` and the custom `egps_moderate_photos` capability — nothing else.
+2. In the block editor, open the Event Photo Album block settings and add the user in the **Moderators** panel.
+3. Share the event page URL and password with the moderator.
+
+**How it works:**
+
+- The moderator logs in via `wp-login.php` on their phone and visits the event page.
+- They go through the same guest flow (password, name, consent) and can upload photos like any guest.
+- Once in the gallery, they see a moderation banner and a delete badge on each photo. Tapping the badge permanently deletes the photo after a confirmation dialog.
+- The delete is immediate — the photo disappears from all guests' galleries at the next poll (within 15 seconds).
+
+**Dashboard lockout:** Users whose only role is `egps_moderator` are redirected away from wp-admin and don't see the admin bar. Users with additional roles (e.g., administrator + moderator) are not affected.
+
+**Capability check:** The `DELETE /photos/{page_id}/{attachment_id}` endpoint requires the user to have `egps_moderate_photos` (or `manage_options`) AND be explicitly assigned to the event's `moderators` block attribute.
+
 ### Page templates
 
 The plugin registers two page templates via `register_block_template()`:
@@ -181,6 +203,7 @@ The Live Photo Wall block is designed for projecting photos onto a big screen du
 | `dateRangeStart` | string | `""` | Upload start date (YYYY-MM-DD) |
 | `dateRangeEnd` | string | `""` | Upload end date (YYYY-MM-DD) |
 | `enableTableNames` | boolean | `false` | Show table/seating name input during registration |
+| `moderators` | array | `[]` | WordPress user IDs assigned as moderators for this event |
 
 ### REST API endpoints
 
@@ -191,6 +214,7 @@ All endpoints are under the `event-guest-photos-sharing/v1` namespace.
 | POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), consent (`action=consent`), and slideshow auth (`action=slideshow_auth`) |
 | POST | `/photos/{page_id}` | Photo upload (requires authenticated guest with consent) |
 | GET | `/photos/{page_id}` | Gallery retrieval with pagination and polling support |
+| DELETE | `/photos/{page_id}/{attachment_id}` | Delete a single photo (assigned moderators only) |
 | DELETE | `/events/{page_id}` | Permanently delete an event page and all associated data (admin only) |
 
 **Gallery query parameters:**
