@@ -62,7 +62,7 @@ jest.mock('@wordpress/components', () => ({
 // Returns a resolved Promise with an empty array so the moderator-fetch
 // useEffect can safely call .then() without throwing, and React state
 // updates triggered inside the Promise callback are handled by act().
-jest.mock( '@wordpress/api-fetch', () => jest.fn( () => Promise.resolve( [] ) ), { virtual: true } );
+jest.mock('@wordpress/api-fetch', () => jest.fn(() => Promise.resolve([])), { virtual: true });
 
 // @wordpress/element — re-export React hooks so useEffect works.
 jest.mock(
