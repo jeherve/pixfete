@@ -525,6 +525,11 @@
 			outline: 2px solid #fff;
 			outline-offset: -2px;
 		}
+
+		// Ensure the hidden attribute wins over the explicit display value.
+		&[hidden] {
+			display: none;
+		}
 	}
 }
 

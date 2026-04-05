@@ -131,7 +131,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 * The Live Photo Wall block now appears in the block editor as expected.
 * The Live Photo Wall now loads photos correctly on sites using plain permalink structures.
 * The Live Photo Wall password form and other views now display correctly instead of being hidden behind the loading screen.
-* The moderation banner ("Moderating — tap the X on a photo to remove it") no longer appears to all visitors — it is now correctly shown only to assigned moderators.
+* The moderation banner and photo delete buttons no longer appear to all visitors — they are now correctly shown only to assigned moderators.
 
 = 1.2.0 - 2026-03-26 =
 
