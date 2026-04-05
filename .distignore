@@ -8,6 +8,7 @@ __tests__
 /docs
 /.superpowers
 /.claude
+/.worktrees
 /.phpunit.cache
 /vendor
 /wordpress
