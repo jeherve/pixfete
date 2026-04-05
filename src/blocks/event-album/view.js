@@ -247,7 +247,7 @@ const { state } = store('event-guest-photos-sharing', {
 		 * Build the text for the upload progress banner.
 		 *
 		 * Shows which file in the batch is currently uploading,
-		 * e.g. "Uploading photo 2 of 5…".
+		 * e.g. "📷 2 / 5…".
 		 *
 		 * @return {string} Banner text with current/total count.
 		 */
@@ -255,7 +255,7 @@ const { state } = store('event-guest-photos-sharing', {
 			if (!state.uploadTotal) {
 				return '';
 			}
-			return `Uploading photo ${state.uploadCurrent} of ${state.uploadTotal}\u2026`;
+			return `\u{1f4f7} ${state.uploadCurrent} / ${state.uploadTotal}\u2026`;
 		},
 	},
 

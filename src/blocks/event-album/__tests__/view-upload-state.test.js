@@ -62,6 +62,6 @@ describe('Upload progress state', () => {
 		store.state.uploadTotal = 5;
 		store.state.uploadCurrent = 2;
 
-		expect(store.state.uploadBannerText).toBe('Uploading photo 2 of 5\u2026');
+		expect(store.state.uploadBannerText).toBe('\u{1f4f7} 2 / 5\u2026');
 	});
 });
