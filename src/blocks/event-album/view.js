@@ -296,6 +296,11 @@ const { state } = store('event-guest-photos-sharing', {
 			// ctx is retrieved here (after the early return) to satisfy the
 			// no-unused-vars-before-return lint rule.
 			const ctx = getContext();
+
+			// Sync moderator status from server-rendered context into
+			// global state so data-wp-bind directives can read it.
+			state.isModerator = ctx.isModerator ?? false;
+			state.restNonce = ctx.restNonce ?? '';
 			const cookie = readCookie(ctx.pageId);
 
 			if (cookie && cookie.consent === true) {
