@@ -127,6 +127,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 **Changed**
 
+* Photos in the event album now display at their full aspect ratio instead of being cropped to squares, and load at a sharper resolution suited to the device. On mobile they appear in a single edge-to-edge column; on desktop in a packed three-column layout.
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
 
 **Fixed**
