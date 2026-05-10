@@ -65,7 +65,7 @@ class PWA {
 		 * to IndexedDB and drain via the in-page loop, just without
 		 * Background Sync recovery after tab close.
 		 *
-		 * @since 1.3.1
+		 * @since 1.3.0
 		 *
 		 * @param bool $enabled Whether Pixfête's SW is active.
 		 */

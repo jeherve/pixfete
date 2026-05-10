@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.3.1
+Stable tag: 1.3.0
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -116,25 +116,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 == Changelog ==
 
-= 1.3.1 - 2026-05-10 =
-
-**Changed**
-
-* Pixfête now works correctly on WordPress installations in a subdirectory (like `example.com/blog/`) and on multisite networks: the offline upload helper, the upload session cookie, and the resume-uploads feature all stay scoped to your own site instead of leaking across sibling sites on the same domain.
-* On sites that already run another Service Worker plugin (Super PWA, OneSignal, Jetpack Boost, hosting-provider offline plugins, and similar), Pixfête now steps aside automatically rather than competing for control. Uploads still queue locally and resume — only the post-tab-close recovery is handed back to the other plugin.
-* When an upload's server response is intercepted by a caching plugin or CDN and arrives as something other than JSON, Pixfête now treats the upload as successful (since the server already accepted it) instead of retrying and creating a duplicate photo.
-
-**Fixed**
-
-* If an upload fails after several attempts, it now waits for you to tap "Retry uploads" before trying again — the same behavior on every browser. Previously some browsers would auto-retry failed uploads silently, masking persistent network or server problems.
-* When two event pages are open in different browser tabs and a photo finishes uploading in the background, it now appears in the right gallery instead of being prepended to whichever event the tab last switched to.
-* Photo upload errors from the server (such as "out of disk space" or MIME-type rejections) no longer expose internal filesystem paths to guests. Guests now see a clear, translatable message and admins can find the full error in the WordPress debug log.
-
-**Developer notes**
-
-* New filter `pixfete_serve_service_worker` (default `true`) lets site owners disable Pixfête's Service Worker entirely when another PWA plugin owns the origin scope.
-
-= 1.3.0 - 2026-05-10 =
+= 1.3.0 - unreleased =
 
 **Added**
 
@@ -153,6 +135,9 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
 * The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
 * The upload progress display now reflects the live queue rather than a one-shot batch counter.
+* Pixfête now works correctly on WordPress installations in a subdirectory (like `example.com/blog/`) and on multisite networks: the offline upload helper, the upload session cookie, and the resume-uploads feature all stay scoped to your own site instead of leaking across sibling sites on the same domain.
+* On sites that already run another Service Worker plugin (Super PWA, OneSignal, Jetpack Boost, hosting-provider offline plugins, and similar), Pixfête now steps aside automatically rather than competing for control. Uploads still queue locally and resume — only the post-tab-close recovery is handed back to the other plugin.
+* When an upload's server response is intercepted by a caching plugin or CDN and arrives as something other than JSON, Pixfête now treats the upload as successful (since the server already accepted it) instead of retrying and creating a duplicate photo.
 
 **Fixed**
 
@@ -166,6 +151,13 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * A PHP warning that could appear on the login screen after a failed login attempt has been silenced.
 * Status messages shown to guests in the photo album and Live Photo Wall (such as "1 new photo — tap to see", "The password is incorrect.", and upload errors) are now translatable, so they can appear in the site's language alongside the rest of the plugin.
 * Some guests were getting sign-in errors when first opening an event page (especially on mobile, or when the event link had been shared via messaging apps), and the error persisted even after refreshing or re-entering the password. Event pages can now be cached safely by hosting providers and CDNs without breaking the sign-in flow, and guests are no longer stuck if they happen to land on a stale page.
+* If an upload fails after several attempts, it now waits for you to tap "Retry uploads" before trying again — the same behavior on every browser. Previously some browsers would auto-retry failed uploads silently, masking persistent network or server problems.
+* When two event pages are open in different browser tabs and a photo finishes uploading in the background, it now appears in the right gallery instead of being prepended to whichever event the tab last switched to.
+* Photo upload errors from the server (such as "out of disk space" or MIME-type rejections) no longer expose internal filesystem paths to guests. Guests now see a clear, translatable message and admins can find the full error in the WordPress debug log.
+
+**Developer notes**
+
+* New filter `pixfete_serve_service_worker` (default `true`) lets site owners disable Pixfête's Service Worker entirely when another PWA plugin owns the origin scope.
 
 = 1.2.0 - 2026-03-26 =
 
