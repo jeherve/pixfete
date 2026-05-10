@@ -22,22 +22,42 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
+// The CSRF token is fetched at runtime from the REST /token endpoint
+// rather than baked into this HTML, so caching this output (page cache,
+// CDN, browser bfcache, link unfurlers) can't trap visitors with a stale
+// or already-consumed token. The frontend populates `nonce` on init.
+
 $pixfete_event_page_id = (int) ( $attributes['eventPageId'] ?? 0 );
-$pixfete_csrf_token    = wp_generate_password( 32, false );
-set_transient( 'pixfete_csrf_' . $pixfete_csrf_token, $pixfete_event_page_id, HOUR_IN_SECONDS );
 
 /** This filter is documented in src/blocks/event-album/render.php. */
 $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
+/*
+ * Translation strings consumed by the slideshow view module.
+ *
+ * Script modules can't import @wordpress/i18n yet, so user-facing strings
+ * are translated server-side and passed via data-wp-context. See
+ * src/blocks/event-album/render.php for the same pattern.
+ */
+$pixfete_i18n = array(
+	'passwordIncorrect'    => __( 'The password is incorrect.', 'pixfete' ),
+	'networkError'         => __( 'A network error occurred.', 'pixfete' ),
+	'initFailed'           => __( 'Could not initialize. Please try again.', 'pixfete' ),
+	'initConnectionFailed' => __( 'Could not initialize. Please check your connection and try again.', 'pixfete' ),
+	'showPasswordLabel'    => __( 'Show password', 'pixfete' ),
+	'hidePasswordLabel'    => __( 'Hide password', 'pixfete' ),
+);
+
 $pixfete_context = array(
 	'eventPageId'   => $pixfete_event_page_id,
-	'nonce'         => $pixfete_csrf_token,
+	'nonce'         => '',
 	'honeypotField' => $pixfete_honeypot_field,
 	'eventVersion'  => (int) ( $attributes['eventVersion'] ?? 1 ),
 	'interval'      => (int) ( $attributes['interval'] ?? 5 ),
 	'dateStart'     => $attributes['dateRangeStart'] ?? '',
 	'dateEnd'       => $attributes['dateRangeEnd'] ?? '',
 	'restBase'      => rest_url( 'pixfete/v1' ),
+	'i18n'          => $pixfete_i18n,
 );
 ?>
 <div
@@ -46,12 +66,26 @@ $pixfete_context = array(
 	data-wp-init="actions.init"
 	data-wp-context='<?php echo esc_attr( wp_json_encode( $pixfete_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
-	<?php // Loading view — shown briefly during initialization. ?>
+	<?php
+	// Loading view — shown briefly during initialization. Also
+	// surfaces an init error (e.g. token fetch failed) with a
+	// retry button so the slideshow isn't stuck on first load.
+	?>
 	<div
 		class="pixfete-slideshow-loading"
 		data-wp-bind--hidden="!state.isLoadingView"
 	>
-		<p><?php echo esc_html__( 'Loading…', 'pixfete' ); ?></p>
+		<p data-wp-bind--hidden="state.errorMessage"><?php echo esc_html__( 'Loading…', 'pixfete' ); ?></p>
+		<p
+			class="pixfete-slideshow-error"
+			data-wp-bind--hidden="!state.errorMessage"
+			data-wp-text="state.errorMessage"
+		></p>
+		<button
+			data-wp-bind--hidden="!state.errorMessage"
+			data-wp-on--click="actions.init"
+			type="button"
+		><?php echo esc_html__( 'Try again', 'pixfete' ); ?></button>
 	</div>
 
 	<?php // Not-started view — event hasn't begun yet. ?>
@@ -71,14 +105,64 @@ $pixfete_context = array(
 			<label for="pixfete-slideshow-password">
 				<?php echo esc_html__( 'Event Password', 'pixfete' ); ?>
 			</label>
-			<input
-				id="pixfete-slideshow-password"
-				type="password"
-				autocomplete="off"
-				data-wp-bind--value="state.passwordInput"
-				data-wp-on--input="actions.updatePasswordInput"
-				required
-			/>
+			<div class="pixfete-password-field">
+				<input
+					id="pixfete-slideshow-password"
+					type="password"
+					autocomplete="off"
+					data-wp-bind--type="state.passwordInputType"
+					data-wp-bind--value="state.passwordInput"
+					data-wp-on--input="actions.updatePasswordInput"
+					required
+				/>
+				<button
+					type="button"
+					class="pixfete-password-toggle"
+					data-wp-on--click="actions.togglePasswordVisibility"
+					data-wp-bind--aria-label="state.passwordToggleLabel"
+					data-wp-bind--aria-pressed="state.passwordVisible"
+				>
+					<?php // Eye (closed = password hidden). ?>
+					<svg
+						data-wp-bind--hidden="state.passwordVisible"
+						class="pixfete-password-toggle-icon"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						width="20"
+						height="20"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+						focusable="false"
+					>
+						<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+						<circle cx="12" cy="12" r="3" />
+					</svg>
+					<?php // Eye-off (visible = password revealed). Hidden by default so both icons don't flash before hydration. ?>
+					<svg
+						data-wp-bind--hidden="!state.passwordVisible"
+						class="pixfete-password-toggle-icon"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						width="20"
+						height="20"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+						focusable="false"
+						hidden
+					>
+						<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.17-6.17M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-3.17 4.31M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+						<line x1="1" y1="1" x2="23" y2="23" />
+					</svg>
+				</button>
+			</div>
 			<div class="pixfete-hp" aria-hidden="true" tabindex="-1">
 				<input
 					type="text"

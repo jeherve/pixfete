@@ -16,23 +16,63 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
-// Generate a one-time CSRF token and store it in a transient.
-$pixfete_csrf_token = wp_generate_password( 32, false );
-set_transient( 'pixfete_csrf_' . $pixfete_csrf_token, get_the_ID(), HOUR_IN_SECONDS );
+// The CSRF token is fetched at runtime from the REST /token endpoint
+// rather than baked into this HTML, so caching this output (page cache,
+// CDN, browser bfcache, link unfurlers) can't trap visitors with a stale
+// or already-consumed token. The frontend populates `nonce` on init.
 
 $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
 $pixfete_enable_table_names = ! empty( $attributes['enableTableNames'] );
 
+/*
+ * Translation strings consumed by the Interactivity API view module.
+ *
+ * View modules (--experimental-modules) cannot import @wordpress/i18n
+ * directly, so user-facing strings are translated server-side here and
+ * passed to the JS store via the data-wp-context attribute.
+ *
+ * Keys ending in *BannerSingle/Plural are templates for the new-photos
+ * banner; the JS picks the matching template based on count and
+ * substitutes %d. Keys ending in `BulkFailed` use %1$d/%2$d positional
+ * tokens and `confirmDeletePhoto` uses %s for the guest name.
+ */
+$pixfete_i18n = array(
+	'passwordRequired'       => __( 'Please enter the event password.', 'pixfete' ),
+	'passwordIncorrect'      => __( 'The password is incorrect.', 'pixfete' ),
+	'initFailed'             => __( 'Could not initialize. Please try again.', 'pixfete' ),
+	'initConnectionFailed'   => __( 'Could not initialize. Please check your connection and try again.', 'pixfete' ),
+	'nameRequired'           => __( 'Please enter your name.', 'pixfete' ),
+	'networkError'           => __( 'A network error occurred. Please try again.', 'pixfete' ),
+	'registrationFailed'     => __( 'Registration failed. Please try again.', 'pixfete' ),
+	'consentFailed'          => __( 'Failed to accept consent. Please try again.', 'pixfete' ),
+	'loadPhotosFailed'       => __( 'Failed to load photos.', 'pixfete' ),
+	'uploadFailed'           => __( 'Upload failed. Please try again.', 'pixfete' ),
+	'uploadConnectionFailed' => __( 'Upload failed. Please check your connection and try again.', 'pixfete' ),
+	/* translators: 1: number of failed uploads, 2: total number of files in the batch. */
+	'uploadBulkFailed'       => __( '%1$d of %2$d photos failed to upload.', 'pixfete' ),
+	/* translators: %s: guest name attached to the photo being deleted. */
+	'confirmDeletePhoto'     => __( '%s — delete this photo? This cannot be undone.', 'pixfete' ),
+	'deletePhotoFailed'      => __( 'Failed to delete photo. Please try again.', 'pixfete' ),
+	'deleteNetworkError'     => __( 'Network error. Please try again.', 'pixfete' ),
+	/* translators: %d: number of new photos waiting to be revealed. */
+	'newPhotoBannerSingle'   => __( '%d new photo — tap to see', 'pixfete' ),
+	/* translators: %d: number of new photos waiting to be revealed. */
+	'newPhotoBannerPlural'   => __( '%d new photos — tap to see', 'pixfete' ),
+	'showPasswordLabel'      => __( 'Show password', 'pixfete' ),
+	'hidePasswordLabel'      => __( 'Hide password', 'pixfete' ),
+);
+
 // Build the Interactivity API context.
 $pixfete_context = array(
 	'pageId'           => get_the_ID(),
-	'nonce'            => $pixfete_csrf_token,
+	'nonce'            => '',
 	'honeypotField'    => $pixfete_honeypot_field,
 	'enableTableNames' => $pixfete_enable_table_names,
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'pixfete/v1' ),
+	'i18n'             => $pixfete_i18n,
 );
 
 // Detect whether the current visitor is an assigned moderator for this event.
@@ -64,23 +104,83 @@ if ( $pixfete_is_moderator ) {
 			<p><?php esc_html_e( "You\u{2019}re a little early! This event hasn\u{2019}t started yet \u{2014} check back soon.", 'pixfete' ); ?></p>
 		</div>
 
-		<?php // Loading view. ?>
+		<?php
+		// Loading view. Doubles as the surface for an init failure
+		// (e.g. token fetch could not reach the server), with a retry
+		// button so the user isn't permanently stuck.
+		?>
 		<div data-wp-bind--hidden="!state.isLoadingView" class="pixfete-loading">
-			<p><?php esc_html_e( 'Loading…', 'pixfete' ); ?></p>
+			<p data-wp-bind--hidden="state.errorMessage"><?php esc_html_e( 'Loading…', 'pixfete' ); ?></p>
+			<div data-wp-bind--hidden="!state.errorMessage" class="pixfete-error" data-wp-text="state.errorMessage"></div>
+			<button
+				data-wp-bind--hidden="!state.errorMessage"
+				data-wp-on--click="actions.init"
+				type="button"
+			><?php esc_html_e( 'Try again', 'pixfete' ); ?></button>
 		</div>
 
 		<?php // Password view. ?>
 		<div data-wp-bind--hidden="!state.isPasswordView" class="pixfete-form">
 			<form data-wp-on--submit="actions.submitPassword">
 				<label for="pixfete-password"><?php esc_html_e( 'Event Password', 'pixfete' ); ?></label>
-				<input
-					id="pixfete-password"
-					type="password"
-					data-wp-bind--value="state.passwordInput"
-					data-wp-on--input="actions.updatePasswordInput"
-					placeholder="<?php esc_attr_e( 'Enter the event password', 'pixfete' ); ?>"
-					required
-				/>
+				<div class="pixfete-password-field">
+					<input
+						id="pixfete-password"
+						type="password"
+						data-wp-bind--type="state.passwordInputType"
+						data-wp-bind--value="state.passwordInput"
+						data-wp-on--input="actions.updatePasswordInput"
+						placeholder="<?php esc_attr_e( 'Enter the event password', 'pixfete' ); ?>"
+						required
+					/>
+					<button
+						type="button"
+						class="pixfete-password-toggle"
+						data-wp-on--click="actions.togglePasswordVisibility"
+						data-wp-bind--aria-label="state.passwordToggleLabel"
+						data-wp-bind--aria-pressed="state.passwordVisible"
+					>
+						<?php // Eye (closed = password hidden). ?>
+						<svg
+							data-wp-bind--hidden="state.passwordVisible"
+							class="pixfete-password-toggle-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							width="20"
+							height="20"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+							focusable="false"
+						>
+							<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+							<circle cx="12" cy="12" r="3" />
+						</svg>
+						<?php // Eye-off (visible = password revealed). Hidden by default so both icons don't flash before hydration. ?>
+						<svg
+							data-wp-bind--hidden="!state.passwordVisible"
+							class="pixfete-password-toggle-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							width="20"
+							height="20"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+							focusable="false"
+							hidden
+						>
+							<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.17-6.17M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-3.17 4.31M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+							<line x1="1" y1="1" x2="23" y2="23" />
+						</svg>
+					</button>
+				</div>
 				<?php // Honeypot field — hidden from humans. ?>
 				<div class="pixfete-hp" aria-hidden="true" tabindex="-1">
 					<input type="text" name="<?php echo esc_attr( $pixfete_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />

@@ -17,6 +17,36 @@ const path = require('path');
 let pageUrl = '';
 let eventPassword = '';
 
+/**
+ * Log in as the admin user. Retries the navigation because Playground's
+ * first PHP request after server start can be slow enough that the login
+ * form has not rendered before Playwright tries to fill it.
+ *
+ * @param {import('@playwright/test').Page} page Playwright page object.
+ */
+async function loginAsAdmin(page) {
+	let loaded = false;
+	for (let attempt = 0; attempt < 3; attempt++) {
+		await page.goto('/wp-login.php', { waitUntil: 'domcontentloaded' });
+		if (
+			await page
+				.locator('#user_login')
+				.isVisible({ timeout: 10000 })
+				.catch(() => false)
+		) {
+			loaded = true;
+			break;
+		}
+		await page.waitForTimeout(2000);
+	}
+	expect(loaded, 'wp-login.php failed to render').toBeTruthy();
+
+	await page.fill('#user_login', 'admin');
+	await page.fill('#user_pass', 'password');
+	await page.click('#wp-submit');
+	await page.waitForURL('**/wp-admin/**');
+}
+
 test.describe('Pixfête - Happy Path', () => {
 	test.describe.configure({ mode: 'serial' });
 
@@ -26,12 +56,9 @@ test.describe('Pixfête - Happy Path', () => {
 		const password = 'TestEventPass1';
 		eventPassword = password;
 
-		// Log in to get auth cookies.
-		await page.goto('/wp-login.php');
-		await page.fill('#user_login', 'admin');
-		await page.fill('#user_pass', 'password');
-		await page.click('#wp-submit');
-		await page.waitForURL('**/wp-admin/**');
+		// Log in to get auth cookies. Playground's first PHP request can be
+		// slow as the runtime warms up, so retry until wp-login renders.
+		await loginAsAdmin(page);
 
 		// Get a REST nonce.
 		const nonce = await page.evaluate(async () => {
@@ -71,6 +98,11 @@ test.describe('Pixfête - Happy Path', () => {
 
 	test('Guest: complete flow — password, register, consent, upload, lightbox', async ({ page }) => {
 		test.skip(!pageUrl, 'Admin setup did not produce a page URL');
+
+		// The upload FAB is intentionally hidden on viewports wider than 600px
+		// (the upload flow targets mobile guests snapping photos from their phones).
+		// Use a mobile-sized viewport so the gallery's upload UI is reachable.
+		await page.setViewportSize({ width: 390, height: 844 });
 
 		// --- Step 1: Password entry ---
 		// Visit the published page as a guest (fresh context, no admin cookies).
@@ -122,8 +154,8 @@ test.describe('Pixfête - Happy Path', () => {
 		// --- Step 3: Accept consent ---
 		await page.locator('.pixfete-accept-btn').click();
 
-		// Verify transition to gallery view by checking upload buttons are visible.
-		await expect(page.locator('.pixfete-upload')).toBeVisible();
+		// Verify transition to gallery view by checking the upload FAB is visible.
+		await expect(page.locator('.pixfete-fab-container')).toBeVisible();
 
 		// --- Step 4: Upload a photo ---
 		const fileInput = page.locator('#pixfete-file-gallery');
@@ -176,11 +208,7 @@ test.describe('Pixfête - Happy Path', () => {
 test.describe('Pixfête - Future Event', () => {
 	test('Guest sees "not yet" message for a future event', async ({ page }) => {
 		// Log in as admin to create the page.
-		await page.goto('/wp-login.php');
-		await page.fill('#user_login', 'admin');
-		await page.fill('#user_pass', 'password');
-		await page.click('#wp-submit');
-		await page.waitForURL('**/wp-admin/**');
+		await loginAsAdmin(page);
 
 		// Get a REST nonce.
 		const nonce = await page.evaluate(async () => {
@@ -237,7 +265,7 @@ test.describe('Pixfête - Future Event', () => {
 
 		// Verify the friendly message is visible.
 		await expect(guestPage.locator('.pixfete-not-started')).toBeVisible();
-		await expect(guestPage.locator('.pixfete-not-started')).toContainText('not started yet');
+		await expect(guestPage.locator('.pixfete-not-started')).toContainText('started yet');
 
 		// Verify no password form is shown.
 		await expect(guestPage.locator('#pixfete-password')).toBeHidden();

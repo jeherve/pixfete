@@ -322,6 +322,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 
 		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'recovery-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -339,6 +341,7 @@ class RestAuthTest extends TestCase {
 		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
+		$this->assertSame( 'recovery-nonce', $response->get_error_data()['nonce'] );
 	}
 
 	/**
@@ -349,6 +352,8 @@ class RestAuthTest extends TestCase {
 
 		// Transient for this token does not exist.
 		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'recovery-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -366,6 +371,7 @@ class RestAuthTest extends TestCase {
 		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
+		$this->assertSame( 'recovery-nonce', $response->get_error_data()['nonce'] );
 	}
 
 	/**
@@ -383,6 +389,8 @@ class RestAuthTest extends TestCase {
 				return false;
 			}
 		);
+		Functions\when( 'wp_generate_password' )->justReturn( 'recovery-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -812,6 +820,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 
 		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'recovery-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		// Valid cookie with consent=false so cookie check passes.
@@ -1228,6 +1238,8 @@ class RestAuthTest extends TestCase {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
 
 		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'recovery-nonce' );
+		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request = $this->make_request(
@@ -1244,6 +1256,7 @@ class RestAuthTest extends TestCase {
 		$this->assertInstanceOf( WP_Error::class, $response );
 		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
+		$this->assertSame( 'recovery-nonce', $response->get_error_data()['nonce'] );
 	}
 
 	/**

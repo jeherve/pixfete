@@ -12,6 +12,33 @@ import './view.scss';
 import { store, getContext } from '@wordpress/interactivity';
 
 /**
+ * Interpolate the `%d` placeholder in a translation template.
+ *
+ * View modules can't import `@wordpress/i18n` yet (script modules don't
+ * support it), so translations are pre-rendered server-side in render.php
+ * and passed via the `i18n` context. This helper handles the count
+ * substitution that would otherwise be done by `sprintf()`.
+ *
+ * @param {string} template Translation template containing a `%d` token.
+ * @param {number} count    Value to substitute for `%d`.
+ * @return {string} Interpolated string.
+ */
+function formatCount(template, count) {
+	return template.replace('%d', String(count));
+}
+
+/**
+ * Substitute a single `%s` token in a translation template.
+ *
+ * @param {string} template Translation template containing a `%s` token.
+ * @param {string} value    Value to substitute for `%s`.
+ * @return {string} Interpolated string.
+ */
+function formatString(template, value) {
+	return template.replace('%s', value);
+}
+
+/**
  * Number of photos to load per page.
  *
  * @type {number}
@@ -140,6 +167,35 @@ const { state } = store('pixfete', {
 
 		/** The attachment ID currently being deleted, or null if idle. */
 		deletingPhotoId: null,
+
+		/** Whether the password field is currently shown in plain text. */
+		passwordVisible: false,
+
+		/**
+		 * The `type` attribute for the password input.
+		 *
+		 * Bound to the input via `data-wp-bind--type` so the show/hide
+		 * toggle can flip between masked and plain text without losing focus.
+		 *
+		 * @return {string} 'text' when revealed, 'password' otherwise.
+		 */
+		get passwordInputType() {
+			return state.passwordVisible ? 'text' : 'password';
+		},
+
+		/**
+		 * Accessible label for the password visibility toggle button.
+		 *
+		 * Strings are translated server-side and passed in via the
+		 * Interactivity context so we don't need to load `@wordpress/i18n`
+		 * inside the view module.
+		 *
+		 * @return {string} Localized label describing the next action.
+		 */
+		get passwordToggleLabel() {
+			const ctx = getContext();
+			return state.passwordVisible ? ctx.i18n.hidePasswordLabel : ctx.i18n.showPasswordLabel;
+		},
 
 		/**
 		 * Whether the current view is the loading view.
@@ -308,11 +364,10 @@ const { state } = store('pixfete', {
 		 * @return {string} Banner text, e.g. "3 new photos — tap to see".
 		 */
 		get newPhotoBannerText() {
+			const ctx = getContext();
 			const count = state.newPhotoCount;
-			if (count === 1) {
-				return '1 new photo \u2014 tap to see';
-			}
-			return `${count} new photos \u2014 tap to see`;
+			const template = count === 1 ? ctx.i18n.newPhotoBannerSingle : ctx.i18n.newPhotoBannerPlural;
+			return formatCount(template, count);
 		},
 
 		/**
@@ -344,11 +399,19 @@ const { state } = store('pixfete', {
 		/**
 		 * Initialize the app state on mount.
 		 *
-		 * Reads the cookie, checks URL parameters, and determines
-		 * which view to show first.
+		 * Reads the cookie, checks URL parameters, fetches a fresh CSRF
+		 * token, and determines which view to show first. Doubles as the
+		 * retry handler for the loading-view "Try again" button: clearing
+		 * `errorMessage` at the top resets prior failure state, and
+		 * `currentView` stays on 'loading' until we know where to send
+		 * the user.
 		 */
-		init() {
-			// Read URL parameters before cleaning.
+		*init() {
+			state.errorMessage = '';
+
+			// Read URL parameters before cleaning. Stash on state so a
+			// retry (which runs after URL params have been cleaned) still
+			// behaves correctly.
 			const url = new URL(window.location.href);
 			const keyParam = url.searchParams.get('key');
 			const tableParam = url.searchParams.get('table');
@@ -373,9 +436,6 @@ const { state } = store('pixfete', {
 				return;
 			}
 
-			// Read the cookie to determine initial state.
-			// ctx is retrieved here (after the early return) to satisfy the
-			// no-unused-vars-before-return lint rule.
 			const ctx = getContext();
 
 			// Sync moderator status from server-rendered context into
@@ -384,17 +444,39 @@ const { state } = store('pixfete', {
 			state.restNonce = ctx.restNonce ?? '';
 			const cookie = readCookie(ctx.pageId);
 
+			// Authenticated and consented — skip the token round-trip and
+			// go straight to the gallery. Saves a request on the path most
+			// returning visitors take.
 			if (cookie && cookie.consent === true) {
-				// Valid cookie with consent — go to gallery.
 				state.currentView = 'gallery';
-				// Start loading photos and polling.
 				const { actions } = store('pixfete');
 				actions.loadPhotos();
 				actions.startPolling();
-			} else if (cookie && cookie.consent === false) {
+				return;
+			}
+
+			// Every remaining path needs a CSRF-protected POST, so fetch a
+			// fresh token before transitioning. The HTML may be cached, so
+			// we don't trust any token that came in via the context.
+			try {
+				const response = yield fetch(`${ctx.restBase}/token/${ctx.pageId}`, {
+					credentials: 'same-origin',
+				});
+				if (!response.ok) {
+					state.errorMessage = ctx.i18n.initFailed;
+					return;
+				}
+				const data = yield response.json();
+				ctx.nonce = data.nonce;
+			} catch {
+				state.errorMessage = ctx.i18n.initConnectionFailed;
+				return;
+			}
+
+			if (cookie && cookie.consent === false) {
 				// Valid cookie without consent — show consent screen.
-				// Use the page-level CSRF token as the consent nonce, since
-				// the normal registration flow (which sets consentNonce) was skipped.
+				// Use the freshly fetched CSRF token as the consent nonce,
+				// since the normal registration flow (which sets consentNonce) was skipped.
 				state.consentNonce = ctx.nonce;
 				state.currentView = 'consent';
 			} else if (keyParam) {
@@ -413,6 +495,17 @@ const { state } = store('pixfete', {
 		 */
 		updatePasswordInput(event) {
 			state.passwordInput = event.target.value;
+		},
+
+		/**
+		 * Toggle whether the password field shows its value in plain text.
+		 *
+		 * Lets guests verify the password they typed without retyping it,
+		 * which is especially helpful on mobile keyboards where mistypes are
+		 * common and the password is being shared verbally on the day of the event.
+		 */
+		togglePasswordVisibility() {
+			state.passwordVisible = !state.passwordVisible;
 		},
 
 		/**
@@ -447,7 +540,7 @@ const { state } = store('pixfete', {
 			state.errorMessage = '';
 
 			if (!state.passwordInput.trim()) {
-				state.errorMessage = 'Please enter the event password.';
+				state.errorMessage = getContext().i18n.passwordRequired;
 				return;
 			}
 
@@ -455,43 +548,49 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			try {
-				const body = {
-					action: 'validate_password',
-					password: state.passwordInput,
-				};
+				// Two attempts: if the first fails with an invalid-nonce error
+				// and the server hands us a fresh one, retry transparently
+				// rather than surfacing a confusing CSRF error to the user.
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const body = {
+						action: 'validate_password',
+						password: state.passwordInput,
+					};
 
-				// Include honeypot field (should be empty for real users).
-				body[ctx.honeypotField] = '';
+					// Include honeypot field (should be empty for real users).
+					body[ctx.honeypotField] = '';
 
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': ctx.nonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify(body),
-				});
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': ctx.nonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify(body),
+					});
 
-				if (!response.ok) {
-					const errorData = yield response.json();
-					state.errorMessage = errorData.message || 'The password is incorrect.';
-
-					// Update the nonce from the error response so retries work.
-					// The original nonce was consumed during CSRF verification.
-					if (errorData.data?.nonce) {
-						ctx.nonce = errorData.data.nonce;
+					if (!response.ok) {
+						const errorData = yield response.json();
+						if (errorData.data?.nonce) {
+							ctx.nonce = errorData.data.nonce;
+						}
+						if (attempt === 1 && errorData.code === 'pixfete_invalid_nonce' && errorData.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = errorData.message || ctx.i18n.passwordIncorrect;
+						return;
 					}
+
+					const data = yield response.json();
+
+					// Store the fresh nonce for the registration step.
+					ctx.nonce = data.nonce;
+					state.currentView = 'registration';
 					return;
 				}
-
-				const data = yield response.json();
-
-				// Store the fresh nonce for the registration step.
-				ctx.nonce = data.nonce;
-				state.currentView = 'registration';
 			} catch {
-				state.errorMessage = 'A network error occurred. Please try again.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -511,7 +610,7 @@ const { state } = store('pixfete', {
 			state.errorMessage = '';
 
 			if (!state.guestName.trim()) {
-				state.errorMessage = 'Please enter your name.';
+				state.errorMessage = getContext().i18n.nameRequired;
 				return;
 			}
 
@@ -519,42 +618,46 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			try {
-				const body = {
-					action: 'register',
-					password: state.passwordInput,
-					guest_name: state.guestName.trim(),
-					table_name: state.tableName.trim(),
-				};
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const body = {
+						action: 'register',
+						password: state.passwordInput,
+						guest_name: state.guestName.trim(),
+						table_name: state.tableName.trim(),
+					};
 
-				// Include honeypot field (should be empty for real users).
-				body[ctx.honeypotField] = '';
+					// Include honeypot field (should be empty for real users).
+					body[ctx.honeypotField] = '';
 
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': ctx.nonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify(body),
-				});
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': ctx.nonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify(body),
+					});
 
-				if (!response.ok) {
-					const errorData = yield response.json();
-					state.errorMessage = errorData.message || 'Registration failed. Please try again.';
-
-					// Update the nonce from the error response so retries work.
-					if (errorData.data?.nonce) {
-						ctx.nonce = errorData.data.nonce;
+					if (!response.ok) {
+						const errorData = yield response.json();
+						if (errorData.data?.nonce) {
+							ctx.nonce = errorData.data.nonce;
+						}
+						if (attempt === 1 && errorData.code === 'pixfete_invalid_nonce' && errorData.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = errorData.message || ctx.i18n.registrationFailed;
+						return;
 					}
+
+					const data = yield response.json();
+					state.consentNonce = data.consent_nonce || '';
+					state.currentView = 'consent';
 					return;
 				}
-
-				const data = yield response.json();
-				state.consentNonce = data.consent_nonce || '';
-				state.currentView = 'consent';
 			} catch {
-				state.errorMessage = 'A network error occurred. Please try again.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -573,29 +676,38 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			try {
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': state.consentNonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify({ action: 'consent' }),
-				});
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': state.consentNonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify({ action: 'consent' }),
+					});
 
-				if (!response.ok) {
-					const errorData = yield response.json();
-					state.errorMessage = errorData.message || 'Failed to accept consent. Please try again.';
+					if (!response.ok) {
+						const errorData = yield response.json();
+						if (errorData.data?.nonce) {
+							state.consentNonce = errorData.data.nonce;
+						}
+						if (attempt === 1 && errorData.code === 'pixfete_invalid_nonce' && errorData.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = errorData.message || ctx.i18n.consentFailed;
+						return;
+					}
+
+					state.currentView = 'gallery';
+
+					const { actions } = store('pixfete');
+					actions.loadPhotos();
+					actions.startPolling();
 					return;
 				}
-
-				state.currentView = 'gallery';
-
-				const { actions } = store('pixfete');
-				actions.loadPhotos();
-				actions.startPolling();
 			} catch {
-				state.errorMessage = 'A network error occurred. Please try again.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -622,7 +734,7 @@ const { state } = store('pixfete', {
 				});
 
 				if (!response.ok) {
-					state.errorMessage = 'Failed to load photos.';
+					state.errorMessage = ctx.i18n.loadPhotosFailed;
 					return;
 				}
 
@@ -641,7 +753,7 @@ const { state } = store('pixfete', {
 					}
 				}
 			} catch {
-				state.errorMessage = 'Failed to load photos.';
+				state.errorMessage = ctx.i18n.loadPhotosFailed;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -791,10 +903,7 @@ const { state } = store('pixfete', {
 
 					if (!response.ok) {
 						const errorData = yield response.json();
-						state.uploadErrors = [
-							...state.uploadErrors,
-							errorData.message || 'Upload failed. Please try again.',
-						];
+						state.uploadErrors = [...state.uploadErrors, errorData.message || ctx.i18n.uploadFailed];
 						continue;
 					}
 
@@ -808,10 +917,7 @@ const { state } = store('pixfete', {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
 				} catch {
-					state.uploadErrors = [
-						...state.uploadErrors,
-						'Upload failed. Please check your connection and try again.',
-					];
+					state.uploadErrors = [...state.uploadErrors, ctx.i18n.uploadConnectionFailed];
 				}
 			}
 
@@ -823,7 +929,9 @@ const { state } = store('pixfete', {
 			if (state.uploadErrors.length === 1) {
 				state.errorMessage = state.uploadErrors[0];
 			} else if (state.uploadErrors.length > 1) {
-				state.errorMessage = `${state.uploadErrors.length} of ${totalFiles} photos failed to upload.`;
+				state.errorMessage = ctx.i18n.uploadBulkFailed
+					.replace('%1$d', String(state.uploadErrors.length))
+					.replace('%2$d', String(totalFiles));
 			}
 
 			// Reset the file input so the same file can be selected again.
@@ -852,8 +960,9 @@ const { state } = store('pixfete', {
 			const guestName = ctx.item.guest_name;
 
 			// Native confirmation dialog.
+			const confirmMessage = formatString(ctx.i18n.confirmDeletePhoto, guestName);
 			// eslint-disable-next-line no-alert -- Intentional use of confirm for destructive action.
-			const confirmed = window.confirm(`${guestName} — delete this photo? This cannot be undone.`);
+			const confirmed = window.confirm(confirmMessage);
 
 			if (!confirmed) {
 				return;
@@ -885,10 +994,10 @@ const { state } = store('pixfete', {
 						}
 					}
 				} else {
-					state.errorMessage = 'Failed to delete photo. Please try again.';
+					state.errorMessage = ctx.i18n.deletePhotoFailed;
 				}
 			} catch {
-				state.errorMessage = 'Network error. Please try again.';
+				state.errorMessage = ctx.i18n.deleteNetworkError;
 			} finally {
 				state.deletingPhotoId = null;
 			}

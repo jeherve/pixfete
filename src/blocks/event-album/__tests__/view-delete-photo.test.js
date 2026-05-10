@@ -4,6 +4,8 @@
  */
 /* eslint-enable jsdoc/check-tag-names */
 
+const i18nFixture = require('../__fixtures__/i18n');
+
 // Mock @wordpress/interactivity with a store stub that captures the definition
 // so we can test the deletePhoto generator directly.
 let registeredStore = {};
@@ -28,6 +30,7 @@ beforeEach(() => {
 		restNonce: 'test-nonce-abc',
 		dateStart: '',
 		dateEnd: '',
+		i18n: { ...i18nFixture },
 		item: {
 			id: 101,
 			guest_name: 'Alice',

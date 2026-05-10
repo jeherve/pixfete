@@ -156,7 +156,7 @@ class RestPhotosTest extends TestCase {
 	public function test_register_routes_registers_photo_endpoints(): void {
 		$captured = array();
 		Functions\expect( 'register_rest_route' )
-			->times( 5 )
+			->times( 6 )
 			->withArgs(
 				function ( $namespace, $route, $args ) use ( &$captured ) {
 					$captured[] = array(
@@ -170,19 +170,33 @@ class RestPhotosTest extends TestCase {
 
 		( new REST() )->register_routes();
 
-		// The second and third registrations should be the photo endpoints.
-		$upload  = $captured[1] ?? null;
-		$gallery = $captured[2] ?? null;
+		// Match by route + HTTP method rather than registration order, since
+		// the order is not part of the controller's contract and changes as
+		// new endpoints are added (e.g. /token).
+		$photo_routes = array_values(
+			array_filter(
+				$captured,
+				function ( $row ) {
+					return $row['route'] === '/photos/(?P<page_id>\d+)';
+				}
+			)
+		);
+
+		$upload = null;
+		$gallery = null;
+		foreach ( $photo_routes as $row ) {
+			if ( 'POST' === $row['args']['methods'] ) {
+				$upload = $row;
+			} elseif ( 'GET' === $row['args']['methods'] ) {
+				$gallery = $row;
+			}
+		}
 
 		$this->assertNotNull( $upload, 'Upload route must be registered.' );
 		$this->assertSame( 'pixfete/v1', $upload['namespace'] );
-		$this->assertSame( '/photos/(?P<page_id>\d+)', $upload['route'] );
-		$this->assertSame( 'POST', $upload['args']['methods'] );
 
 		$this->assertNotNull( $gallery, 'Gallery route must be registered.' );
 		$this->assertSame( 'pixfete/v1', $gallery['namespace'] );
-		$this->assertSame( '/photos/(?P<page_id>\d+)', $gallery['route'] );
-		$this->assertSame( 'GET', $gallery['args']['methods'] );
 	}
 
 	// ─── §5a: Upload endpoint — permission checks ────────────────────
