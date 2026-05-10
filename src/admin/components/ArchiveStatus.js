@@ -11,7 +11,7 @@ import { isEventEnded } from '../utils/is-event-ended';
  * @param {Object}      props
  * @param {Object|null} props.archive      Archive entry from pixfete_zip_archives option, or null.
  * @param {string}      props.dateRangeEnd The event's end date (Y-m-d string), or empty.
- * @return {JSX.Element|null} The rendered archive status UI.
+ * @return {Element|null} The rendered archive status UI.
  */
 export function ArchiveStatus({ archive, dateRangeEnd }) {
 	// If no end date is set, or the event hasn't ended yet, show a waiting message.

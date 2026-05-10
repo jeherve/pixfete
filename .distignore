@@ -33,6 +33,7 @@ webpack.config.js
 .phpcs.xml.dist
 .prettierrc.js
 .prettierignore
+eslint.config.js
 .editorconfig
 .DS_Store
 phpunit.xml.dist

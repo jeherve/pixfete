@@ -115,10 +115,9 @@ describe('init() with future event', () => {
 			writable: true,
 			configurable: true,
 		});
-		// Stub window.location.href for URL parsing.
-		delete window.location;
-		window.location = new URL('https://example.com/event-page/');
-		// Stub window.history.replaceState for cleanUrlParams.
+		// Stub window.history.replaceState for cleanUrlParams. JSDOM's default
+		// location (http://localhost/) is sufficient for these tests since
+		// they don't depend on any query parameters.
 		window.history.replaceState = jest.fn();
 	});
 
