@@ -371,16 +371,40 @@ if ( $pixfete_is_moderator ) {
 
 		<?php // Lightbox overlay. ?>
 		<div
+			role="dialog"
+			aria-modal="true"
+			aria-label="<?php esc_attr_e( 'Photo lightbox', 'pixfete' ); ?>"
 			data-wp-bind--hidden="!state.lightboxOpen"
 			class="pixfete-lightbox"
 			data-wp-on--click="actions.closeLightbox"
+			data-wp-on--touchstart="actions.lightboxTouchStart"
+			data-wp-on--touchend="actions.lightboxTouchEnd"
+			data-wp-init="callbacks.initLightboxKeyboard"
 		>
 			<button class="pixfete-lightbox-close" aria-label="<?php esc_attr_e( 'Close', 'pixfete' ); ?>">&times;</button>
+
+			<button
+				class="pixfete-lightbox-nav pixfete-lightbox-nav--prev"
+				data-wp-on--click="actions.prevPhoto"
+				data-wp-bind--disabled="!state.canGoPrev"
+				aria-label="<?php esc_attr_e( 'Previous photo', 'pixfete' ); ?>"
+				type="button"
+			>&lsaquo;</button>
+
 			<img
 				class="pixfete-lightbox-image"
 				data-wp-bind--src="state.lightboxPhoto.full"
 				data-wp-bind--alt="state.lightboxPhoto.guest_name"
 			/>
+
+			<button
+				class="pixfete-lightbox-nav pixfete-lightbox-nav--next"
+				data-wp-on--click="actions.nextPhoto"
+				data-wp-bind--disabled="!state.canGoNext"
+				aria-label="<?php esc_attr_e( 'Next photo', 'pixfete' ); ?>"
+				type="button"
+			>&rsaquo;</button>
+
 			<span class="pixfete-lightbox-name" data-wp-text="state.lightboxPhoto.guest_name"></span>
 		</div>
 	</div>
