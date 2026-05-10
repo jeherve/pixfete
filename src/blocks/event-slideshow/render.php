@@ -51,8 +51,8 @@ $pixfete_context = array(
 >
 	<?php
 	// Loading view — shown briefly during initialization. Also
-			// surfaces an init error (e.g. token fetch failed) with a
-			// retry button so the slideshow isn't stuck on first load.
+	// surfaces an init error (e.g. token fetch failed) with a
+	// retry button so the slideshow isn't stuck on first load.
 	?>
 	<div
 		class="pixfete-slideshow-loading"

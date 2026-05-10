@@ -67,8 +67,8 @@ if ( $pixfete_is_moderator ) {
 
 		<?php
 		// Loading view. Doubles as the surface for an init failure
-				// (e.g. token fetch could not reach the server), with a retry
-				// button so the user isn't permanently stuck.
+		// (e.g. token fetch could not reach the server), with a retry
+		// button so the user isn't permanently stuck.
 		?>
 		<div data-wp-bind--hidden="!state.isLoadingView" class="pixfete-loading">
 			<p data-wp-bind--hidden="state.errorMessage"><?php esc_html_e( 'Loading…', 'pixfete' ); ?></p>
