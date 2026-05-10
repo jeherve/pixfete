@@ -12,6 +12,12 @@ module.exports = defineConfig({
 	expect: {
 		timeout: 10000,
 	},
+	// Run serially on CI. WP Playground falls back to 3 PHP workers on the
+	// 4-CPU GitHub runner and warns that fewer than 6 workers risks file-lock
+	// deadlock; with two parallel Playwright workers, the login redirect hangs
+	// until the 90s test timeout. Locally we let Playwright auto-pick.
+	workers: process.env.CI ? 1 : undefined,
+	retries: process.env.CI ? 1 : 0,
 	use: {
 		baseURL: `http://127.0.0.1:${playgroundPort}`,
 		screenshot: 'only-on-failure',
