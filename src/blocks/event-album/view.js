@@ -876,6 +876,38 @@ const { state } = store('pixfete', {
 		},
 
 		/**
+		 * Navigate the lightbox to the previous photo.
+		 *
+		 * Stops at index 0 — there is no wrap-around. Stops event
+		 * propagation so the click on the prev button does not also
+		 * trigger the overlay's closeLightbox handler.
+		 *
+		 * @param {Event} [event] Optional click or keyboard event.
+		 */
+		prevPhoto(event) {
+			event?.stopPropagation();
+			if (state.lightboxIndex > 0) {
+				state.lightboxIndex -= 1;
+			}
+		},
+
+		/**
+		 * Navigate the lightbox to the next photo.
+		 *
+		 * Stops at the last loaded photo — there is no wrap-around and
+		 * no auto-trigger of "Load more". Stops event propagation so the
+		 * click on the next button does not also trigger closeLightbox.
+		 *
+		 * @param {Event} [event] Optional click or keyboard event.
+		 */
+		nextPhoto(event) {
+			event?.stopPropagation();
+			if (state.lightboxIndex >= 0 && state.lightboxIndex < state.photos.length - 1) {
+				state.lightboxIndex += 1;
+			}
+		},
+
+		/**
 		 * Toggle the FAB expanded/collapsed state.
 		 */
 		toggleFab() {
