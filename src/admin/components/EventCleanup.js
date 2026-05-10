@@ -81,7 +81,7 @@ export function EventCleanup({ pageId, dateRangeEnd, onEventDeleted }) {
 	}
 
 	return (
-		<div className="egps-cleanup-section">
+		<div className="pixfete-cleanup-section">
 			<p>{__('Permanently delete this event page, all uploaded photos, and any archive files.', 'pixfete')}</p>
 			{error && (
 				<Notice status="error" isDismissible onRemove={() => setError(null)}>

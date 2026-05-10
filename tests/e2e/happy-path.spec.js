@@ -80,7 +80,7 @@ test.describe('Pixfête - Happy Path', () => {
 			await page.goto(pageUrl, { waitUntil: 'networkidle' });
 			if (
 				await page
-					.locator('#egps-password')
+					.locator('#pixfete-password')
 					.isVisible({ timeout: 5000 })
 					.catch(() => false)
 			) {
@@ -92,27 +92,27 @@ test.describe('Pixfête - Happy Path', () => {
 		expect(loaded).toBeTruthy();
 
 		// Wait for the password form to appear.
-		const passwordInput = page.locator('#egps-password');
+		const passwordInput = page.locator('#pixfete-password');
 
 		// Enter the event password and submit.
 		await passwordInput.fill(eventPassword);
-		await page.locator('.egps-form button[type="submit"]').first().click();
+		await page.locator('.pixfete-form button[type="submit"]').first().click();
 
 		// Verify transition to registration view.
-		await expect(page.locator('#egps-guest-name')).toBeVisible();
+		await expect(page.locator('#pixfete-guest-name')).toBeVisible();
 
 		// --- Step 2: Registration ---
 		// Fill in the guest name and submit.
-		await page.locator('#egps-guest-name').fill('Test Guest');
-		await page.locator('.egps-form button[type="submit"]').last().click();
+		await page.locator('#pixfete-guest-name').fill('Test Guest');
+		await page.locator('.pixfete-form button[type="submit"]').last().click();
 
 		// Verify transition to consent view.
-		await expect(page.locator('.egps-consent')).toBeVisible();
+		await expect(page.locator('.pixfete-consent')).toBeVisible();
 
 		// Verify the consent message is displayed (rendered from InnerBlocks content).
 		// The Interactivity API reads the consent HTML from the template element
 		// and injects it via data-wp-html. Wait for it to populate.
-		await expect(page.locator('.egps-consent-text'))
+		await expect(page.locator('.pixfete-consent-text'))
 			.not.toBeEmpty({ timeout: 5000 })
 			.catch(() => {
 				// In some environments, the consent text may not populate if the
@@ -120,13 +120,13 @@ test.describe('Pixfête - Happy Path', () => {
 			});
 
 		// --- Step 3: Accept consent ---
-		await page.locator('.egps-accept-btn').click();
+		await page.locator('.pixfete-accept-btn').click();
 
 		// Verify transition to gallery view by checking upload buttons are visible.
-		await expect(page.locator('.egps-upload')).toBeVisible();
+		await expect(page.locator('.pixfete-upload')).toBeVisible();
 
 		// --- Step 4: Upload a photo ---
-		const fileInput = page.locator('#egps-file-gallery');
+		const fileInput = page.locator('#pixfete-file-gallery');
 		await fileInput.setInputFiles(path.join(__dirname, 'fixtures', 'test-photo.jpg'));
 
 		// Verify the upload progress banner appears during upload.
@@ -134,41 +134,41 @@ test.describe('Pixfête - Happy Path', () => {
 		// short timeout and don't fail the test if we miss it — the
 		// unit tests cover the state logic exhaustively.
 		await page
-			.locator('.egps-upload-progress')
+			.locator('.pixfete-upload-progress')
 			.waitFor({ state: 'visible', timeout: 5000 })
 			.catch(() => {
 				// Banner may have already disappeared for fast uploads.
 			});
 
 		// Wait for the uploaded photo to appear in the grid.
-		const photo = page.locator('.egps-photo img');
+		const photo = page.locator('.pixfete-photo img');
 		await photo.first().waitFor({ timeout: 15000 });
 
 		// Upload progress banner should be hidden after upload completes.
-		await expect(page.locator('.egps-upload-progress')).toBeHidden();
+		await expect(page.locator('.pixfete-upload-progress')).toBeHidden();
 
 		// Verify the photo is visible with the guest name.
 		await expect(photo.first()).toBeVisible();
-		await expect(page.locator('.egps-photo-name').first()).toContainText('Test Guest');
+		await expect(page.locator('.pixfete-photo-name').first()).toContainText('Test Guest');
 
 		// --- Step 5: Lightbox ---
 		// Click the photo to open the lightbox.
-		await page.locator('.egps-photo').first().click();
+		await page.locator('.pixfete-photo').first().click();
 
 		// Verify lightbox opens with a full-size image.
-		const lightbox = page.locator('.egps-lightbox');
+		const lightbox = page.locator('.pixfete-lightbox');
 		await expect(lightbox).toBeVisible();
 
-		const lightboxImage = page.locator('.egps-lightbox-image');
+		const lightboxImage = page.locator('.pixfete-lightbox-image');
 		await expect(lightboxImage).toBeVisible();
 		const src = await lightboxImage.getAttribute('src');
 		expect(src).toBeTruthy();
 
 		// Verify guest name in lightbox.
-		await expect(page.locator('.egps-lightbox-name')).toContainText('Test Guest');
+		await expect(page.locator('.pixfete-lightbox-name')).toContainText('Test Guest');
 
 		// Close lightbox by clicking the close button.
-		await page.locator('.egps-lightbox-close').click();
+		await page.locator('.pixfete-lightbox-close').click();
 		await expect(lightbox).toBeHidden();
 	});
 });
@@ -223,7 +223,7 @@ test.describe('Pixfête - Future Event', () => {
 			await guestPage.goto(result.link, { waitUntil: 'networkidle' });
 			if (
 				await guestPage
-					.locator('.egps-not-started')
+					.locator('.pixfete-not-started')
 					.isVisible({ timeout: 5000 })
 					.catch(() => false)
 			) {
@@ -236,11 +236,11 @@ test.describe('Pixfête - Future Event', () => {
 		expect(loaded).toBeTruthy();
 
 		// Verify the friendly message is visible.
-		await expect(guestPage.locator('.egps-not-started')).toBeVisible();
-		await expect(guestPage.locator('.egps-not-started')).toContainText('not started yet');
+		await expect(guestPage.locator('.pixfete-not-started')).toBeVisible();
+		await expect(guestPage.locator('.pixfete-not-started')).toContainText('not started yet');
 
 		// Verify no password form is shown.
-		await expect(guestPage.locator('#egps-password')).toBeHidden();
+		await expect(guestPage.locator('#pixfete-password')).toBeHidden();
 
 		await guestContext.close();
 	});

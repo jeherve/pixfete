@@ -19,8 +19,8 @@ const DEFAULT_CONFIG = {
 };
 
 export function AdminPage() {
-	/* global egpsQrAdmin */
-	const { pages } = egpsQrAdmin;
+	/* global pixfeteQrAdmin */
+	const { pages } = pixfeteQrAdmin;
 
 	const [selectedPageId, setSelectedPageId] = useState(pages.length ? pages[0].id : null);
 	const [config, setConfig] = useState(DEFAULT_CONFIG);
@@ -36,14 +36,14 @@ export function AdminPage() {
 		// Remove the deleted page from the pages array and select the next available page.
 		const remainingPages = pages.filter((p) => p.id !== deletedPageId);
 		// Mutate the original array so the selector updates.
-		// (pages comes from egpsQrAdmin which is a global — we replace it in place.)
-		egpsQrAdmin.pages = remainingPages;
+		// (pages comes from pixfeteQrAdmin which is a global — we replace it in place.)
+		pixfeteQrAdmin.pages = remainingPages;
 		setSelectedPageId(remainingPages.length ? remainingPages[0].id : null);
 	};
 
 	if (!pages.length) {
 		return (
-			<div className="egps-qr-empty">
+			<div className="pixfete-qr-empty">
 				<p>{__('No pages with the Event Photo Album block were found.', 'pixfete')}</p>
 				<p>
 					<a href="post-new.php?post_type=page">{__('Create a new page', 'pixfete')}</a>
@@ -68,11 +68,11 @@ export function AdminPage() {
 	const url = buildUrl(selectedPage, config);
 
 	return (
-		<div className="egps-qr-admin">
+		<div className="pixfete-qr-admin">
 			<PageSelector pages={pages} selectedPageId={selectedPageId} onChange={handlePageChange} />
 
 			<h2>{__('QR Code Generator', 'pixfete')}</h2>
-			<div className="egps-qr-admin-columns">
+			<div className="pixfete-qr-admin-columns">
 				<QrConfigPanel page={selectedPage} config={configWithLogo} onConfigChange={setConfig} />
 				<QrPreview
 					url={url}
@@ -83,12 +83,12 @@ export function AdminPage() {
 			</div>
 
 			<h2>{__('Photo Archive', 'pixfete')}</h2>
-			<div className="egps-archive-section">
+			<div className="pixfete-archive-section">
 				<ArchiveStatus archive={selectedPage.archive} dateRangeEnd={selectedPage.dateRangeEnd || ''} />
 			</div>
 
 			<h2>{__('Event Cleanup', 'pixfete')}</h2>
-			<div className="egps-cleanup-section">
+			<div className="pixfete-cleanup-section">
 				<EventCleanup
 					pageId={selectedPage.id}
 					dateRangeEnd={selectedPage.dateRangeEnd || ''}

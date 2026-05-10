@@ -146,7 +146,7 @@ class Archive {
 		 */
 		$archive_dir = apply_filters(
 			'pixfete_archive_directory',
-			$upload_dir['basedir'] . '/egps-archives'
+			$upload_dir['basedir'] . '/pixfete-archives'
 		);
 
 		wp_mkdir_p( $archive_dir );
@@ -160,12 +160,12 @@ class Archive {
 		// Initialize file path and URL on first batch.
 		if ( 'pending' === $status ) {
 			$token     = $archive['token'];
-			$file_path = $archive_dir . '/egps-archive-' . $page_id . '-' . $token . '.zip';
+			$file_path = $archive_dir . '/pixfete-archive-' . $page_id . '-' . $token . '.zip';
 			// Note: this URL assumes the default archive directory. If the
 			// pixfete_archive_directory filter changes the storage path to a location
 			// outside the uploads directory, this URL will not match. A companion
 			// pixfete_archive_url filter could be added in the future if needed.
-			$url = $upload_dir['baseurl'] . '/egps-archives/egps-archive-' . $page_id . '-' . $token . '.zip';
+			$url = $upload_dir['baseurl'] . '/pixfete-archives/pixfete-archive-' . $page_id . '-' . $token . '.zip';
 
 			self::update_archive(
 				$page_id,

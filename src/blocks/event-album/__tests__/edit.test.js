@@ -115,7 +115,7 @@ describe('Edit — password validation', () => {
 			);
 		});
 
-		expect(mockLockPostSaving).toHaveBeenCalledWith('egps-password-too-short');
+		expect(mockLockPostSaving).toHaveBeenCalledWith('pixfete-password-too-short');
 		expect(mockUnlockPostSaving).not.toHaveBeenCalled();
 		expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
 	});
@@ -137,7 +137,7 @@ describe('Edit — password validation', () => {
 			);
 		});
 
-		expect(mockUnlockPostSaving).toHaveBeenCalledWith('egps-password-too-short');
+		expect(mockUnlockPostSaving).toHaveBeenCalledWith('pixfete-password-too-short');
 		expect(mockLockPostSaving).not.toHaveBeenCalled();
 		expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
 	});
@@ -166,7 +166,7 @@ describe('Edit — password validation', () => {
 		expect(mockLockPostSaving).not.toHaveBeenCalled();
 		// unlockPostSaving is called because isTooShort is false — this is a
 		// harmless no-op when no lock was ever set.
-		expect(mockUnlockPostSaving).toHaveBeenCalledWith('egps-password-too-short');
+		expect(mockUnlockPostSaving).toHaveBeenCalledWith('pixfete-password-too-short');
 		expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
 	});
 
@@ -187,7 +187,7 @@ describe('Edit — password validation', () => {
 			);
 		});
 
-		expect(mockLockPostSaving).toHaveBeenCalledWith('egps-password-too-short');
+		expect(mockLockPostSaving).toHaveBeenCalledWith('pixfete-password-too-short');
 		expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
 	});
 
@@ -208,7 +208,7 @@ describe('Edit — password validation', () => {
 			);
 		});
 
-		expect(mockUnlockPostSaving).toHaveBeenCalledWith('egps-password-too-short');
+		expect(mockUnlockPostSaving).toHaveBeenCalledWith('pixfete-password-too-short');
 		expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
 	});
 });

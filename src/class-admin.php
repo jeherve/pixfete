@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 class Admin {
 
 	private const MENU_SLUG     = 'pixfete';
-	private const SCRIPT_HANDLE = 'egps-qr-admin';
+	private const SCRIPT_HANDLE = 'pixfete-qr-admin';
 
 	/**
 	 * Register the page under Settings in the WP admin menu.
@@ -36,7 +36,7 @@ class Admin {
 	 * Render the admin page shell — the React app mounts onto this div.
 	 */
 	public static function render_page(): void {
-		echo '<div class="wrap"><div id="egps-qr-admin"></div></div>';
+		echo '<div class="wrap"><div id="pixfete-qr-admin"></div></div>';
 	}
 
 	/**
@@ -72,7 +72,7 @@ class Admin {
 
 		wp_localize_script(
 			self::SCRIPT_HANDLE,
-			'egpsQrAdmin',
+			'pixfeteQrAdmin',
 			array( 'pages' => self::get_event_pages() )
 		);
 	}

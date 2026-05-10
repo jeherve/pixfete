@@ -4,7 +4,7 @@
 
 .wp-block-pixfete-event-album {
 
-	.egps-editor-label {
+	.pixfete-editor-label {
 		font-size: 11px;
 		font-weight: 600;
 		text-transform: uppercase;
@@ -13,18 +13,18 @@
 		margin-bottom: 4px;
 	}
 
-	.egps-editor-help {
+	.pixfete-editor-help {
 		font-size: 12px;
 		color: #949494;
 		margin-top: 0;
 		margin-bottom: 8px;
 	}
 
-	.egps-editor-consent {
+	.pixfete-editor-consent {
 		margin-bottom: 16px;
 	}
 
-	.egps-editor-preview-placeholder {
+	.pixfete-editor-preview-placeholder {
 		border: 2px dashed #ddd;
 		border-radius: 4px;
 		padding: 16px;
@@ -33,13 +33,13 @@
 		opacity: 0.7;
 	}
 
-	.egps-editor-preview-buttons {
+	.pixfete-editor-preview-buttons {
 		display: flex;
 		gap: 8px;
 		margin-bottom: 16px;
 	}
 
-	.egps-editor-preview-button {
+	.pixfete-editor-preview-button {
 		display: inline-block;
 		padding: 8px 16px;
 		background: #f0f0f0;
@@ -49,13 +49,13 @@
 		color: #757575;
 	}
 
-	.egps-editor-preview-grid {
+	.pixfete-editor-preview-grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 8px;
 	}
 
-	.egps-editor-preview-cell {
+	.pixfete-editor-preview-cell {
 		background: #f0f0f0;
 		border-radius: 4px;
 		aspect-ratio: 1 / 1;

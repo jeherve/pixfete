@@ -41,14 +41,14 @@ $pixfete_context = array(
 );
 ?>
 <div
-	<?php echo get_block_wrapper_attributes( array( 'class' => 'egps-slideshow' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
+	<?php echo get_block_wrapper_attributes( array( 'class' => 'pixfete-slideshow' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
 	data-wp-interactive="pixfete/slideshow"
 	data-wp-init="actions.init"
 	data-wp-context='<?php echo esc_attr( wp_json_encode( $pixfete_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
 	<?php // Loading view — shown briefly during initialization. ?>
 	<div
-		class="egps-slideshow-loading"
+		class="pixfete-slideshow-loading"
 		data-wp-bind--hidden="!state.isLoadingView"
 	>
 		<p><?php echo esc_html__( 'Loading…', 'pixfete' ); ?></p>
@@ -56,7 +56,7 @@ $pixfete_context = array(
 
 	<?php // Not-started view — event hasn't begun yet. ?>
 	<div
-		class="egps-slideshow-not-started"
+		class="pixfete-slideshow-not-started"
 		data-wp-bind--hidden="!state.isNotStartedView"
 	>
 		<p><?php echo esc_html__( "You're a little early! This event hasn't started yet — check back soon.", 'pixfete' ); ?></p>
@@ -64,22 +64,22 @@ $pixfete_context = array(
 
 	<?php // Password form — simplified auth, no registration or consent. ?>
 	<div
-		class="egps-slideshow-form"
+		class="pixfete-slideshow-form"
 		data-wp-bind--hidden="!state.isPasswordView"
 	>
 		<form data-wp-on-async--submit="actions.submitPassword">
-			<label for="egps-slideshow-password">
+			<label for="pixfete-slideshow-password">
 				<?php echo esc_html__( 'Event Password', 'pixfete' ); ?>
 			</label>
 			<input
-				id="egps-slideshow-password"
+				id="pixfete-slideshow-password"
 				type="password"
 				autocomplete="off"
 				data-wp-bind--value="state.passwordInput"
 				data-wp-on--input="actions.updatePasswordInput"
 				required
 			/>
-			<div class="egps-hp" aria-hidden="true" tabindex="-1">
+			<div class="pixfete-hp" aria-hidden="true" tabindex="-1">
 				<input
 					type="text"
 					name="<?php echo esc_attr( $pixfete_honeypot_field ); ?>"
@@ -91,7 +91,7 @@ $pixfete_context = array(
 				<?php echo esc_html__( 'Enter', 'pixfete' ); ?>
 			</button>
 			<p
-				class="egps-slideshow-error"
+				class="pixfete-slideshow-error"
 				data-wp-bind--hidden="!state.errorMessage"
 				data-wp-text="state.errorMessage"
 			></p>
@@ -100,12 +100,12 @@ $pixfete_context = array(
 
 	<?php // Main slideshow view. ?>
 	<div
-		class="egps-slideshow-display"
+		class="pixfete-slideshow-display"
 		data-wp-bind--hidden="!state.isSlideshowView"
 	>
 		<?php // Blurred background image. ?>
 		<img
-			class="egps-slideshow-bg"
+			class="pixfete-slideshow-bg"
 			data-wp-bind--src="state.currentPhotoFull"
 			alt=""
 			aria-hidden="true"
@@ -113,30 +113,30 @@ $pixfete_context = array(
 
 		<?php // Current photo (bottom layer). ?>
 		<img
-			class="egps-slideshow-photo egps-slideshow-photo--current"
+			class="pixfete-slideshow-photo pixfete-slideshow-photo--current"
 			data-wp-bind--src="state.currentPhotoFull"
 			data-wp-bind--alt="state.currentPhotoAlt"
 		/>
 
 		<?php // Next photo (top layer, fades in during transition). ?>
 		<img
-			class="egps-slideshow-photo egps-slideshow-photo--next"
+			class="pixfete-slideshow-photo pixfete-slideshow-photo--next"
 			data-wp-bind--src="state.nextPhotoFull"
 			data-wp-bind--alt="state.nextPhotoAlt"
-			data-wp-class--egps-slideshow-photo--visible="state.isFading"
+			data-wp-class--pixfete-slideshow-photo--visible="state.isFading"
 		/>
 
 		<?php // Metadata overlay pill. ?>
 		<div
-			class="egps-slideshow-meta"
+			class="pixfete-slideshow-meta"
 			data-wp-bind--hidden="!state.currentPhotoGuestName"
 		>
 			<span
-				class="egps-slideshow-meta-name"
+				class="pixfete-slideshow-meta-name"
 				data-wp-text="state.currentPhotoGuestName"
 			></span>
 			<span
-				class="egps-slideshow-meta-table"
+				class="pixfete-slideshow-meta-table"
 				data-wp-bind--hidden="!state.currentPhotoTableName"
 				data-wp-text="state.currentPhotoTableName"
 			></span>
@@ -144,7 +144,7 @@ $pixfete_context = array(
 
 		<?php // Waiting state — authenticated but no photos yet. ?>
 		<div
-			class="egps-slideshow-waiting"
+			class="pixfete-slideshow-waiting"
 			data-wp-bind--hidden="!state.isWaiting"
 		>
 			<p><?php echo esc_html__( 'Waiting for photos…', 'pixfete' ); ?></p>

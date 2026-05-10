@@ -12,7 +12,7 @@ export function PageSelector({ pages, selectedPageId, onChange }) {
 	}));
 
 	return (
-		<div className="egps-qr-page-selector">
+		<div className="pixfete-qr-page-selector">
 			<SelectControl
 				label={__('Select Event Page', 'pixfete')}
 				value={String(selectedPageId)}

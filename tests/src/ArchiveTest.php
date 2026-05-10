@@ -42,8 +42,8 @@ class ArchiveTest extends TestCase {
 		$data = array(
 			42 => array(
 				'status'    => 'complete',
-				'file_path' => '/var/www/uploads/egps-archives/egps-archive-42-abc123.zip',
-				'url'       => 'https://example.com/uploads/egps-archives/egps-archive-42-abc123.zip',
+				'file_path' => '/var/www/uploads/pixfete-archives/pixfete-archive-42-abc123.zip',
+				'url'       => 'https://example.com/uploads/pixfete-archives/pixfete-archive-42-abc123.zip',
 				'token'     => 'abc123',
 			),
 		);
@@ -422,8 +422,8 @@ class ArchiveTest extends TestCase {
 			);
 
 		// Directory setup — use a real temp directory so ZipArchive can write files.
-		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
-		$archive_dir = $base_dir . '/egps-archives';
+		$base_dir    = sys_get_temp_dir() . '/pixfete-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/pixfete-archives';
 		mkdir( $archive_dir, 0777, true );
 
 		$upload_dir = array(
@@ -454,8 +454,8 @@ class ArchiveTest extends TestCase {
 		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 2;
 
 		// Mock file paths — create real temp files so ZipArchive can add them.
-		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
-		$tmp2 = tempnam( sys_get_temp_dir(), 'egps' );
+		$tmp1 = tempnam( sys_get_temp_dir(), 'pixfete' );
+		$tmp2 = tempnam( sys_get_temp_dir(), 'pixfete' );
 		file_put_contents( $tmp1, 'fake image data 1' );
 		file_put_contents( $tmp2, 'fake image data 2' );
 
@@ -514,18 +514,18 @@ class ArchiveTest extends TestCase {
 	 */
 	public function test_process_batch_reschedules_for_remaining_attachments(): void {
 		// Use a real temp directory so ZipArchive can write files.
-		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
-		$archive_dir = $base_dir . '/egps-archives';
+		$base_dir    = sys_get_temp_dir() . '/pixfete-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/pixfete-archives';
 		mkdir( $archive_dir, 0777, true );
 
-		$zip_path = $archive_dir . '/egps-archive-42-abc123def456.zip';
+		$zip_path = $archive_dir . '/pixfete-archive-42-abc123def456.zip';
 
 		$entry = array(
 			'status'      => 'generating',
 			'token'       => 'abc123def456',
 			'last_offset' => 0,
 			'file_path'   => $zip_path,
-			'url'         => 'https://example.com/wp-content/uploads/egps-archives/egps-archive-42-abc123def456.zip',
+			'url'         => 'https://example.com/wp-content/uploads/pixfete-archives/pixfete-archive-42-abc123def456.zip',
 		);
 
 		Functions\when( 'get_option' )->alias(
@@ -561,7 +561,7 @@ class ArchiveTest extends TestCase {
 		$GLOBALS['pixfete_wp_query_mock']->posts        = array( $att1 );
 		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 2;
 
-		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
+		$tmp1 = tempnam( sys_get_temp_dir(), 'pixfete' );
 		file_put_contents( $tmp1, 'fake image data' );
 		Functions\when( 'wp_get_original_image_path' )->justReturn( $tmp1 );
 		Functions\when( 'get_attached_file' )->justReturn( $tmp1 );
@@ -623,8 +623,8 @@ class ArchiveTest extends TestCase {
 		);
 
 		// Use a real temp directory so ZipArchive can write files.
-		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
-		$archive_dir = $base_dir . '/egps-archives';
+		$base_dir    = sys_get_temp_dir() . '/pixfete-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/pixfete-archives';
 		mkdir( $archive_dir, 0777, true );
 
 		$upload_dir = array(
@@ -695,8 +695,8 @@ class ArchiveTest extends TestCase {
 		);
 
 		// Use a real temp directory so ZipArchive can write files.
-		$base_dir    = sys_get_temp_dir() . '/egps-test-uploads-' . uniqid();
-		$archive_dir = $base_dir . '/egps-archives';
+		$base_dir    = sys_get_temp_dir() . '/pixfete-test-uploads-' . uniqid();
+		$archive_dir = $base_dir . '/pixfete-archives';
 		mkdir( $archive_dir, 0777, true );
 
 		$upload_dir = array(
@@ -717,8 +717,8 @@ class ArchiveTest extends TestCase {
 		$GLOBALS['pixfete_wp_query_mock']->posts        = array( $att1, $att2 );
 		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 2;
 
-		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
-		$tmp2 = tempnam( sys_get_temp_dir(), 'egps' );
+		$tmp1 = tempnam( sys_get_temp_dir(), 'pixfete' );
+		$tmp2 = tempnam( sys_get_temp_dir(), 'pixfete' );
 		file_put_contents( $tmp1, 'image data 1' );
 		file_put_contents( $tmp2, 'image data 2' );
 

@@ -75,7 +75,7 @@ class AdminTest extends TestCase {
 		Admin::render_page();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( 'id="egps-qr-admin"', $output );
+		$this->assertStringContainsString( 'id="pixfete-qr-admin"', $output );
 		$this->assertStringContainsString( '<div', $output );
 	}
 
@@ -96,18 +96,18 @@ class AdminTest extends TestCase {
 	 * Test that get_logo_data_url() returns a data URL from the featured image.
 	 */
 	public function test_get_logo_data_url_returns_featured_image(): void {
-		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/egps-test-logo.png' );
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/pixfete-test-logo.png' );
 		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
 		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => 'image/png', 'ext' => 'png' ) );
 
 		$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
-		file_put_contents( '/tmp/egps-test-logo.png', $png );
+		file_put_contents( '/tmp/pixfete-test-logo.png', $png );
 
 		$result = Admin::get_logo_data_url( 1 );
 
 		$this->assertStringStartsWith( 'data:image/', $result );
 
-		unlink( '/tmp/egps-test-logo.png' );
+		unlink( '/tmp/pixfete-test-logo.png' );
 	}
 
 	/**
@@ -115,18 +115,18 @@ class AdminTest extends TestCase {
 	 */
 	public function test_get_logo_data_url_falls_back_to_site_icon(): void {
 		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( false );
-		Functions\when( 'get_site_icon_url' )->justReturn( '/tmp/egps-test-icon.png' );
+		Functions\when( 'get_site_icon_url' )->justReturn( '/tmp/pixfete-test-icon.png' );
 		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
 		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => 'image/png', 'ext' => 'png' ) );
 
 		$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
-		file_put_contents( '/tmp/egps-test-icon.png', $png );
+		file_put_contents( '/tmp/pixfete-test-icon.png', $png );
 
 		$result = Admin::get_logo_data_url( 1 );
 
 		$this->assertStringStartsWith( 'data:image/', $result );
 
-		unlink( '/tmp/egps-test-icon.png' );
+		unlink( '/tmp/pixfete-test-icon.png' );
 	}
 
 	/**
@@ -154,7 +154,7 @@ class AdminTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $handle ) {
-					return $handle === 'egps-qr-admin';
+					return $handle === 'pixfete-qr-admin';
 				}
 			);
 
@@ -162,7 +162,7 @@ class AdminTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $handle ) {
-					return $handle === 'egps-qr-admin';
+					return $handle === 'pixfete-qr-admin';
 				}
 			);
 
@@ -170,8 +170,8 @@ class AdminTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $handle, $object_name, $data ) {
-					return $handle === 'egps-qr-admin'
-						&& $object_name === 'egpsQrAdmin'
+					return $handle === 'pixfete-qr-admin'
+						&& $object_name === 'pixfeteQrAdmin'
 						&& is_array( $data )
 						&& array_key_exists( 'pages', $data );
 				}
@@ -216,7 +216,7 @@ class AdminTest extends TestCase {
 				array(
 					42 => array(
 						'status'     => 'complete',
-						'url'        => 'https://example.com/uploads/egps-archives/egps-archive-42-abc123.zip',
+						'url'        => 'https://example.com/uploads/pixfete-archives/pixfete-archive-42-abc123.zip',
 						'created_at' => 1742900000,
 					),
 				)
@@ -239,7 +239,7 @@ class AdminTest extends TestCase {
 		$this->assertArrayHasKey( 'archive', $captured_data['pages'][0] );
 		$this->assertSame( 'complete', $captured_data['pages'][0]['archive']['status'] );
 		$this->assertSame(
-			'https://example.com/uploads/egps-archives/egps-archive-42-abc123.zip',
+			'https://example.com/uploads/pixfete-archives/pixfete-archive-42-abc123.zip',
 			$captured_data['pages'][0]['archive']['url']
 		);
 		$this->assertArrayHasKey( 'dateRangeEnd', $captured_data['pages'][0] );
@@ -254,18 +254,18 @@ class AdminTest extends TestCase {
 	 * which prevents the QR code library from rendering the logo image.
 	 */
 	public function test_get_logo_data_url_detects_png_mime_from_content(): void {
-		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/egps-test-noext-png' );
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/pixfete-test-noext-png' );
 		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
 		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => '', 'ext' => '' ) );
 
 		$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
-		file_put_contents( '/tmp/egps-test-noext-png', $png );
+		file_put_contents( '/tmp/pixfete-test-noext-png', $png );
 
 		$result = Admin::get_logo_data_url( 1 );
 
 		$this->assertStringStartsWith( 'data:image/png;base64,', $result );
 
-		unlink( '/tmp/egps-test-noext-png' );
+		unlink( '/tmp/pixfete-test-noext-png' );
 	}
 
 	/**
@@ -277,18 +277,18 @@ class AdminTest extends TestCase {
 	 * would use image/png for SVG content, causing the browser to fail loading the image.
 	 */
 	public function test_get_logo_data_url_detects_svg_mime_from_content(): void {
-		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/egps-test-noext-svg' );
+		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( '/tmp/pixfete-test-noext-svg' );
 		Functions\when( 'wp_get_upload_dir' )->justReturn( array( 'baseurl' => '', 'basedir' => '' ) );
 		Functions\when( 'wp_check_filetype' )->justReturn( array( 'type' => '', 'ext' => '' ) );
 
 		$svg = '<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>';
-		file_put_contents( '/tmp/egps-test-noext-svg', $svg );
+		file_put_contents( '/tmp/pixfete-test-noext-svg', $svg );
 
 		$result = Admin::get_logo_data_url( 1 );
 
 		$this->assertStringStartsWith( 'data:image/svg+xml;base64,', $result );
 
-		unlink( '/tmp/egps-test-noext-svg' );
+		unlink( '/tmp/pixfete-test-noext-svg' );
 	}
 
 	/**

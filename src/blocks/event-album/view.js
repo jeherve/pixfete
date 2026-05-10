@@ -26,7 +26,7 @@ const PER_PAGE = 30;
 const POLL_INTERVAL = 15000;
 
 /**
- * Read and decode the EGPS cookie for a given page ID.
+ * Read and decode the Pixfête cookie for a given page ID.
  *
  * The cookie format is `{base64url-encoded JSON}.{HMAC}`. We only need
  * the payload portion (HMAC verification happens server-side).
@@ -817,7 +817,7 @@ const { state } = store('pixfete', {
 		closeLightbox(event) {
 			// Only close when clicking the overlay or close button,
 			// not when clicking the image.
-			if (event.target.tagName === 'IMG' && !event.target.classList.contains('egps-lightbox-close')) {
+			if (event.target.tagName === 'IMG' && !event.target.classList.contains('pixfete-lightbox-close')) {
 				return;
 			}
 			state.lightboxOpen = false;
@@ -832,7 +832,7 @@ const { state } = store('pixfete', {
 			if (state.fabOpen) {
 				// Move focus to first sub-button after the DOM updates.
 				window.requestAnimationFrame(() => {
-					const firstBtn = document.querySelector('.egps-fab-menu .egps-fab-btn');
+					const firstBtn = document.querySelector('.pixfete-fab-menu .pixfete-fab-btn');
 					if (firstBtn) {
 						firstBtn.focus();
 					}
@@ -846,7 +846,7 @@ const { state } = store('pixfete', {
 		closeFab() {
 			state.fabOpen = false;
 			// Return focus to the main FAB button.
-			const mainBtn = document.querySelector('.egps-fab-btn--main');
+			const mainBtn = document.querySelector('.pixfete-fab-btn--main');
 			if (mainBtn) {
 				mainBtn.focus();
 			}
@@ -869,7 +869,7 @@ const { state } = store('pixfete', {
 		 */
 		triggerCapture() {
 			state.fabOpen = false;
-			document.getElementById('egps-file-capture')?.click();
+			document.getElementById('pixfete-file-capture')?.click();
 		},
 
 		/**
@@ -877,7 +877,7 @@ const { state } = store('pixfete', {
 		 */
 		triggerGallery() {
 			state.fabOpen = false;
-			document.getElementById('egps-file-gallery')?.click();
+			document.getElementById('pixfete-file-gallery')?.click();
 		},
 	},
 });

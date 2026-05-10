@@ -11,7 +11,7 @@ jest.mock(
 	'@wordpress/block-editor',
 	() => ({
 		useBlockProps: {
-			save: () => ({ className: 'wp-block-egps-event-album' }),
+			save: () => ({ className: 'wp-block-pixfete-event-album' }),
 		},
 		InnerBlocks: {
 			Content: function InnerBlocksContent() {

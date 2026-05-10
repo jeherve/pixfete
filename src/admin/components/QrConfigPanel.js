@@ -11,7 +11,7 @@ export function QrConfigPanel({ page, config, onConfigChange }) {
 	const update = (key, value) => onConfigChange({ ...config, [key]: value });
 
 	return (
-		<div className="egps-qr-config-panel">
+		<div className="pixfete-qr-config-panel">
 			<h2>{__('QR Code Settings', 'pixfete')}</h2>
 
 			<fieldset>
@@ -24,7 +24,7 @@ export function QrConfigPanel({ page, config, onConfigChange }) {
 						onChange={(v) => update('includePassword', v)}
 					/>
 				) : (
-					<p className="egps-qr-no-password">{__('No password set for this event.', 'pixfete')}</p>
+					<p className="pixfete-qr-no-password">{__('No password set for this event.', 'pixfete')}</p>
 				)}
 
 				{page.enableTableNames && (
@@ -69,7 +69,7 @@ export function QrConfigPanel({ page, config, onConfigChange }) {
 
 			<fieldset>
 				<legend>{__('Corner Style', 'pixfete')}</legend>
-				<div className="egps-qr-corner-styles">
+				<div className="pixfete-qr-corner-styles">
 					{CORNER_STYLES.map((style) => (
 						<Button
 							key={style.value}

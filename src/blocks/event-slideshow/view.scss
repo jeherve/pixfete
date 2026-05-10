@@ -15,8 +15,8 @@
 	color: #fff;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 
-	.egps-slideshow-loading,
-	.egps-slideshow-not-started {
+	.pixfete-slideshow-loading,
+	.pixfete-slideshow-not-started {
 		display: flex;
 
 		&[hidden] {
@@ -35,7 +35,7 @@
 		}
 	}
 
-	.egps-slideshow-form {
+	.pixfete-slideshow-form {
 		display: flex;
 
 		&[hidden] {
@@ -98,19 +98,19 @@
 		}
 	}
 
-	.egps-hp {
+	.pixfete-hp {
 		position: absolute;
 		left: -9999px;
 		opacity: 0;
 	}
 
-	.egps-slideshow-error {
+	.pixfete-slideshow-error {
 		color: #ff6b6b;
 		font-size: 0.875rem;
 		margin: 0;
 	}
 
-	.egps-slideshow-display {
+	.pixfete-slideshow-display {
 		position: relative;
 		width: 100%;
 		height: 100%;
@@ -120,7 +120,7 @@
 		}
 	}
 
-	.egps-slideshow-bg {
+	.pixfete-slideshow-bg {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -131,7 +131,7 @@
 		z-index: 1;
 	}
 
-	.egps-slideshow-photo {
+	.pixfete-slideshow-photo {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -144,7 +144,7 @@
 			opacity: 0;
 			transition: opacity 1s ease;
 
-			&.egps-slideshow-photo--visible {
+			&.pixfete-slideshow-photo--visible {
 				opacity: 1;
 			}
 		}
@@ -152,12 +152,12 @@
 
 	@media (prefers-reduced-motion: reduce) {
 
-		.egps-slideshow-photo--next {
+		.pixfete-slideshow-photo--next {
 			transition: none;
 		}
 	}
 
-	.egps-slideshow-meta {
+	.pixfete-slideshow-meta {
 		position: absolute;
 		bottom: 24px;
 		left: 24px;
@@ -171,17 +171,17 @@
 		gap: 2px;
 	}
 
-	.egps-slideshow-meta-name {
+	.pixfete-slideshow-meta-name {
 		font-size: 1.125rem;
 		font-weight: 600;
 	}
 
-	.egps-slideshow-meta-table {
+	.pixfete-slideshow-meta-table {
 		font-size: 0.875rem;
 		opacity: 0.7;
 	}
 
-	.egps-slideshow-waiting {
+	.pixfete-slideshow-waiting {
 		position: absolute;
 		inset: 0;
 		z-index: 5;
@@ -196,11 +196,11 @@
 		p {
 			font-size: 1.5rem;
 			opacity: 0.7;
-			animation: egps-pulse 2s ease-in-out infinite;
+			animation: pixfete-pulse 2s ease-in-out infinite;
 		}
 	}
 
-	@keyframes egps-pulse {
+	@keyframes pixfete-pulse {
 
 		0%,
 		100% {
@@ -214,7 +214,7 @@
 
 	@media (prefers-reduced-motion: reduce) {
 
-		.egps-slideshow-waiting p {
+		.pixfete-slideshow-waiting p {
 			animation: none;
 		}
 	}

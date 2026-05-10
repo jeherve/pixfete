@@ -66,9 +66,9 @@ export default function Edit({ attributes, setAttributes }) {
 	// publish or update the post with an invalid password.
 	useEffect(() => {
 		if (isTooShort) {
-			lockPostSaving('egps-password-too-short');
+			lockPostSaving('pixfete-password-too-short');
 		} else {
-			unlockPostSaving('egps-password-too-short');
+			unlockPostSaving('pixfete-password-too-short');
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isTooShort]);
@@ -227,7 +227,7 @@ export default function Edit({ attributes, setAttributes }) {
 				</PanelBody>
 
 				<PanelBody title={__('Moderators', 'pixfete')} initialOpen={false}>
-					<p className="egps-editor-help">
+					<p className="pixfete-editor-help">
 						{__(
 							'Assign users who can delete photos from the live gallery on their phone. Users must have the Event Photo Moderator role.',
 							'pixfete'
@@ -244,27 +244,27 @@ export default function Edit({ attributes, setAttributes }) {
 			</InspectorControls>
 
 			<div {...blockProps}>
-				<div className="egps-editor-consent">
-					<p className="egps-editor-label">{__('Consent Message', 'pixfete')}</p>
-					<p className="egps-editor-help">
+				<div className="pixfete-editor-consent">
+					<p className="pixfete-editor-label">{__('Consent Message', 'pixfete')}</p>
+					<p className="pixfete-editor-help">
 						{__('This message will be shown to guests before they can upload photos.', 'pixfete')}
 					</p>
 					<InnerBlocks template={INNER_BLOCKS_TEMPLATE} />
 				</div>
 
-				<div className="egps-editor-preview-placeholder">
-					<p className="egps-editor-label">{__('Guest View Preview', 'pixfete')}</p>
-					<div className="egps-editor-preview-buttons">
-						<span className="egps-editor-preview-button">{__('Take Photo', 'pixfete')}</span>
-						<span className="egps-editor-preview-button">{__('Choose from Library', 'pixfete')}</span>
+				<div className="pixfete-editor-preview-placeholder">
+					<p className="pixfete-editor-label">{__('Guest View Preview', 'pixfete')}</p>
+					<div className="pixfete-editor-preview-buttons">
+						<span className="pixfete-editor-preview-button">{__('Take Photo', 'pixfete')}</span>
+						<span className="pixfete-editor-preview-button">{__('Choose from Library', 'pixfete')}</span>
 					</div>
-					<div className="egps-editor-preview-grid">
-						<div className="egps-editor-preview-cell" />
-						<div className="egps-editor-preview-cell" />
-						<div className="egps-editor-preview-cell" />
-						<div className="egps-editor-preview-cell" />
-						<div className="egps-editor-preview-cell" />
-						<div className="egps-editor-preview-cell" />
+					<div className="pixfete-editor-preview-grid">
+						<div className="pixfete-editor-preview-cell" />
+						<div className="pixfete-editor-preview-cell" />
+						<div className="pixfete-editor-preview-cell" />
+						<div className="pixfete-editor-preview-cell" />
+						<div className="pixfete-editor-preview-cell" />
+						<div className="pixfete-editor-preview-cell" />
 					</div>
 				</div>
 			</div>

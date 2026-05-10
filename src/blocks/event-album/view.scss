@@ -7,26 +7,26 @@
 
 .wp-block-pixfete-event-album {
 	// Required to suppress horizontal scroll introduced by the edge-to-edge
-	// grid technique on mobile (see .egps-grid margin/width rules below).
+	// grid technique on mobile (see .pixfete-grid margin/width rules below).
 	overflow-x: hidden;
 
 	// ─── Loading ────────────────────────────────────────────────────
 
-	.egps-loading {
+	.pixfete-loading {
 		text-align: center;
 		padding: 48px 16px;
 	}
 
 	// ─── Not Started ────────────────────────────────────────────────
 
-	.egps-not-started {
+	.pixfete-not-started {
 		text-align: center;
 		padding: 48px 16px;
 	}
 
 	// ─── Forms (password + registration) ────────────────────────────
 
-	.egps-form {
+	.pixfete-form {
 		max-width: 400px;
 		margin: 0 auto;
 		padding: 24px 16px;
@@ -86,7 +86,7 @@
 
 	// ─── Honeypot ───────────────────────────────────────────────────
 
-	.egps-hp {
+	.pixfete-hp {
 		position: absolute;
 		left: -9999px;
 		width: 0;
@@ -97,19 +97,19 @@
 
 	// ─── Consent ────────────────────────────────────────────────────
 
-	.egps-consent {
+	.pixfete-consent {
 		max-width: 600px;
 		margin: 0 auto;
 		padding: 24px 16px;
 		text-align: center;
 
-		.egps-consent-text {
+		.pixfete-consent-text {
 			text-align: left;
 			margin-bottom: 24px;
 			line-height: 1.6;
 		}
 
-		.egps-accept-btn {
+		.pixfete-accept-btn {
 			display: inline-block;
 			padding: 14px 32px;
 			background: #007cba;
@@ -134,7 +134,7 @@
 
 	// ─── Floating Action Button ─────────────────────────────────────
 
-	.egps-fab-container {
+	.pixfete-fab-container {
 		position: fixed;
 		bottom: 20px;
 		right: 20px;
@@ -154,7 +154,7 @@
 		}
 	}
 
-	.egps-fab-scrim {
+	.pixfete-fab-scrim {
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
@@ -165,7 +165,7 @@
 		}
 	}
 
-	.egps-fab-menu {
+	.pixfete-fab-menu {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
@@ -177,13 +177,13 @@
 		}
 	}
 
-	.egps-fab-option {
+	.pixfete-fab-option {
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		opacity: 0;
 		transform: translateY(8px);
-		animation: egps-fab-slide-up 0.2s ease forwards;
+		animation: pixfete-fab-slide-up 0.2s ease forwards;
 
 		&:nth-child(1) {
 			animation-delay: 0.05s;
@@ -194,7 +194,7 @@
 		}
 	}
 
-	@keyframes egps-fab-slide-up {
+	@keyframes pixfete-fab-slide-up {
 
 		to {
 			opacity: 1;
@@ -202,7 +202,7 @@
 		}
 	}
 
-	.egps-fab-label {
+	.pixfete-fab-label {
 		background: rgba(255, 255, 255, 0.95);
 		color: #1e1e1e;
 		padding: 8px 14px;
@@ -214,7 +214,7 @@
 		pointer-events: none;
 	}
 
-	.egps-fab-btn {
+	.pixfete-fab-btn {
 		border: none;
 		cursor: pointer;
 		display: flex;
@@ -236,11 +236,11 @@
 				background: #005a87;
 			}
 
-			.egps-fab-icon {
+			.pixfete-fab-icon {
 				transition: transform 0.2s ease;
 			}
 
-			&[aria-expanded="true"] .egps-fab-icon {
+			&[aria-expanded="true"] .pixfete-fab-icon {
 				transform: rotate(45deg);
 			}
 		}
@@ -260,7 +260,7 @@
 
 	// ─── Upload progress banner ────────────────────────────────────
 
-	.egps-upload-progress {
+	.pixfete-upload-progress {
 		background: #007cba;
 		color: #fff;
 		text-align: center;
@@ -271,17 +271,17 @@
 		overflow: hidden;
 	}
 
-	.egps-upload-progress-bar {
+	.pixfete-upload-progress-bar {
 		position: absolute;
 		top: 0;
 		left: 0;
 		width: 30%;
 		height: 100%;
 		background: rgba(255, 255, 255, 0.15);
-		animation: egps-progress-slide 1.2s ease-in-out infinite;
+		animation: pixfete-progress-slide 1.2s ease-in-out infinite;
 	}
 
-	@keyframes egps-progress-slide {
+	@keyframes pixfete-progress-slide {
 
 		0% {
 			transform: translateX(-100%);
@@ -294,7 +294,7 @@
 
 	@media (prefers-reduced-motion: reduce) {
 
-		.egps-upload-progress-bar {
+		.pixfete-upload-progress-bar {
 			animation: none;
 			width: 100%;
 			opacity: 0.5;
@@ -303,7 +303,7 @@
 
 	// ─── New photos banner ──────────────────────────────────────────
 
-	.egps-new-photos {
+	.pixfete-new-photos {
 		background: #00a32a;
 		color: #fff;
 		text-align: center;
@@ -320,7 +320,7 @@
 
 	// ─── Error message ──────────────────────────────────────────────
 
-	.egps-error {
+	.pixfete-error {
 		background: #fcf0f1;
 		border: 1px solid #d63638;
 		color: #d63638;
@@ -332,7 +332,7 @@
 
 	// ─── Photo grid ─────────────────────────────────────────────────
 
-	.egps-grid {
+	.pixfete-grid {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: 2px;
@@ -356,7 +356,7 @@
 		}
 	}
 
-	.egps-photo {
+	.pixfete-photo {
 		position: relative;
 		aspect-ratio: 1 / 1;
 		overflow: hidden;
@@ -383,7 +383,7 @@
 		}
 
 		// Visually hide guest name on thumbnails — screen readers can still read it.
-		.egps-photo-name {
+		.pixfete-photo-name {
 			position: absolute;
 			width: 1px;
 			height: 1px;
@@ -398,7 +398,7 @@
 
 	// ─── Load more ──────────────────────────────────────────────────
 
-	.egps-load-more {
+	.pixfete-load-more {
 		text-align: center;
 		padding: 16px;
 
@@ -425,7 +425,7 @@
 
 	// ─── Lightbox ───────────────────────────────────────────────────
 
-	.egps-lightbox {
+	.pixfete-lightbox {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -444,7 +444,7 @@
 		}
 	}
 
-	.egps-lightbox-close {
+	.pixfete-lightbox-close {
 		position: absolute;
 		top: 16px;
 		right: 16px;
@@ -462,14 +462,14 @@
 		}
 	}
 
-	.egps-lightbox-image {
+	.pixfete-lightbox-image {
 		max-width: 90vw;
 		max-height: 80vh;
 		object-fit: contain;
 		cursor: default;
 	}
 
-	.egps-lightbox-name {
+	.pixfete-lightbox-name {
 		color: #fff;
 		font-size: 14px;
 		margin-top: 12px;
@@ -477,7 +477,7 @@
 	}
 
 	// Moderation banner — shown to assigned moderators at the top of the gallery.
-	.egps-moderation-banner {
+	.pixfete-moderation-banner {
 		display: flex;
 		align-items: center;
 		gap: 8px;
@@ -496,7 +496,7 @@
 	}
 
 	// Delete badge — positioned on each photo thumbnail for moderators.
-	.egps-delete-badge {
+	.pixfete-delete-badge {
 		position: absolute;
 		top: 4px;
 		right: 4px;

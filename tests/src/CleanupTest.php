@@ -136,7 +136,7 @@ class CleanupTest extends TestCase {
 		// Archive exists with a file on disk.
 		// get_option is called twice: once by Archive::get_archive() and once
 		// by Archive::delete_archive() (which calls get_archives() internally).
-		$archive_path = '/tmp/egps-archive-42-abc123.zip';
+		$archive_path = '/tmp/pixfete-archive-42-abc123.zip';
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = array() ) use ( $archive_path ) {
 				if ( 'pixfete_zip_archives' === $name ) {
