@@ -698,7 +698,11 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Prepend pending photos to the gallery and clear the banner.
+		 * Prepend pending photos to the gallery and clear the new-photo banner.
+		 *
+		 * When the lightbox is open, shifts lightboxIndex by the number of
+		 * photos prepended so the user keeps viewing the same image despite
+		 * the array growing above it.
 		 */
 		showNewPhotos() {
 			// Deduplicate pending photos against the current gallery.

@@ -264,21 +264,23 @@ describe('deletePhoto lightboxIndex correction', () => {
 	});
 
 	test('clamps the index when the gallery shrinks below the active index by other means', async () => {
-		// Defensive coverage: if the gallery has been emptied between the
-		// click and the response, deletePhoto must still close cleanly.
+		// Defensive coverage: if the gallery has been emptied externally
+		// (e.g., another tab/poll cycle) between the confirm and the
+		// response, deletePhoto must still close cleanly rather than
+		// pointing at a now-invalid index.
 		const store = loadStore();
-		seedPhotos(store, 1);
-		store.state.lightboxIndex = 0;
-		mockContext.item = store.state.photos[0];
-		const originalPhotos = store.state.photos.slice();
+		seedPhotos(store, 2);
+		store.state.lightboxIndex = 1;
+		mockContext.item = store.state.photos[1];
 		window.confirm.mockReturnValue(true);
 		global.fetch.mockImplementation(() => {
-			store.state.photos = originalPhotos.slice();
+			store.state.photos = [];
 			return Promise.resolve({ ok: true });
 		});
 
 		await runGenerator(store.actions.deletePhoto({ stopPropagation: jest.fn() }));
 
+		expect(store.state.photos).toHaveLength(0);
 		expect(store.state.lightboxIndex).toBe(-1);
 	});
 });
