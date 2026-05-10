@@ -129,6 +129,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
 * Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
+* The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
 
 **Fixed**
 

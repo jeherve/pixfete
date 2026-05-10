@@ -266,28 +266,26 @@ if ( $pixfete_is_moderator ) {
 
 				<?php // Expanded sub-buttons. ?>
 				<div data-wp-bind--hidden="!state.fabOpen" class="pixfete-fab-menu">
-					<div class="pixfete-fab-option">
+					<button
+						class="pixfete-fab-option pixfete-fab-btn pixfete-fab-btn--secondary"
+						data-wp-on--click="actions.triggerCapture"
+						type="button"
+					>
 						<span class="pixfete-fab-label"><?php esc_html_e( 'Take Photo', 'pixfete' ); ?></span>
-						<button
-							class="pixfete-fab-btn pixfete-fab-btn--secondary"
-							data-wp-on--click="actions.triggerCapture"
-							aria-label="<?php esc_attr_e( 'Take a photo', 'pixfete' ); ?>"
-							type="button"
-						>
+						<span class="pixfete-fab-btn-icon" aria-hidden="true">
 							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
-						</button>
-					</div>
-					<div class="pixfete-fab-option">
+						</span>
+					</button>
+					<button
+						class="pixfete-fab-option pixfete-fab-btn pixfete-fab-btn--secondary"
+						data-wp-on--click="actions.triggerGallery"
+						type="button"
+					>
 						<span class="pixfete-fab-label"><?php esc_html_e( 'Choose from Gallery', 'pixfete' ); ?></span>
-						<button
-							class="pixfete-fab-btn pixfete-fab-btn--secondary"
-							data-wp-on--click="actions.triggerGallery"
-							aria-label="<?php esc_attr_e( 'Choose photos from gallery', 'pixfete' ); ?>"
-							type="button"
-						>
+						<span class="pixfete-fab-btn-icon" aria-hidden="true">
 							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/></svg>
-						</button>
-					</div>
+						</span>
+					</button>
 				</div>
 
 				<?php // Main FAB toggle button. ?>
