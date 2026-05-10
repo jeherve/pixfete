@@ -222,4 +222,15 @@ describe('lightbox touch swipe', () => {
 
 		expect(store.state.lightboxIndex).toBe(2);
 	});
+
+	test('swipe past the first photo does not retreat', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 0;
+
+		store.actions.lightboxTouchStart(touchEvent(80, 100));
+		store.actions.lightboxTouchEnd(touchEvent(200, 110)); // dx=+120, right swipe.
+
+		expect(store.state.lightboxIndex).toBe(0);
+	});
 });

@@ -927,7 +927,10 @@ const { state } = store('pixfete', {
 		 * @param {TouchEvent} event The touchstart event.
 		 */
 		lightboxTouchStart(event) {
-			const t = event.touches[0];
+			const t = event.touches?.[0];
+			if (!t) {
+				return;
+			}
 			lightboxTouchStartX = t.clientX;
 			lightboxTouchStartY = t.clientY;
 		},
@@ -941,7 +944,10 @@ const { state } = store('pixfete', {
 		 * @param {TouchEvent} event The touchend event.
 		 */
 		lightboxTouchEnd(event) {
-			const t = event.changedTouches[0];
+			const t = event.changedTouches?.[0];
+			if (!t) {
+				return;
+			}
 			const dx = t.clientX - lightboxTouchStartX;
 			const dy = t.clientY - lightboxTouchStartY;
 			if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) {
