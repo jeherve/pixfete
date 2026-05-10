@@ -141,7 +141,21 @@ const { state } = store('pixfete/slideshow', {
 	},
 
 	actions: {
-		init() {
+		/**
+		 * Initialize the slideshow store.
+		 *
+		 * Checks the consent cookie; if a returning, authenticated viewer
+		 * is loading the page, we skip straight to the slideshow without
+		 * minting a CSRF token. Otherwise we fetch one from the REST
+		 * /token endpoint, since the rendered HTML may have been served
+		 * from a cache and any token embedded there could be stale.
+		 *
+		 * Doubles as the retry handler for the loading-view "Try again"
+		 * button when the initial token fetch fails.
+		 */
+		*init() {
+			state.errorMessage = '';
+
 			if (!state.isEventStarted) {
 				state.currentView = 'not-started';
 				return;
@@ -153,6 +167,21 @@ const { state } = store('pixfete/slideshow', {
 				state.currentView = 'slideshow';
 				actions.loadPhotos();
 				actions.startPolling();
+				return;
+			}
+
+			try {
+				const response = yield fetch(`${ctx.restBase}/token/${ctx.eventPageId}`, {
+					credentials: 'same-origin',
+				});
+				if (!response.ok) {
+					state.errorMessage = ctx.i18n.initFailed;
+					return;
+				}
+				const data = yield response.json();
+				ctx.nonce = data.nonce;
+			} catch {
+				state.errorMessage = ctx.i18n.initConnectionFailed;
 				return;
 			}
 
@@ -171,34 +200,44 @@ const { state } = store('pixfete/slideshow', {
 			state.errorMessage = '';
 
 			try {
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.eventPageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': ctx.nonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify({
-						action: 'slideshow_auth',
-						password: state.passwordInput,
-						[ctx.honeypotField]: '',
-					}),
-				});
+				// Two attempts: if the first fails with an invalid-nonce
+				// error and the server hands us a fresh one, retry
+				// transparently rather than surfacing a confusing CSRF
+				// error.
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.eventPageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': ctx.nonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify({
+							action: 'slideshow_auth',
+							password: state.passwordInput,
+							[ctx.honeypotField]: '',
+						}),
+					});
 
-				const data = yield response.json();
+					const data = yield response.json();
 
-				if (!response.ok) {
-					if (data?.data?.nonce) {
-						ctx.nonce = data.data.nonce;
+					if (!response.ok) {
+						if (data?.data?.nonce) {
+							ctx.nonce = data.data.nonce;
+						}
+						if (attempt === 1 && data?.code === 'pixfete_invalid_nonce' && data?.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = data?.message || ctx.i18n.passwordIncorrect;
+						return;
 					}
-					state.errorMessage = data?.message || ctx.i18n.passwordIncorrect;
+
+					ctx.nonce = data.nonce;
+					state.currentView = 'slideshow';
+					actions.loadPhotos();
+					actions.startPolling();
 					return;
 				}
-
-				ctx.nonce = data.nonce;
-				state.currentView = 'slideshow';
-				actions.loadPhotos();
-				actions.startPolling();
 			} catch {
 				state.errorMessage = ctx.i18n.networkError;
 			} finally {
