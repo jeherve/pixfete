@@ -234,3 +234,31 @@ describe('lightbox touch swipe', () => {
 		expect(store.state.lightboxIndex).toBe(0);
 	});
 });
+
+describe('showNewPhotos lightboxIndex shift', () => {
+	test('shifts lightboxIndex by the number of prepended photos', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1; // viewing photo id=101.
+		store.state.pendingPhotos = [
+			{ id: 200, full: 'new-a.jpg', thumbnail: 't-a.jpg', guest_name: 'Alex' },
+			{ id: 201, full: 'new-b.jpg', thumbnail: 't-b.jpg', guest_name: 'Bea' },
+		];
+
+		store.actions.showNewPhotos();
+
+		expect(store.state.photos[store.state.lightboxIndex].id).toBe(101);
+		expect(store.state.lightboxIndex).toBe(3);
+	});
+
+	test('does not shift lightboxIndex when the lightbox is closed', () => {
+		const store = loadStore();
+		seedPhotos(store, 2);
+		store.state.lightboxIndex = -1;
+		store.state.pendingPhotos = [{ id: 300, full: 'x.jpg', thumbnail: 'tx.jpg', guest_name: 'Z' }];
+
+		store.actions.showNewPhotos();
+
+		expect(store.state.lightboxIndex).toBe(-1);
+	});
+});

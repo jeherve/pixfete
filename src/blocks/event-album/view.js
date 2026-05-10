@@ -704,6 +704,14 @@ const { state } = store('pixfete', {
 			// Deduplicate pending photos against the current gallery.
 			const existingIds = new Set(state.photos.map((p) => p.id));
 			const unique = state.pendingPhotos.filter((p) => !existingIds.has(p.id));
+
+			// Keep the active lightbox photo visually stable when new photos
+			// are prepended above it. Without this shift the index would
+			// silently point at a different photo than the user is viewing.
+			if (state.lightboxIndex >= 0 && unique.length > 0) {
+				state.lightboxIndex += unique.length;
+			}
+
 			state.photos = [...unique, ...state.photos];
 			state.pendingPhotos = [];
 			state.newPhotoCount = 0;
@@ -837,6 +845,16 @@ const { state } = store('pixfete', {
 				if (response.ok) {
 					// Remove the photo from local state.
 					state.photos = state.photos.filter((photo) => photo.id !== photoId);
+
+					// Keep lightboxIndex valid: close the lightbox if the gallery
+					// is now empty, or clamp the index if it now points past the end.
+					if (state.lightboxIndex >= 0) {
+						if (state.photos.length === 0) {
+							state.lightboxIndex = -1;
+						} else if (state.lightboxIndex >= state.photos.length) {
+							state.lightboxIndex = state.photos.length - 1;
+						}
+					}
 				} else {
 					state.errorMessage = 'Failed to delete photo. Please try again.';
 				}
