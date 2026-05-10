@@ -84,7 +84,18 @@ describe('loadMore', () => {
 		const { state, actions } = store;
 
 		// Seed the gallery with an initial page of photos.
-		state.photos = [{ id: 1, thumbnail: 't.jpg', full: 'f.jpg', guest_name: 'A', uploaded_at: 10 }];
+		state.photos = [
+			{
+				id: 1,
+				thumbnail: 't.jpg',
+				src: 's.jpg',
+				srcset: 's-300.jpg 300w, s-768.jpg 768w',
+				sizes: '(min-width: 601px) 33vw, 100vw',
+				full: 'f.jpg',
+				guest_name: 'A',
+				uploaded_at: 10,
+			},
+		];
 		state.currentPage = 1;
 		state.hasMore = true;
 
@@ -93,7 +104,18 @@ describe('loadMore', () => {
 				ok: true,
 				headers: { get: () => '3' },
 				json: () =>
-					Promise.resolve([{ id: 2, thumbnail: 't2.jpg', full: 'f2.jpg', guest_name: 'B', uploaded_at: 20 }]),
+					Promise.resolve([
+						{
+							id: 2,
+							thumbnail: 't2.jpg',
+							src: 's2.jpg',
+							srcset: 's2-300.jpg 300w, s2-768.jpg 768w',
+							sizes: '(min-width: 601px) 33vw, 100vw',
+							full: 'f2.jpg',
+							guest_name: 'B',
+							uploaded_at: 20,
+						},
+					]),
 			})
 		);
 
