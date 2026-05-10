@@ -920,13 +920,18 @@ class REST extends WP_REST_Controller {
 		}
 
 		// 5. Build response.
-		$thumbnail_src = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
-		$full_url      = wp_get_attachment_url( $attachment_id );
-		$uploaded_at   = get_post_meta( $attachment_id, '_pixfete_uploaded_at', true );
+		$thumbnail_src    = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
+		$medium_large_src = wp_get_attachment_image_src( $attachment_id, 'medium_large' );
+		$full_url         = wp_get_attachment_url( $attachment_id );
+		$srcset           = wp_get_attachment_image_srcset( $attachment_id, 'medium_large' );
+		$uploaded_at      = get_post_meta( $attachment_id, '_pixfete_uploaded_at', true );
 
 		$response_data = array(
 			'id'          => $attachment_id,
 			'thumbnail'   => $thumbnail_src ? $thumbnail_src[0] : $full_url,
+			'src'         => $medium_large_src ? $medium_large_src[0] : $full_url,
+			'srcset'      => $srcset ? $srcset : '',
+			'sizes'       => '(min-width: 601px) 33vw, 100vw',
 			'full'        => $full_url,
 			'guest_name'  => get_post_meta( $attachment_id, '_pixfete_guest_name', true ),
 			'uploaded_at' => (int) $uploaded_at,
@@ -1040,12 +1045,17 @@ class REST extends WP_REST_Controller {
 		foreach ( $query->posts as $post ) {
 			$attachment_id = $post->ID;
 
-			$thumbnail_src = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
-			$full_url      = wp_get_attachment_url( $attachment_id );
+			$thumbnail_src    = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
+			$medium_large_src = wp_get_attachment_image_src( $attachment_id, 'medium_large' );
+			$full_url         = wp_get_attachment_url( $attachment_id );
+			$srcset           = wp_get_attachment_image_srcset( $attachment_id, 'medium_large' );
 
 			$photo_data = array(
 				'id'          => $attachment_id,
 				'thumbnail'   => $thumbnail_src ? $thumbnail_src[0] : $full_url,
+				'src'         => $medium_large_src ? $medium_large_src[0] : $full_url,
+				'srcset'      => $srcset ? $srcset : '',
+				'sizes'       => '(min-width: 601px) 33vw, 100vw',
 				'full'        => $full_url,
 				'guest_name'  => get_post_meta( $attachment_id, '_pixfete_guest_name', true ),
 				'table_name'  => get_post_meta( $attachment_id, '_pixfete_table_name', true ),

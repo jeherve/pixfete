@@ -398,6 +398,9 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'wp_get_attachment_url' )->justReturn(
 			'https://example.com/wp-content/uploads/photo.jpg'
 		);
+		Functions\when( 'wp_get_attachment_image_srcset' )->justReturn(
+			'https://example.com/photo-medium.jpg 300w, https://example.com/photo-medium_large.jpg 768w'
+		);
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				$meta = array(
@@ -447,6 +450,11 @@ class RestPhotosTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-content/uploads/photo.jpg', $data['full'] );
 		$this->assertSame( 'Marie', $data['guest_name'] );
 		$this->assertArrayHasKey( 'uploaded_at', $data );
+		$this->assertArrayHasKey( 'src', $data );
+		$this->assertArrayHasKey( 'srcset', $data );
+		$this->assertArrayHasKey( 'sizes', $data );
+		$this->assertStringContainsString( '768w', $data['srcset'] );
+		$this->assertSame( '(min-width: 601px) 33vw, 100vw', $data['sizes'] );
 	}
 
 	/**
@@ -696,6 +704,9 @@ class RestPhotosTest extends TestCase {
 				return "https://example.com/photo-{$id}.jpg";
 			}
 		);
+		Functions\when( 'wp_get_attachment_image_srcset' )->justReturn(
+			'https://example.com/photo-medium.jpg 300w, https://example.com/photo-medium_large.jpg 768w'
+		);
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				$meta = array(
@@ -754,10 +765,18 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->max_num_pages  = 1;
 		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
-		Functions\when( 'wp_get_attachment_image_src' )->justReturn(
-			array( 'https://example.com/thumb.jpg', 150, 150, true )
+		Functions\when( 'wp_get_attachment_image_src' )->alias(
+			function ( $id, $size = 'thumbnail' ) {
+				if ( 'medium_large' === $size ) {
+					return array( 'https://example.com/photo-medium_large.jpg', 768, 512, false );
+				}
+				return array( 'https://example.com/thumb.jpg', 150, 150, true );
+			}
 		);
 		Functions\when( 'wp_get_attachment_url' )->justReturn( 'https://example.com/full.jpg' );
+		Functions\when( 'wp_get_attachment_image_srcset' )->justReturn(
+			'https://example.com/photo-medium.jpg 300w, https://example.com/photo-medium_large.jpg 768w, https://example.com/photo-large.jpg 1024w'
+		);
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				$meta = array(
@@ -778,10 +797,14 @@ class RestPhotosTest extends TestCase {
 		$data  = $response->get_data();
 		$photo = $data[0];
 
-		$expected_keys = array( 'id', 'thumbnail', 'full', 'guest_name', 'table_name', 'uploaded_at' );
+		$expected_keys = array( 'id', 'thumbnail', 'src', 'srcset', 'sizes', 'full', 'guest_name', 'table_name', 'uploaded_at' );
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $photo, "Photo response must include '{$key}'" );
 		}
+
+		$this->assertSame( 'https://example.com/photo-medium_large.jpg', $photo['src'] );
+		$this->assertStringContainsString( '768w', $photo['srcset'] );
+		$this->assertSame( '(min-width: 601px) 33vw, 100vw', $photo['sizes'] );
 	}
 
 	/**
@@ -806,6 +829,9 @@ class RestPhotosTest extends TestCase {
 			array( 'https://example.com/thumb.jpg', 150, 150, true )
 		);
 		Functions\when( 'wp_get_attachment_url' )->justReturn( 'https://example.com/full.jpg' );
+		Functions\when( 'wp_get_attachment_image_srcset' )->justReturn(
+			'https://example.com/photo-medium.jpg 300w, https://example.com/photo-medium_large.jpg 768w'
+		);
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				return match ( $key ) {
@@ -891,6 +917,9 @@ class RestPhotosTest extends TestCase {
 			array( 'https://example.com/thumb.jpg', 150, 150, true )
 		);
 		Functions\when( 'wp_get_attachment_url' )->justReturn( 'https://example.com/full.jpg' );
+		Functions\when( 'wp_get_attachment_image_srcset' )->justReturn(
+			'https://example.com/photo-medium.jpg 300w, https://example.com/photo-medium_large.jpg 768w'
+		);
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				return match ( $key ) {
