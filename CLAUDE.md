@@ -44,6 +44,14 @@
 
 A local WordPress site with Pixfête already active is running in the workspace. Before claiming a runtime change is ready, exercise it against that site — unit tests verify code correctness, not feature correctness.
 
+**Discovering the site URL.** Conductor assigns each workspace a different port (it's *not* always 9400 — that's only the script default). Find the live port by inspecting the running playground process for *this* workspace, then use `http://localhost:<port>/`:
+
+```bash
+ps -eo command | grep -E "wp-playground.*${PWD}:" | grep -v grep | grep -oE "port=[0-9]+" | head -1 | cut -d= -f2
+```
+
+If that returns nothing, the site isn't running — say so in your hand-off rather than guessing a port.
+
 Use Chrome DevTools MCP (`mcp__chrome-devtools__navigate_page`, `mcp__chrome-devtools__take_snapshot`, `mcp__chrome-devtools__list_console_messages`) to drive the site: load the affected pages, snapshot the UI, and check the console for errors. Cover the golden path of your change *and* nearby flows that could regress.
 
 If you can't drive the browser, say so in your hand-off — never claim a UI or runtime change works without verifying it.

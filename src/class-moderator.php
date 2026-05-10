@@ -212,11 +212,19 @@ class Moderator {
 	 * pixfete_moderator should retain full dashboard access. This helper
 	 * ensures lockout only applies to single-role moderators.
 	 *
+	 * The `login_redirect` filter passes a `WP_Error` instead of a user
+	 * object when authentication fails, so we guard against any object
+	 * that doesn't expose a `roles` property to avoid PHP warnings.
+	 *
 	 * @param object $user The user object to check.
 	 *
 	 * @return bool True if the user has exactly one role and it is pixfete_moderator.
 	 */
 	private static function is_moderator_only( object $user ): bool {
+		if ( ! isset( $user->roles ) ) {
+			return false;
+		}
+
 		$roles = (array) $user->roles;
 
 		return count( $roles ) === 1 && in_array( self::ROLE, $roles, true );

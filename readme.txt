@@ -137,6 +137,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * The Live Photo Wall password form and other views now display correctly instead of being hidden behind the loading screen.
 * The moderation banner and photo delete buttons no longer appear to all visitors — they are now correctly shown only to assigned moderators.
 * The "event not started yet" and loading messages now use the theme's text color, so they remain readable on themes with tinted backgrounds.
+* A PHP warning that could appear on the login screen after a failed login attempt has been silenced.
 
 = 1.2.0 - 2026-03-26 =
 
