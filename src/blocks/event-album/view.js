@@ -10,6 +10,7 @@
 import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
+import { enqueue, listPending, markDone, markFailed } from './upload-queue';
 
 /**
  * Interpolate the `%d` placeholder in a translation template.
@@ -157,9 +158,6 @@ const { state } = store('pixfete', {
 		/** Mirror of the IndexedDB upload queue for this page, freshest first. */
 		pendingUploads: [],
 		pollingId: 0,
-		uploadTotal: 0,
-		uploadCurrent: 0,
-		uploadErrors: [],
 
 		/** Whether the current user is an assigned moderator for this event. */
 		isModerator: false,
@@ -386,27 +384,28 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Whether an upload batch is currently in progress.
+		 * Whether any upload is currently in flight or waiting to be tried.
 		 *
-		 * @return {boolean} True if files are being uploaded.
+		 * Used by the progress banner. Derived from the queue rather than a
+		 * separate counter so the banner cannot drift out of sync with the
+		 * actual work pending.
+		 *
+		 * @return {boolean} True when at least one queued upload exists.
 		 */
 		get isUploading() {
-			return state.uploadTotal > 0;
+			return state.pendingUploads.length > 0;
 		},
 
 		/**
-		 * Build the text for the upload progress banner.
+		 * Short status text for the upload progress banner.
 		 *
-		 * Shows which file in the batch is currently uploading,
-		 * e.g. "📷 2 / 5…".
-		 *
-		 * @return {string} Banner text with current/total count.
+		 * @return {string} Something like "📷 Uploading 3…".
 		 */
 		get uploadBannerText() {
-			if (!state.uploadTotal) {
+			if (!state.pendingUploads.length) {
 				return '';
 			}
-			return `\u{1f4f7} ${state.uploadCurrent} / ${state.uploadTotal}\u2026`;
+			return `\u{1f4f7} ${state.pendingUploads.length}\u2026`;
 		},
 	},
 
@@ -873,12 +872,13 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Handle file selection for photo uploads.
+		 * Persist selected files to the IndexedDB queue and kick off the drain.
 		 *
-		 * Uploads each selected file individually via the REST endpoint.
-		 * Tracks progress via uploadTotal/uploadCurrent state for the
-		 * progress banner. Errors are collected and shown as a summary
-		 * after the entire batch completes.
+		 * Selection used to upload inline; if the page closed mid-batch or
+		 * the network blipped, photos were lost. Now we persist first and
+		 * upload from the queue, so recovery is automatic and the SW
+		 * Background Sync handler (registered separately) can also pick up
+		 * stragglers after the tab closes.
 		 *
 		 * @param {Event} event The change event from the file input.
 		 */
@@ -887,70 +887,68 @@ const { state } = store('pixfete', {
 			if (!files || files.length === 0) {
 				return;
 			}
-
-			// Guard against concurrent batches — if an upload is already
-			// in progress, ignore this file selection entirely.
-			if (state.isUploading) {
-				return;
-			}
-
-			const totalFiles = files.length;
-			state.uploadTotal = totalFiles;
-			state.uploadCurrent = 1;
-			state.uploadErrors = [];
-			state.errorMessage = '';
 			const ctx = getContext();
 
-			let index = 0;
 			for (const file of files) {
-				index++;
-				state.uploadCurrent = index;
+				yield enqueue({ pageId: ctx.pageId, blob: file, name: file.name });
+			}
 
+			state.pendingUploads = yield listPending(ctx.pageId);
+
+			// Reset the input so the same file can be selected again later.
+			event.target.value = '';
+
+			const { actions } = store('pixfete');
+			yield actions.drainQueue();
+		},
+
+		/**
+		 * Sequentially upload pending queue items to the REST endpoint.
+		 *
+		 * Stops on the first failure rather than draining-around it: if one
+		 * upload is failing we'd rather surface that quickly than burn the
+		 * remaining files into the same failure mode. The SW retry path
+		 * picks up where this one left off.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async drainQueue() {
+			const ctx = getContext();
+			let pending = await listPending(ctx.pageId);
+
+			while (pending.length > 0) {
+				const item = pending[0];
 				try {
 					const formData = new FormData();
-					formData.append('photo', file);
+					formData.append('photo', item.blob, item.name);
 
-					const response = yield fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
+					const response = await fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
 						method: 'POST',
 						credentials: 'same-origin',
 						body: formData,
 					});
 
 					if (!response.ok) {
-						const errorData = yield response.json();
-						state.uploadErrors = [...state.uploadErrors, errorData.message || ctx.i18n.uploadFailed];
-						continue;
+						await markFailed(item.id, 'http');
+						state.pendingUploads = await listPending(ctx.pageId);
+						return;
 					}
 
-					const photo = yield response.json();
-
-					// Prepend the new photo to the gallery.
+					const photo = await response.json();
+					await markDone(item.id);
 					state.photos = [photo, ...state.photos];
-
-					// Update latest timestamp.
 					if (photo.uploaded_at && photo.uploaded_at > state.latestUploadedAt) {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
 				} catch {
-					state.uploadErrors = [...state.uploadErrors, ctx.i18n.uploadConnectionFailed];
+					await markFailed(item.id, 'network');
+					state.pendingUploads = await listPending(ctx.pageId);
+					return;
 				}
+
+				pending = await listPending(ctx.pageId);
+				state.pendingUploads = pending;
 			}
-
-			// Reset upload progress state.
-			state.uploadTotal = 0;
-			state.uploadCurrent = 0;
-
-			// Show error summary if any uploads failed.
-			if (state.uploadErrors.length === 1) {
-				state.errorMessage = state.uploadErrors[0];
-			} else if (state.uploadErrors.length > 1) {
-				state.errorMessage = ctx.i18n.uploadBulkFailed
-					.replace('%1$d', String(state.uploadErrors.length))
-					.replace('%2$d', String(totalFiles));
-			}
-
-			// Reset the file input so the same file can be selected again.
-			event.target.value = '';
 		},
 
 		/**
