@@ -53,6 +53,44 @@ const PER_PAGE = 30;
 const POLL_INTERVAL = 15000;
 
 /**
+ * Touch swipe trackers for the lightbox. Module-scoped because they are
+ * transient gesture state — not reactive UI state — and should not trigger
+ * Interactivity API re-renders.
+ */
+let lightboxTouchStartX = 0;
+let lightboxTouchStartY = 0;
+
+/**
+ * Minimum horizontal distance (px) required to register a swipe. Below this,
+ * the gesture is treated as a tap or a noisy non-swipe.
+ */
+const SWIPE_THRESHOLD = 50;
+
+/**
+ * The element that held focus before the lightbox opened. Stored at module
+ * scope so we can restore focus when the lightbox closes — required for
+ * dialogs marked with aria-modal so keyboard and screen reader users return
+ * to the thumbnail they came from instead of being dropped on the body.
+ */
+let lightboxOpener = null;
+
+/**
+ * Restore focus to the element that opened the lightbox, if it is still in
+ * the DOM. Called from every lightbox close path (overlay/close-button click,
+ * Escape key, last photo deleted by a moderator).
+ */
+function restoreLightboxFocus() {
+	if (
+		lightboxOpener &&
+		typeof lightboxOpener.focus === 'function' &&
+		lightboxOpener.ownerDocument?.contains(lightboxOpener)
+	) {
+		lightboxOpener.focus();
+	}
+	lightboxOpener = null;
+}
+
+/**
  * Read and decode the Pixfête cookie for a given page ID.
  *
  * The cookie format is `{base64url-encoded JSON}.{HMAC}`. We only need
@@ -113,8 +151,7 @@ const { state } = store('pixfete', {
 		newPhotoCount: 0,
 		pendingPhotos: [],
 		consentNonce: '',
-		lightboxOpen: false,
-		lightboxPhoto: { full: '', guest_name: '' },
+		lightboxIndex: -1,
 		fabOpen: false,
 		latestUploadedAt: 0,
 		pollingId: 0,
@@ -241,6 +278,50 @@ const { state } = store('pixfete', {
 		 */
 		get showFab() {
 			return state.isGalleryView && state.isUploadEnabled && !state.lightboxOpen;
+		},
+
+		/**
+		 * Whether the lightbox is currently open.
+		 *
+		 * Derived from lightboxIndex so the open state is always consistent
+		 * with whether a valid photo index is selected.
+		 *
+		 * @return {boolean} True if a photo is selected for lightbox display.
+		 */
+		get lightboxOpen() {
+			return state.lightboxIndex >= 0;
+		},
+
+		/**
+		 * The photo currently displayed in the lightbox.
+		 *
+		 * Reads from state.photos[lightboxIndex] so the lightbox stays in
+		 * sync with the underlying photos array if it mutates (e.g., a
+		 * moderator deletes a photo or polling prepends new ones — see
+		 * deletePhoto and showNewPhotos for the index-correction logic).
+		 *
+		 * @return {Object} The active photo object, or an empty fallback when closed.
+		 */
+		get lightboxPhoto() {
+			return state.photos[state.lightboxIndex] ?? { full: '', guest_name: '' };
+		},
+
+		/**
+		 * Whether the lightbox can navigate to a previous photo.
+		 *
+		 * @return {boolean} True if the active photo is not the first one.
+		 */
+		get canGoPrev() {
+			return state.lightboxIndex > 0;
+		},
+
+		/**
+		 * Whether the lightbox can navigate to a next photo.
+		 *
+		 * @return {boolean} True if the active photo is not the last one.
+		 */
+		get canGoNext() {
+			return state.lightboxIndex >= 0 && state.lightboxIndex < state.photos.length - 1;
 		},
 
 		/**
@@ -753,12 +834,24 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Prepend pending photos to the gallery and clear the banner.
+		 * Prepend pending photos to the gallery and clear the new-photo banner.
+		 *
+		 * When the lightbox is open, shifts lightboxIndex by the number of
+		 * photos prepended so the user keeps viewing the same image despite
+		 * the array growing above it.
 		 */
 		showNewPhotos() {
 			// Deduplicate pending photos against the current gallery.
 			const existingIds = new Set(state.photos.map((p) => p.id));
 			const unique = state.pendingPhotos.filter((p) => !existingIds.has(p.id));
+
+			// Keep the active lightbox photo visually stable when new photos
+			// are prepended above it. Without this shift the index would
+			// silently point at a different photo than the user is viewing.
+			if (state.lightboxIndex >= 0 && unique.length > 0) {
+				state.lightboxIndex += unique.length;
+			}
+
 			state.photos = [...unique, ...state.photos];
 			state.pendingPhotos = [];
 			state.newPhotoCount = 0;
@@ -889,6 +982,17 @@ const { state } = store('pixfete', {
 				if (response.ok) {
 					// Remove the photo from local state.
 					state.photos = state.photos.filter((photo) => photo.id !== photoId);
+
+					// Keep lightboxIndex valid: close the lightbox if the gallery
+					// is now empty, or clamp the index if it now points past the end.
+					if (state.lightboxIndex >= 0) {
+						if (state.photos.length === 0) {
+							state.lightboxIndex = -1;
+							restoreLightboxFocus();
+						} else if (state.lightboxIndex >= state.photos.length) {
+							state.lightboxIndex = state.photos.length - 1;
+						}
+					}
 				} else {
 					state.errorMessage = ctx.i18n.deletePhotoFailed;
 				}
@@ -900,37 +1004,135 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Open the lightbox with the clicked photo.
+		 * Open the lightbox at the position of the clicked photo.
 		 *
-		 * Reads the photo data from the `data-wp-each` item context.
+		 * Reads the photo from the data-wp-each item context, finds its
+		 * position in state.photos, and stores that index. Storing the
+		 * index (rather than a copy of the photo) keeps the lightbox in
+		 * sync with the photos array if it mutates.
 		 */
 		openLightbox() {
 			const ctx = getContext();
-			if (ctx.item) {
-				state.lightboxPhoto = {
-					full: ctx.item.full,
-					guest_name: ctx.item.guest_name,
-				};
-				state.lightboxOpen = true;
+			if (!ctx.item) {
+				return;
 			}
+			const idx = state.photos.findIndex((p) => p.id === ctx.item.id);
+			if (idx < 0) {
+				// The clicked photo is no longer in state.photos — it was likely
+				// removed by a concurrent moderator deletion. Nothing to open.
+				return;
+			}
+
+			// Capture the element that triggered the open so we can restore
+			// focus on close. activeElement is normally the .pixfete-photo
+			// thumbnail, but tolerate the unlikely null/non-Element case.
+			// Use the dialog's ownerDocument (rather than the global
+			// document) so the lookup is correct in iframed contexts.
+			const lightboxEl = document.querySelector('.pixfete-lightbox');
+			const candidate = lightboxEl?.ownerDocument.activeElement;
+			lightboxOpener = candidate && typeof candidate.focus === 'function' ? candidate : null;
+
+			state.lightboxIndex = idx;
+
+			// Move focus into the dialog after Interactivity API renders it
+			// visible. Close is the safest target — always present, never
+			// disabled, regardless of which photo is shown.
+			window.requestAnimationFrame(() => {
+				document.querySelector('.pixfete-lightbox-close')?.focus();
+			});
 		},
 
 		/**
 		 * Close the lightbox overlay.
 		 *
-		 * Prevents closing when clicking the image itself (only the
-		 * overlay background or close button should close it).
+		 * Clicks on the image itself or on the prev/next nav buttons must
+		 * not close the overlay — only clicks on the overlay background
+		 * or the explicit close button should. We use closest() to detect
+		 * the controls regardless of which element the click bubbled up
+		 * through.
 		 *
 		 * @param {Event} event The click event.
 		 */
 		closeLightbox(event) {
-			// Only close when clicking the overlay or close button,
-			// not when clicking the image.
-			if (event.target.tagName === 'IMG' && !event.target.classList.contains('pixfete-lightbox-close')) {
+			// '.pixfete-lightbox-close' is intentionally absent — clicks on the
+			// close button should propagate through to close the lightbox.
+			if (event && event.target.closest('.pixfete-lightbox-image, .pixfete-lightbox-nav')) {
 				return;
 			}
-			state.lightboxOpen = false;
-			state.lightboxPhoto = { full: '', guest_name: '' };
+			state.lightboxIndex = -1;
+			restoreLightboxFocus();
+		},
+
+		/**
+		 * Navigate the lightbox to the previous photo.
+		 *
+		 * Stops at index 0 — there is no wrap-around. Stops event
+		 * propagation so the click on the prev button does not also
+		 * trigger the overlay's closeLightbox handler.
+		 *
+		 * @param {Event} [event] Optional click or keyboard event.
+		 */
+		prevPhoto(event) {
+			event?.stopPropagation();
+			if (state.lightboxIndex > 0) {
+				state.lightboxIndex -= 1;
+			}
+		},
+
+		/**
+		 * Navigate the lightbox to the next photo.
+		 *
+		 * Stops at the last loaded photo — there is no wrap-around and
+		 * no auto-trigger of "Load more". Stops event propagation so the
+		 * click on the next button does not also trigger closeLightbox.
+		 *
+		 * @param {Event} [event] Optional click or keyboard event.
+		 */
+		nextPhoto(event) {
+			event?.stopPropagation();
+			if (state.lightboxIndex >= 0 && state.lightboxIndex < state.photos.length - 1) {
+				state.lightboxIndex += 1;
+			}
+		},
+
+		/**
+		 * Capture the starting position of a touch on the lightbox overlay.
+		 *
+		 * @param {TouchEvent} event The touchstart event.
+		 */
+		lightboxTouchStart(event) {
+			const t = event.touches?.[0];
+			if (!t) {
+				return;
+			}
+			lightboxTouchStartX = t.clientX;
+			lightboxTouchStartY = t.clientY;
+		},
+
+		/**
+		 * On touchend, decide whether the gesture was a horizontal swipe and,
+		 * if so, navigate to the previous or next photo. Vertical-dominant
+		 * gestures and short gestures (below SWIPE_THRESHOLD) are ignored so
+		 * we don't fight with the user's intent to scroll or tap.
+		 *
+		 * @param {TouchEvent} event The touchend event.
+		 */
+		lightboxTouchEnd(event) {
+			const t = event.changedTouches?.[0];
+			if (!t) {
+				return;
+			}
+			const dx = t.clientX - lightboxTouchStartX;
+			const dy = t.clientY - lightboxTouchStartY;
+			if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) {
+				return;
+			}
+			const { actions } = store('pixfete');
+			if (dx < 0) {
+				actions.nextPhoto();
+			} else {
+				actions.prevPhoto();
+			}
 		},
 
 		/**
@@ -987,6 +1189,71 @@ const { state } = store('pixfete', {
 		triggerGallery() {
 			state.fabOpen = false;
 			document.getElementById('pixfete-file-gallery')?.click();
+		},
+	},
+
+	callbacks: {
+		/**
+		 * Bind a window-level keydown listener for lightbox navigation.
+		 *
+		 * Triggered by data-wp-init on the lightbox root. Uses a global
+		 * sentinel so the listener is bound only once even if the block
+		 * appears multiple times on the page or the init callback fires
+		 * more than once during hydration.
+		 *
+		 * Only acts when the lightbox is open so arrow keys keep their
+		 * default browser behavior the rest of the time. ArrowLeft and
+		 * ArrowRight call preventDefault() to suppress the default page
+		 * scroll while navigating photos.
+		 */
+		initLightboxKeyboard() {
+			if (window.__pixfeteLightboxKeyboardBound) {
+				return;
+			}
+			window.__pixfeteLightboxKeyboardBound = true;
+
+			window.addEventListener('keydown', (event) => {
+				if (!state.lightboxOpen) {
+					return;
+				}
+				if (event.key === 'ArrowLeft') {
+					event.preventDefault();
+					state.lightboxIndex = Math.max(0, state.lightboxIndex - 1);
+				} else if (event.key === 'ArrowRight') {
+					event.preventDefault();
+					state.lightboxIndex = Math.min(state.photos.length - 1, state.lightboxIndex + 1);
+				} else if (event.key === 'Escape') {
+					state.lightboxIndex = -1;
+					restoreLightboxFocus();
+				} else if (event.key === 'Tab') {
+					// Trap focus inside the dialog while it is open. Re-query
+					// each Tab press so disabled prev/next buttons (at the
+					// boundaries) are correctly excluded from the cycle.
+					const dialog = document.querySelector('.pixfete-lightbox');
+					if (!dialog) {
+						return;
+					}
+					const focusables = Array.from(dialog.querySelectorAll('button:not([disabled])'));
+					if (focusables.length === 0) {
+						return;
+					}
+					const idx = focusables.indexOf(dialog.ownerDocument.activeElement);
+					if (idx === -1) {
+						// Focus has escaped (or landed on a now-disabled nav
+						// button) — pull it back to the dialog.
+						event.preventDefault();
+						focusables[0].focus();
+						return;
+					}
+					if (event.shiftKey && idx === 0) {
+						event.preventDefault();
+						focusables[focusables.length - 1].focus();
+					} else if (!event.shiftKey && idx === focusables.length - 1) {
+						event.preventDefault();
+						focusables[0].focus();
+					}
+				}
+			});
 		},
 	},
 });

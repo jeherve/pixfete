@@ -9,7 +9,7 @@ module.exports = {
 	passwordIncorrect: 'The password is incorrect.',
 	initFailed: 'Could not initialize. Please try again.',
 	initConnectionFailed: 'Could not initialize. Please check your connection and try again.',
-	nameRequired: 'Please enter your name.',
+	nameRequired: 'Please enter your first name.',
 	networkError: 'A network error occurred. Please try again.',
 	registrationFailed: 'Registration failed. Please try again.',
 	consentFailed: 'Failed to accept consent. Please try again.',

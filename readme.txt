@@ -21,7 +21,7 @@ Your guests don't need to create an account or download an app. They scan a QR c
 1. Create a page in the block editor and add the Event Photo Album block.
 2. Configure a password for the event. You can also set a date range and enable table names.
 3. Share the page with your guests. Print QR codes for table cards, or send the link via email, WhatsApp, or text.
-4. Guests scan, enter their name, and start uploading and browsing photos.
+4. Guests scan, enter their first name, and start uploading and browsing photos.
 
 **Features:**
 
@@ -123,12 +123,15 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * New Live Photo Wall block for projecting submitted photos onto a big screen during your event. The photo wall displays photos one at a time with smooth crossfade transitions, automatically cycling through submissions as guests upload them.
 * When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
 * Event hosts can now assign moderators who can remove inappropriate photos from the live gallery on their phone, without needing access to the WordPress dashboard.
+* Swipe between photos in the album lightbox, or use the left/right arrow keys on desktop.
 * The event password field now has a show/hide toggle, so guests can verify what they typed before submitting — especially helpful on mobile keyboards.
 
 **Changed**
 
 * Photos in the event album now display at their full aspect ratio instead of being cropped to squares, and load at a sharper resolution suited to the device. On mobile they appear in a single edge-to-edge column; on desktop in a packed three-column layout.
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
+* Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
+* The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
 
 **Fixed**
 

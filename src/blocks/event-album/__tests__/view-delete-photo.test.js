@@ -232,3 +232,63 @@ describe('deletePhoto action', () => {
 		expect(global.fetch).not.toHaveBeenCalled();
 	});
 });
+
+describe('deletePhoto lightboxIndex correction', () => {
+	function seedPhotos(store, count) {
+		store.state.photos = Array.from({ length: count }, (_, i) => ({
+			id: 100 + i,
+			full: `full-${i}.jpg`,
+			thumbnail: `thumb-${i}.jpg`,
+			guest_name: `Guest ${i}`,
+		}));
+	}
+
+	test('closes the lightbox when the last remaining photo is deleted', async () => {
+		const store = loadStore();
+		seedPhotos(store, 1);
+		store.state.lightboxIndex = 0;
+		mockContext.item = store.state.photos[0];
+		window.confirm.mockReturnValue(true);
+		global.fetch.mockResolvedValue({ ok: true });
+
+		await runGenerator(store.actions.deletePhoto({ stopPropagation: jest.fn() }));
+
+		expect(store.state.photos).toHaveLength(0);
+		expect(store.state.lightboxIndex).toBe(-1);
+	});
+
+	test('clamps the index when the active photo was the last one', async () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 2;
+		mockContext.item = store.state.photos[2];
+		window.confirm.mockReturnValue(true);
+		global.fetch.mockResolvedValue({ ok: true });
+
+		await runGenerator(store.actions.deletePhoto({ stopPropagation: jest.fn() }));
+
+		expect(store.state.photos).toHaveLength(2);
+		expect(store.state.lightboxIndex).toBe(1);
+	});
+
+	test('clamps the index when the gallery shrinks below the active index by other means', async () => {
+		// Defensive coverage: if the gallery has been emptied externally
+		// (e.g., another tab/poll cycle) between the confirm and the
+		// response, deletePhoto must still close cleanly rather than
+		// pointing at a now-invalid index.
+		const store = loadStore();
+		seedPhotos(store, 2);
+		store.state.lightboxIndex = 1;
+		mockContext.item = store.state.photos[1];
+		window.confirm.mockReturnValue(true);
+		global.fetch.mockImplementation(() => {
+			store.state.photos = [];
+			return Promise.resolve({ ok: true });
+		});
+
+		await runGenerator(store.actions.deletePhoto({ stopPropagation: jest.fn() }));
+
+		expect(store.state.photos).toHaveLength(0);
+		expect(store.state.lightboxIndex).toBe(-1);
+	});
+});
