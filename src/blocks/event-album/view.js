@@ -1050,7 +1050,9 @@ const { state } = store('pixfete', {
 		 * more than once during hydration.
 		 *
 		 * Only acts when the lightbox is open so arrow keys keep their
-		 * default browser behavior the rest of the time.
+		 * default browser behavior the rest of the time. ArrowLeft and
+		 * ArrowRight call preventDefault() to suppress the default page
+		 * scroll while navigating photos.
 		 */
 		initLightboxKeyboard() {
 			if (window.__pixfeteLightboxKeyboardBound) {
@@ -1063,8 +1065,10 @@ const { state } = store('pixfete', {
 					return;
 				}
 				if (event.key === 'ArrowLeft') {
+					event.preventDefault();
 					state.lightboxIndex = Math.max(0, state.lightboxIndex - 1);
 				} else if (event.key === 'ArrowRight') {
+					event.preventDefault();
 					state.lightboxIndex = Math.min(state.photos.length - 1, state.lightboxIndex + 1);
 				} else if (event.key === 'Escape') {
 					state.lightboxIndex = -1;
