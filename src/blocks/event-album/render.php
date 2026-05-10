@@ -350,6 +350,8 @@ if ( $pixfete_is_moderator ) {
 							data-wp-bind--src="context.item.src"
 							data-wp-bind--srcset="context.item.srcset"
 							data-wp-bind--sizes="context.item.sizes"
+							data-wp-bind--width="context.item.width"
+							data-wp-bind--height="context.item.height"
 							data-wp-bind--alt="context.item.guest_name"
 							loading="lazy"
 						/>

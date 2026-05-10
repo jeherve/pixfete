@@ -455,6 +455,8 @@ class RestPhotosTest extends TestCase {
 		$this->assertArrayHasKey( 'sizes', $data );
 		$this->assertStringContainsString( '768w', $data['srcset'] );
 		$this->assertSame( '(min-width: 601px) 33vw, 100vw', $data['sizes'] );
+		$this->assertSame( 150, $data['width'] );
+		$this->assertSame( 150, $data['height'] );
 	}
 
 	/**
@@ -797,7 +799,7 @@ class RestPhotosTest extends TestCase {
 		$data  = $response->get_data();
 		$photo = $data[0];
 
-		$expected_keys = array( 'id', 'thumbnail', 'src', 'srcset', 'sizes', 'full', 'guest_name', 'table_name', 'uploaded_at' );
+		$expected_keys = array( 'id', 'thumbnail', 'src', 'srcset', 'sizes', 'width', 'height', 'full', 'guest_name', 'table_name', 'uploaded_at' );
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $photo, "Photo response must include '{$key}'" );
 		}
@@ -805,6 +807,8 @@ class RestPhotosTest extends TestCase {
 		$this->assertSame( 'https://example.com/photo-medium_large.jpg', $photo['src'] );
 		$this->assertStringContainsString( '768w', $photo['srcset'] );
 		$this->assertSame( '(min-width: 601px) 33vw, 100vw', $photo['sizes'] );
+		$this->assertSame( 768, $photo['width'] );
+		$this->assertSame( 512, $photo['height'] );
 	}
 
 	/**
