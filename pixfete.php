@@ -4,7 +4,7 @@
  * Plugin URI: https://herve.bz/my-plugins/pixfete/
  * Description: Allow your guests to share their photos of your event in a shared photo album, and display those photos live!
  * Author: Jeremy Herve
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author URI: https://herve.bzh/
  * License: GPL-2.0-or-later
  * Text Domain: pixfete
@@ -18,7 +18,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PIXFETE_VERSION', '1.2.0' );
+define( 'PIXFETE_VERSION', '1.3.0' );
 define( 'PIXFETE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PIXFETE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

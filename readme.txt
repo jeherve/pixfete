@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -116,7 +116,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 == Changelog ==
 
-= 1.3.0 - unreleased =
+= 1.3.0 - 2026-05-10 =
 
 **Added**
 
@@ -125,6 +125,8 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * Event hosts can now assign moderators who can remove inappropriate photos from the live gallery on their phone, without needing access to the WordPress dashboard.
 * Swipe between photos in the album lightbox, or use the left/right arrow keys on desktop.
 * The event password field now has a show/hide toggle, so guests can verify what they typed before submitting — especially helpful on mobile keyboards.
+* Photos selected for upload are now saved on the device first, so they are no longer lost if the network drops or the page is closed mid-upload. Uploads automatically resume when connectivity returns.
+* A "Retry uploads" button appears when an upload has permanently failed, so guests can try again without re-picking the same files.
 
 **Changed**
 
@@ -132,6 +134,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
 * Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
 * The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
+* The upload progress display now reflects the live queue rather than a one-shot batch counter.
 
 **Fixed**
 

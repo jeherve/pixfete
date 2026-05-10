@@ -194,6 +194,14 @@ The Live Photo Wall block is designed for projecting photos onto a big screen du
 | `interval` | integer | `5` | Seconds per photo (min: 2, max: 30) |
 | `eventPageId` | integer | `0` | ID of the event page whose photos to display |
 
+### Upload reliability
+
+Photo uploads are queued in IndexedDB before they hit the network, so files survive a dropped connection, page reload, or accidental tab close. Failed uploads stay in the queue and surface a "Retry uploads" affordance when they can't be recovered automatically.
+
+A Service Worker drains the queue via the Background Sync API where it's available (Chrome, Edge, Android). Browsers without Background Sync — notably iOS Safari — fall back to in-page retry while the album page is open.
+
+The Service Worker is served from `/pixfete-sw.js` with the `Service-Worker-Allowed: /` header so it can claim album pages anywhere on the site. Registration and routing are handled in `src/class-pwa.php`.
+
 ### Event Photo Album block attributes
 
 | Attribute | Type | Default | Description |
