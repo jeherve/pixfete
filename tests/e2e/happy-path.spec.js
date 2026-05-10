@@ -72,6 +72,11 @@ test.describe('Pixfête - Happy Path', () => {
 	test('Guest: complete flow — password, register, consent, upload, lightbox', async ({ page }) => {
 		test.skip(!pageUrl, 'Admin setup did not produce a page URL');
 
+		// The upload FAB is intentionally hidden on viewports wider than 600px
+		// (the upload flow targets mobile guests snapping photos from their phones).
+		// Use a mobile-sized viewport so the gallery's upload UI is reachable.
+		await page.setViewportSize({ width: 390, height: 844 });
+
 		// --- Step 1: Password entry ---
 		// Visit the published page as a guest (fresh context, no admin cookies).
 		// Retry navigation if the page returns an error (Playground can be slow).
