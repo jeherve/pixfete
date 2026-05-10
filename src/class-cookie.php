@@ -100,10 +100,10 @@ class Cookie {
 	 * cookies identifiable in the browser.
 	 *
 	 * @param int $page_id The WordPress page ID for the event.
-	 * @return string Cookie name in the format `egps_{page_id}`.
+	 * @return string Cookie name in the format `pixfete_{page_id}`.
 	 */
 	public static function cookie_name( int $page_id ): string {
-		return 'egps_' . $page_id;
+		return 'pixfete_' . $page_id;
 	}
 
 	/**
@@ -167,7 +167,7 @@ class Cookie {
 	 * `samesite` is Lax to allow normal navigation, and `secure` follows
 	 * the current SSL state.
 	 *
-	 * The expiry can be customized via the `egps_cookie_expiry` filter.
+	 * The expiry can be customized via the `pixfete_cookie_expiry` filter.
 	 *
 	 * @param array<string, mixed> $payload The cookie payload to sign and set.
 	 * @return void
@@ -184,7 +184,7 @@ class Cookie {
 		 * @param int   $expires_at Unix timestamp when the cookie expires.
 		 * @param array $payload    The full cookie payload.
 		 */
-		$expires = (int) apply_filters( 'egps_cookie_expiry', $payload['expires_at'], $payload );
+		$expires = (int) apply_filters( 'pixfete_cookie_expiry', $payload['expires_at'], $payload );
 
 		// phpcs:ignore Jetpack.Functions.SetCookie.FoundNonHTTPOnlyFalse -- JS needs read access for state detection on mount.
 		setcookie(

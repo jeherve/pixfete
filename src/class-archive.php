@@ -25,21 +25,21 @@ class Archive {
 	 *
 	 * @var string
 	 */
-	public const DAILY_HOOK = 'egps_daily_archive_check';
+	public const DAILY_HOOK = 'pixfete_daily_archive_check';
 
 	/**
 	 * Cron hook name for processing a single batch of attachments.
 	 *
 	 * @var string
 	 */
-	public const BATCH_HOOK = 'egps_archive_build_batch';
+	public const BATCH_HOOK = 'pixfete_archive_build_batch';
 
 	/**
 	 * Option name for storing archive metadata keyed by page ID.
 	 *
 	 * @var string
 	 */
-	private const OPTION_NAME = 'egps_zip_archives';
+	private const OPTION_NAME = 'pixfete_zip_archives';
 
 	/**
 	 * Get all archive entries.
@@ -117,7 +117,7 @@ class Archive {
 	/**
 	 * Process a batch of attachments for ZIP archive generation.
 	 *
-	 * Adds up to `egps_archive_batch_size` (default 50) attachments to the ZIP,
+	 * Adds up to `pixfete_archive_batch_size` (default 50) attachments to the ZIP,
 	 * then either reschedules itself for the next batch or marks the archive
 	 * as complete. Uses ZipArchive::addFile() which streams from disk without
 	 * loading file contents into PHP memory.
@@ -145,7 +145,7 @@ class Archive {
 		 * @param string $directory Absolute path to the archive storage directory.
 		 */
 		$archive_dir = apply_filters(
-			'egps_archive_directory',
+			'pixfete_archive_directory',
 			$upload_dir['basedir'] . '/egps-archives'
 		);
 
@@ -162,9 +162,9 @@ class Archive {
 			$token     = $archive['token'];
 			$file_path = $archive_dir . '/egps-archive-' . $page_id . '-' . $token . '.zip';
 			// Note: this URL assumes the default archive directory. If the
-			// egps_archive_directory filter changes the storage path to a location
+			// pixfete_archive_directory filter changes the storage path to a location
 			// outside the uploads directory, this URL will not match. A companion
-			// egps_archive_url filter could be added in the future if needed.
+			// pixfete_archive_url filter could be added in the future if needed.
 			$url = $upload_dir['baseurl'] . '/egps-archives/egps-archive-' . $page_id . '-' . $token . '.zip';
 
 			self::update_archive(
@@ -188,7 +188,7 @@ class Archive {
 		 *
 		 * @param int $batch_size Number of attachments per batch. Default 50.
 		 */
-		$batch_size  = (int) apply_filters( 'egps_archive_batch_size', 50 );
+		$batch_size  = (int) apply_filters( 'pixfete_archive_batch_size', 50 );
 		$last_offset = (int) ( $archive['last_offset'] ?? 0 );
 
 		$query = new \WP_Query(

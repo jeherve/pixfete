@@ -18,7 +18,7 @@ namespace Jeherve\Pixfete;
  *
  * @var array{name: string, value: string, options: array<string, mixed>}|null
  */
-$GLOBALS['egps_setcookie_last_call'] = null;
+$GLOBALS['pixfete_setcookie_last_call'] = null;
 
 /**
  * Namespace-level setcookie that records calls instead of sending headers.
@@ -29,7 +29,7 @@ $GLOBALS['egps_setcookie_last_call'] = null;
  * @return bool Always true.
  */
 function setcookie( string $name, string $value = '', array $options = array() ): bool {
-	$GLOBALS['egps_setcookie_last_call'] = array(
+	$GLOBALS['pixfete_setcookie_last_call'] = array(
 		'name'    => $name,
 		'value'   => $value,
 		'options' => $options,

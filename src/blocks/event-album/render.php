@@ -17,46 +17,46 @@ defined( 'ABSPATH' ) || exit;
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
 // Generate a one-time CSRF token and store it in a transient.
-$egps_csrf_token = wp_generate_password( 32, false );
-set_transient( 'egps_csrf_' . $egps_csrf_token, get_the_ID(), HOUR_IN_SECONDS );
+$pixfete_csrf_token = wp_generate_password( 32, false );
+set_transient( 'pixfete_csrf_' . $pixfete_csrf_token, get_the_ID(), HOUR_IN_SECONDS );
 
-$egps_honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+$pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
-$egps_enable_table_names = ! empty( $attributes['enableTableNames'] );
+$pixfete_enable_table_names = ! empty( $attributes['enableTableNames'] );
 
 // Build the Interactivity API context.
-$egps_context = array(
+$pixfete_context = array(
 	'pageId'           => get_the_ID(),
-	'nonce'            => $egps_csrf_token,
-	'honeypotField'    => $egps_honeypot_field,
-	'enableTableNames' => $egps_enable_table_names,
+	'nonce'            => $pixfete_csrf_token,
+	'honeypotField'    => $pixfete_honeypot_field,
+	'enableTableNames' => $pixfete_enable_table_names,
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'pixfete/v1' ),
 );
 
 // Detect whether the current visitor is an assigned moderator for this event.
-$egps_is_moderator = false;
+$pixfete_is_moderator = false;
 if ( is_user_logged_in() ) {
-	$egps_is_moderator = \Jeherve\Pixfete\Moderator::is_moderator_for_page(
+	$pixfete_is_moderator = \Jeherve\Pixfete\Moderator::is_moderator_for_page(
 		get_current_user_id(),
 		get_the_ID()
 	);
 }
 
-if ( $egps_is_moderator ) {
-	$egps_context['isModerator'] = true;
-	$egps_context['restNonce']   = wp_create_nonce( 'wp_rest' );
+if ( $pixfete_is_moderator ) {
+	$pixfete_context['isModerator'] = true;
+	$pixfete_context['restNonce']   = wp_create_nonce( 'wp_rest' );
 } else {
-	$egps_context['isModerator'] = false;
-	$egps_context['restNonce']   = '';
+	$pixfete_context['isModerator'] = false;
+	$pixfete_context['restNonce']   = '';
 }
 ?>
 <div
 	<?php echo get_block_wrapper_attributes(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
 	data-wp-interactive="pixfete"
 	data-wp-init="actions.init"
-	data-wp-context='<?php echo esc_attr( wp_json_encode( $egps_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
+	data-wp-context='<?php echo esc_attr( wp_json_encode( $pixfete_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
 	<div class="egps-app">
 		<?php // Not-started view — shown when the event date hasn't arrived yet. ?>
@@ -83,7 +83,7 @@ if ( $egps_is_moderator ) {
 				/>
 				<?php // Honeypot field — hidden from humans. ?>
 				<div class="egps-hp" aria-hidden="true" tabindex="-1">
-					<input type="text" name="<?php echo esc_attr( $egps_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
+					<input type="text" name="<?php echo esc_attr( $pixfete_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
 				</div>
 				<div data-wp-bind--hidden="!state.errorMessage" class="egps-error" data-wp-text="state.errorMessage"></div>
 				<button type="submit" data-wp-bind--disabled="state.isSubmitting">
@@ -116,7 +116,7 @@ if ( $egps_is_moderator ) {
 				</div>
 				<?php // Honeypot field — hidden from humans. ?>
 				<div class="egps-hp" aria-hidden="true" tabindex="-1">
-					<input type="text" name="<?php echo esc_attr( $egps_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
+					<input type="text" name="<?php echo esc_attr( $pixfete_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />
 				</div>
 				<div data-wp-bind--hidden="!state.errorMessage" class="egps-error" data-wp-text="state.errorMessage"></div>
 				<button type="submit" data-wp-bind--disabled="state.isSubmitting">

@@ -49,7 +49,7 @@ class Upload {
 		 *
 		 * @param string[] $mime_types Allowed MIME types.
 		 */
-		return (array) apply_filters( 'egps_allowed_mime_types', $mime_types );
+		return (array) apply_filters( 'pixfete_allowed_mime_types', $mime_types );
 	}
 
 	/**
@@ -108,10 +108,10 @@ class Upload {
 		wp_update_attachment_metadata( $attachment_id, $metadata );
 
 		// Store guest meta, sanitizing user-provided strings.
-		update_post_meta( $attachment_id, '_egps_guest_name', sanitize_text_field( $guest_data['guest_name'] ) );
-		update_post_meta( $attachment_id, '_egps_table_name', sanitize_text_field( $guest_data['table_name'] ) );
-		update_post_meta( $attachment_id, '_egps_guest_id', sanitize_key( $guest_data['guest_id'] ) );
-		update_post_meta( $attachment_id, '_egps_uploaded_at', time() );
+		update_post_meta( $attachment_id, '_pixfete_guest_name', sanitize_text_field( $guest_data['guest_name'] ) );
+		update_post_meta( $attachment_id, '_pixfete_table_name', sanitize_text_field( $guest_data['table_name'] ) );
+		update_post_meta( $attachment_id, '_pixfete_guest_id', sanitize_key( $guest_data['guest_id'] ) );
+		update_post_meta( $attachment_id, '_pixfete_uploaded_at', time() );
 
 		/**
 		 * Filters whether a newly uploaded photo requires moderation.
@@ -122,8 +122,8 @@ class Upload {
 		 * @param int  $attachment_id       The attachment post ID.
 		 * @param int  $page_id             The event page ID.
 		 */
-		$requires_moderation = (bool) apply_filters( 'egps_photo_requires_moderation', false, $attachment_id, $page_id );
-		update_post_meta( $attachment_id, '_egps_requires_moderation', $requires_moderation );
+		$requires_moderation = (bool) apply_filters( 'pixfete_photo_requires_moderation', false, $attachment_id, $page_id );
+		update_post_meta( $attachment_id, '_pixfete_requires_moderation', $requires_moderation );
 
 		/**
 		 * Fires after a guest photo has been uploaded and its metadata stored.
@@ -133,7 +133,7 @@ class Upload {
 		 * @param int $attachment_id The attachment post ID.
 		 * @param int $page_id       The event page ID.
 		 */
-		do_action( 'egps_after_photo_upload', $attachment_id, $page_id );
+		do_action( 'pixfete_after_photo_upload', $attachment_id, $page_id );
 
 		return $attachment_id;
 	}
@@ -149,7 +149,7 @@ class Upload {
 	 * @return bool True if the server supports HEIC files.
 	 */
 	private static function server_supports_heic(): bool {
-		$cached = get_transient( 'egps_heic_support' );
+		$cached = get_transient( 'pixfete_heic_support' );
 
 		if ( false !== $cached ) {
 			return 'supported' === $cached;
@@ -158,7 +158,7 @@ class Upload {
 		$check = wp_check_filetype_and_ext( 'test.heic', 'test.heic', null, array( 'heic' => 'image/heic' ) );
 
 		$supported = ! empty( $check['ext'] ) && ! empty( $check['type'] );
-		set_transient( 'egps_heic_support', $supported ? 'supported' : 'unsupported', DAY_IN_SECONDS );
+		set_transient( 'pixfete_heic_support', $supported ? 'supported' : 'unsupported', DAY_IN_SECONDS );
 
 		return $supported;
 	}

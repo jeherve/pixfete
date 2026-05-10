@@ -9,7 +9,7 @@ import { isEventEnded } from '../utils/is-event-ended';
  * the archive is queued/generating/complete/failed, or no archive exists yet.
  *
  * @param {Object}      props
- * @param {Object|null} props.archive      Archive entry from egps_zip_archives option, or null.
+ * @param {Object|null} props.archive      Archive entry from pixfete_zip_archives option, or null.
  * @param {string}      props.dateRangeEnd The event's end date (Y-m-d string), or empty.
  * @return {JSX.Element|null} The rendered archive status UI.
  */

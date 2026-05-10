@@ -49,7 +49,7 @@ class ArchiveTest extends TestCase {
 		);
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( $data );
 
 		$this->assertSame( $data, Archive::get_archives() );
@@ -65,7 +65,7 @@ class ArchiveTest extends TestCase {
 		);
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array( 42 => $entry ) );
 
 		$this->assertSame( $entry, Archive::get_archive( 42 ) );
@@ -77,7 +77,7 @@ class ArchiveTest extends TestCase {
 	public function test_get_archive_returns_null_for_missing(): void {
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		$this->assertNull( Archive::get_archive( 99 ) );
@@ -96,14 +96,14 @@ class ArchiveTest extends TestCase {
 
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( $existing );
 
 		Functions\expect( 'update_option' )
 			->once()
 			->withArgs(
 				function ( $name, $value ) {
-					return $name === 'egps_zip_archives'
+					return $name === 'pixfete_zip_archives'
 						&& $value[42]['status'] === 'generating'
 						&& $value[42]['token'] === 'abc123';
 				}
@@ -122,14 +122,14 @@ class ArchiveTest extends TestCase {
 	public function test_update_archive_creates_new_entry(): void {
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		Functions\expect( 'update_option' )
 			->once()
 			->withArgs(
 				function ( $name, $value ) {
-					return $name === 'egps_zip_archives'
+					return $name === 'pixfete_zip_archives'
 						&& $value[42]['status'] === 'pending';
 				}
 			)
@@ -147,7 +147,7 @@ class ArchiveTest extends TestCase {
 	public function test_schedule_cron_registers_daily_event(): void {
 		Functions\expect( 'wp_next_scheduled' )
 			->once()
-			->with( 'egps_daily_archive_check' )
+			->with( 'pixfete_daily_archive_check' )
 			->andReturn( false );
 
 		Functions\expect( 'wp_schedule_event' )
@@ -156,7 +156,7 @@ class ArchiveTest extends TestCase {
 				function ( $timestamp, $recurrence, $hook ) {
 					return is_int( $timestamp )
 						&& $recurrence === 'daily'
-						&& $hook === 'egps_daily_archive_check';
+						&& $hook === 'pixfete_daily_archive_check';
 				}
 			);
 
@@ -171,7 +171,7 @@ class ArchiveTest extends TestCase {
 	public function test_schedule_cron_skips_when_already_scheduled(): void {
 		Functions\expect( 'wp_next_scheduled' )
 			->once()
-			->with( 'egps_daily_archive_check' )
+			->with( 'pixfete_daily_archive_check' )
 			->andReturn( 1742900000 );
 
 		Functions\expect( 'wp_schedule_event' )->never();
@@ -187,10 +187,10 @@ class ArchiveTest extends TestCase {
 	public function test_unschedule_cron_clears_hook(): void {
 		Functions\expect( 'wp_clear_scheduled_hook' )
 			->once()
-			->with( 'egps_daily_archive_check' );
+			->with( 'pixfete_daily_archive_check' );
 		Functions\expect( 'wp_clear_scheduled_hook' )
 			->once()
-			->with( 'egps_archive_build_batch' );
+			->with( 'pixfete_archive_build_batch' );
 
 		Archive::unschedule_cron();
 
@@ -231,7 +231,7 @@ class ArchiveTest extends TestCase {
 		// Should use site timezone to determine "today".
 		Functions\expect( 'wp_timezone' )->once()->andReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\expect( 'wp_date' )->once()->andReturn( '2026-03-25' );
-		Functions\expect( 'get_option' )->with( 'egps_zip_archives', array() )->andReturn( array() );
+		Functions\expect( 'get_option' )->with( 'pixfete_zip_archives', array() )->andReturn( array() );
 
 		// Should NOT schedule a batch.
 		Functions\expect( 'wp_schedule_single_event' )->never();
@@ -262,7 +262,7 @@ class ArchiveTest extends TestCase {
 
 		// Already has an archive.
 		Functions\expect( 'get_option' )
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array( 42 => array( 'status' => 'complete' ) ) );
 
 		Functions\expect( 'wp_schedule_single_event' )->never();
@@ -290,18 +290,18 @@ class ArchiveTest extends TestCase {
 		);
 		Functions\expect( 'wp_timezone' )->once()->andReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\expect( 'wp_date' )->once()->andReturn( '2026-03-25' );
-		Functions\expect( 'get_option' )->with( 'egps_zip_archives', array() )->andReturn( array() );
+		Functions\expect( 'get_option' )->with( 'pixfete_zip_archives', array() )->andReturn( array() );
 
 		// No attachments — WP_Query mock returns 0 found_posts.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts        = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts  = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts        = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 0;
 
 		Functions\expect( 'wp_schedule_single_event' )->never();
 
 		Archive::check_events();
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertTrue( true );
 	}
@@ -329,7 +329,7 @@ class ArchiveTest extends TestCase {
 		// once by update_archive to read before writing.
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					return array();
 				}
 				return $default;
@@ -337,9 +337,9 @@ class ArchiveTest extends TestCase {
 		);
 
 		// Has attachments.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts        = array( (object) array( 'ID' => 100 ) );
-		$GLOBALS['egps_wp_query_mock']->found_posts  = 5;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts        = array( (object) array( 'ID' => 100 ) );
+		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 5;
 
 		Functions\expect( 'wp_generate_password' )
 			->once()
@@ -350,7 +350,7 @@ class ArchiveTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $name, $value ) {
-					return $name === 'egps_zip_archives'
+					return $name === 'pixfete_zip_archives'
 						&& $value[42]['status'] === 'pending'
 						&& $value[42]['token'] === 'abc123def456';
 				}
@@ -361,14 +361,14 @@ class ArchiveTest extends TestCase {
 			->withArgs(
 				function ( $timestamp, $hook, $args ) {
 					return is_int( $timestamp )
-						&& $hook === 'egps_archive_build_batch'
+						&& $hook === 'pixfete_archive_build_batch'
 						&& $args === array( 42 );
 				}
 			);
 
 		Archive::check_events();
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertTrue( true );
 	}
@@ -414,7 +414,7 @@ class ArchiveTest extends TestCase {
 		Functions\when( 'get_option' )
 			->alias(
 				function ( $name, $default = false ) use ( $entry ) {
-					if ( $name === 'egps_zip_archives' ) {
+					if ( $name === 'pixfete_zip_archives' ) {
 						return array( 42 => $entry );
 					}
 					return $default;
@@ -434,8 +434,8 @@ class ArchiveTest extends TestCase {
 		Functions\when( 'wp_mkdir_p' )->justReturn( true );
 
 		/**
-		 * Filter: egps_archive_directory — let it pass through.
-		 * Filter: egps_archive_batch_size — let it pass through.
+		 * Filter: pixfete_archive_directory — let it pass through.
+		 * Filter: pixfete_archive_batch_size — let it pass through.
 		 */
 		Functions\when( 'apply_filters' )->alias(
 			function ( $tag, $value ) {
@@ -449,9 +449,9 @@ class ArchiveTest extends TestCase {
 		$att2     = new \stdClass();
 		$att2->ID = 101;
 
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1, $att2 );
-		$GLOBALS['egps_wp_query_mock']->found_posts  = 2;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts        = array( $att1, $att2 );
+		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 2;
 
 		// Mock file paths — create real temp files so ZipArchive can add them.
 		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
@@ -477,7 +477,7 @@ class ArchiveTest extends TestCase {
 		$captured_archives = null;
 		Functions\when( 'update_option' )->alias(
 			function ( $name, $value ) use ( &$captured_archives ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					$captured_archives = $value;
 				}
 				return true;
@@ -506,7 +506,7 @@ class ArchiveTest extends TestCase {
 		@rmdir( $archive_dir );
 		@rmdir( $base_dir );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 	}
 
 	/**
@@ -530,7 +530,7 @@ class ArchiveTest extends TestCase {
 
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) use ( $entry ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					return array( 42 => $entry );
 				}
 				return $default;
@@ -546,7 +546,7 @@ class ArchiveTest extends TestCase {
 		Functions\when( 'apply_filters' )->alias(
 			function ( $tag, $value ) {
 				// Use a tiny batch size so we trigger rescheduling with just 2 found.
-				if ( $tag === 'egps_archive_batch_size' ) {
+				if ( $tag === 'pixfete_archive_batch_size' ) {
 					return 1;
 				}
 				return $value;
@@ -557,9 +557,9 @@ class ArchiveTest extends TestCase {
 		$att1     = new \stdClass();
 		$att1->ID = 100;
 
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1 );
-		$GLOBALS['egps_wp_query_mock']->found_posts  = 2;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts        = array( $att1 );
+		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 2;
 
 		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
 		file_put_contents( $tmp1, 'fake image data' );
@@ -570,7 +570,7 @@ class ArchiveTest extends TestCase {
 		$captured_archives = null;
 		Functions\when( 'update_option' )->alias(
 			function ( $name, $value ) use ( &$captured_archives ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					$captured_archives = $value;
 				}
 				return true;
@@ -582,7 +582,7 @@ class ArchiveTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $timestamp, $hook, $args ) {
-					return $hook === 'egps_archive_build_batch'
+					return $hook === 'pixfete_archive_build_batch'
 						&& $args === array( 42 );
 				}
 			);
@@ -600,7 +600,7 @@ class ArchiveTest extends TestCase {
 		@rmdir( $archive_dir );
 		@rmdir( $base_dir );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 	}
 
 	/**
@@ -615,7 +615,7 @@ class ArchiveTest extends TestCase {
 
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) use ( $entry ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					return array( 42 => $entry );
 				}
 				return $default;
@@ -638,9 +638,9 @@ class ArchiveTest extends TestCase {
 		$att1     = new \stdClass();
 		$att1->ID = 100;
 
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1 );
-		$GLOBALS['egps_wp_query_mock']->found_posts  = 1;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts        = array( $att1 );
+		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 1;
 
 		// Return a path that does not exist.
 		Functions\when( 'wp_get_original_image_path' )->justReturn( '/nonexistent/image.jpg' );
@@ -650,7 +650,7 @@ class ArchiveTest extends TestCase {
 		$captured_archives = null;
 		Functions\when( 'update_option' )->alias(
 			function ( $name, $value ) use ( &$captured_archives ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					$captured_archives = $value;
 				}
 				return true;
@@ -672,7 +672,7 @@ class ArchiveTest extends TestCase {
 		@rmdir( $archive_dir );
 		@rmdir( $base_dir );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 	}
 
 	/**
@@ -687,7 +687,7 @@ class ArchiveTest extends TestCase {
 
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) use ( $entry ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					return array( 42 => $entry );
 				}
 				return $default;
@@ -713,9 +713,9 @@ class ArchiveTest extends TestCase {
 		$att2     = new \stdClass();
 		$att2->ID = 101;
 
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts        = array( $att1, $att2 );
-		$GLOBALS['egps_wp_query_mock']->found_posts  = 2;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts        = array( $att1, $att2 );
+		$GLOBALS['pixfete_wp_query_mock']->found_posts  = 2;
 
 		$tmp1 = tempnam( sys_get_temp_dir(), 'egps' );
 		$tmp2 = tempnam( sys_get_temp_dir(), 'egps' );
@@ -735,7 +735,7 @@ class ArchiveTest extends TestCase {
 		$captured_archives = null;
 		Functions\when( 'update_option' )->alias(
 			function ( $name, $value ) use ( &$captured_archives ) {
-				if ( $name === 'egps_zip_archives' ) {
+				if ( $name === 'pixfete_zip_archives' ) {
 					$captured_archives = $value;
 				}
 				return true;
@@ -770,7 +770,7 @@ class ArchiveTest extends TestCase {
 		@rmdir( $archive_dir );
 		@rmdir( $base_dir );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 	}
 
 	/**
@@ -784,14 +784,14 @@ class ArchiveTest extends TestCase {
 
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( $existing );
 
 		Functions\expect( 'update_option' )
 			->once()
 			->withArgs(
 				function ( $name, $value ) {
-					return $name === 'egps_zip_archives'
+					return $name === 'pixfete_zip_archives'
 						&& ! isset( $value[42] )
 						&& isset( $value[87] )
 						&& count( $value ) === 1;

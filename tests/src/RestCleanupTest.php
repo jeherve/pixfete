@@ -42,7 +42,7 @@ class RestCleanupTest extends TestCase {
 	 * Tear down Brain Monkey and clean up globals after each test.
 	 */
 	protected function tearDown(): void {
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -65,7 +65,7 @@ class RestCleanupTest extends TestCase {
 	 * Test that the permission callback rejects users without delete_post capability.
 	 *
 	 * A user who cannot delete the event page must receive a WP_Error with
-	 * the egps_forbidden code and a 403 status, not a PHP error or false.
+	 * the pixfete_forbidden code and a 403 status, not a PHP error or false.
 	 */
 	public function test_permission_rejects_unauthorized_user(): void {
 		Functions\expect( 'current_user_can' )
@@ -77,7 +77,7 @@ class RestCleanupTest extends TestCase {
 		$result  = REST::check_cleanup_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_forbidden', $result->get_error_code() );
+		$this->assertSame( 'pixfete_forbidden', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -130,13 +130,13 @@ class RestCleanupTest extends TestCase {
 			);
 
 		// No attachments, no archive.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 0;
 
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
@@ -177,7 +177,7 @@ class RestCleanupTest extends TestCase {
 		$result  = REST::handle_cleanup( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $result->get_error_code() );
 	}
 
 	/**

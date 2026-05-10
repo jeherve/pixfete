@@ -61,7 +61,7 @@ const BACKOFF_INTERVAL = 30000;
  * @return {Object|null} Decoded cookie payload, or null.
  */
 function readCookie(eventPageId) {
-	const name = `egps_${eventPageId}=`;
+	const name = `pixfete_${eventPageId}=`;
 	const cookies = document.cookie.split('; ');
 	for (const cookie of cookies) {
 		if (cookie.startsWith(name)) {

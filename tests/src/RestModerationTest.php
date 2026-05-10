@@ -122,14 +122,14 @@ class RestModerationTest extends TestCase {
 		$result = REST::check_moderation_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_unauthorized', $result->get_error_code() );
+		$this->assertSame( 'pixfete_unauthorized', $result->get_error_code() );
 		$this->assertSame( 401, $result->get_error_data()['status'] );
 	}
 
 	/**
 	 * Test that the permission callback rejects users without the moderation capability.
 	 *
-	 * A logged-in user who lacks both egps_moderate_photos and manage_options
+	 * A logged-in user who lacks both pixfete_moderate_photos and manage_options
 	 * must be rejected with a 403 error before any page or attachment checks run.
 	 */
 	public function testModerationPermissionDeniedWithoutCapability(): void {
@@ -138,7 +138,7 @@ class RestModerationTest extends TestCase {
 			->andReturn( true );
 
 		Functions\expect( 'current_user_can' )
-			->with( 'egps_moderate_photos' )
+			->with( 'pixfete_moderate_photos' )
 			->andReturn( false );
 
 		Functions\expect( 'current_user_can' )
@@ -155,7 +155,7 @@ class RestModerationTest extends TestCase {
 		$result = REST::check_moderation_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_forbidden', $result->get_error_code() );
+		$this->assertSame( 'pixfete_forbidden', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -169,7 +169,7 @@ class RestModerationTest extends TestCase {
 	public function testModerationPermissionDeniedWhenAttachmentParentMismatch(): void {
 		Functions\expect( 'is_user_logged_in' )->once()->andReturn( true );
 		Functions\expect( 'current_user_can' )
-			->with( 'egps_moderate_photos' )
+			->with( 'pixfete_moderate_photos' )
 			->andReturn( true );
 
 		// validate_page() mocks.
@@ -216,7 +216,7 @@ class RestModerationTest extends TestCase {
 		$result = REST::check_moderation_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_forbidden', $result->get_error_code() );
+		$this->assertSame( 'pixfete_forbidden', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 

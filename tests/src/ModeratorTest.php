@@ -50,7 +50,7 @@ class ModeratorTest extends TestCase {
 		Functions\expect( 'add_role' )
 			->once()
 			->with(
-				'egps_moderator',
+				'pixfete_moderator',
 				'Event Photo Moderator',
 				\Mockery::on(
 					function ( $caps ) use ( &$called_with ) {
@@ -65,7 +65,7 @@ class ModeratorTest extends TestCase {
 		$this->assertSame(
 			array(
 				'read'                 => true,
-				'egps_moderate_photos' => true,
+				'pixfete_moderate_photos' => true,
 			),
 			$called_with
 		);
@@ -93,7 +93,7 @@ class ModeratorTest extends TestCase {
 
 		Moderator::unregister_role();
 
-		$this->assertSame( 'egps_moderator', $removed_role );
+		$this->assertSame( 'pixfete_moderator', $removed_role );
 	}
 
 	/**
@@ -125,11 +125,11 @@ class ModeratorTest extends TestCase {
 	/**
 	 * Test that block_dashboard_access redirects a moderator-only user.
 	 *
-	 * When a user's sole role is egps_moderator, they should be redirected
+	 * When a user's sole role is pixfete_moderator, they should be redirected
 	 * away from wp-admin to the site's home URL.
 	 */
 	public function testBlockDashboardAccessRedirectsModeratorOnly(): void {
-		$user = (object) array( 'roles' => array( 'egps_moderator' ) );
+		$user = (object) array( 'roles' => array( 'pixfete_moderator' ) );
 
 		Functions\expect( 'wp_get_current_user' )
 			->once()
@@ -162,11 +162,11 @@ class ModeratorTest extends TestCase {
 	/**
 	 * Test that block_dashboard_access allows users with multiple roles.
 	 *
-	 * A user who has administrator plus egps_moderator should not be
+	 * A user who has administrator plus pixfete_moderator should not be
 	 * blocked from wp-admin because they have legitimate admin access.
 	 */
 	public function testBlockDashboardAccessAllowsMultiRoleUsers(): void {
-		$user = (object) array( 'roles' => array( 'administrator', 'egps_moderator' ) );
+		$user = (object) array( 'roles' => array( 'administrator', 'pixfete_moderator' ) );
 
 		Functions\when( 'wp_doing_ajax' )->justReturn( false );
 
@@ -190,7 +190,7 @@ class ModeratorTest extends TestCase {
 	 * not wp-admin, since they have no reason to access the dashboard.
 	 */
 	public function testRedirectAfterLoginRedirectsModeratorOnly(): void {
-		$user = (object) array( 'roles' => array( 'egps_moderator' ) );
+		$user = (object) array( 'roles' => array( 'pixfete_moderator' ) );
 
 		Functions\expect( 'home_url' )
 			->once()
@@ -222,7 +222,7 @@ class ModeratorTest extends TestCase {
 	 * cannot access wp-admin. Hiding it keeps the front end clean.
 	 */
 	public function testHideAdminBarForModeratorOnly(): void {
-		$user = (object) array( 'roles' => array( 'egps_moderator' ) );
+		$user = (object) array( 'roles' => array( 'pixfete_moderator' ) );
 
 		Functions\expect( 'wp_get_current_user' )
 			->once()
@@ -236,11 +236,11 @@ class ModeratorTest extends TestCase {
 	/**
 	 * Test that hide_admin_bar preserves visibility for multi-role users.
 	 *
-	 * Users who have egps_moderator alongside another role (like administrator)
+	 * Users who have pixfete_moderator alongside another role (like administrator)
 	 * should still see the admin bar since they have legitimate admin access.
 	 */
 	public function testHideAdminBarPreservesForMultiRoleUsers(): void {
-		$user = (object) array( 'roles' => array( 'administrator', 'egps_moderator' ) );
+		$user = (object) array( 'roles' => array( 'administrator', 'pixfete_moderator' ) );
 
 		Functions\expect( 'wp_get_current_user' )
 			->once()
@@ -287,7 +287,7 @@ class ModeratorTest extends TestCase {
 	/**
 	 * Test that a user listed in the moderators attribute is recognised.
 	 *
-	 * When a user has the egps_moderate_photos capability and their ID
+	 * When a user has the pixfete_moderate_photos capability and their ID
 	 * appears in the block's moderators array, is_moderator_for_page()
 	 * should return true.
 	 */
@@ -296,7 +296,7 @@ class ModeratorTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->alias(
 			function ( string $cap ) {
-				return 'egps_moderate_photos' === $cap;
+				return 'pixfete_moderate_photos' === $cap;
 			}
 		);
 
@@ -314,7 +314,7 @@ class ModeratorTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->alias(
 			function ( string $cap ) {
-				return 'egps_moderate_photos' === $cap;
+				return 'pixfete_moderate_photos' === $cap;
 			}
 		);
 
@@ -325,7 +325,7 @@ class ModeratorTest extends TestCase {
 	 * Test that an admin in the moderators list is recognised via manage_options.
 	 *
 	 * Administrators who hold manage_options (but not necessarily the custom
-	 * egps_moderate_photos cap) should still pass the capability gate when
+	 * pixfete_moderate_photos cap) should still pass the capability gate when
 	 * their ID appears in the moderators array.
 	 */
 	public function testIsModeratorForPageReturnsTrueForAdminInList(): void {
@@ -345,7 +345,7 @@ class ModeratorTest extends TestCase {
 	 * capability is rejected.
 	 *
 	 * The capability check is a prerequisite — even if the user's ID
-	 * appears in the block attribute, they must hold egps_moderate_photos
+	 * appears in the block attribute, they must hold pixfete_moderate_photos
 	 * or manage_options to be considered a moderator.
 	 */
 	public function testIsModeratorForPageReturnsFalseWithoutCapability(): void {
@@ -369,7 +369,7 @@ class ModeratorTest extends TestCase {
 
 		Functions\when( 'current_user_can' )->alias(
 			function ( string $cap ) {
-				return 'egps_moderate_photos' === $cap;
+				return 'pixfete_moderate_photos' === $cap;
 			}
 		);
 

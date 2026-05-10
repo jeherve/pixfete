@@ -41,7 +41,7 @@ class CookieTest extends TestCase {
 	 * Tear down Brain Monkey after each test.
 	 */
 	protected function tearDown(): void {
-		unset( $_COOKIE['egps_42'], $_COOKIE['egps_99'] );
+		unset( $_COOKIE['pixfete_42'], $_COOKIE['pixfete_99'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -210,12 +210,12 @@ class CookieTest extends TestCase {
 	// ─── §2c: Cookie name and guest ID ──────────────────────────────────
 
 	/**
-	 * Test that cookie_name() returns the expected format: egps_{page_id}.
+	 * Test that cookie_name() returns the expected format: pixfete_{page_id}.
 	 */
-	public function test_cookie_name_returns_egps_prefix_with_page_id(): void {
-		$this->assertSame( 'egps_42', Cookie::cookie_name( 42 ) );
-		$this->assertSame( 'egps_1', Cookie::cookie_name( 1 ) );
-		$this->assertSame( 'egps_99999', Cookie::cookie_name( 99999 ) );
+	public function test_cookie_name_returns_pixfete_prefix_with_page_id(): void {
+		$this->assertSame( 'pixfete_42', Cookie::cookie_name( 42 ) );
+		$this->assertSame( 'pixfete_1', Cookie::cookie_name( 1 ) );
+		$this->assertSame( 'pixfete_99999', Cookie::cookie_name( 99999 ) );
 	}
 
 	/**
@@ -281,7 +281,7 @@ class CookieTest extends TestCase {
 	 */
 	public function test_get_for_page_returns_null_when_no_cookie(): void {
 		// Ensure $_COOKIE is empty for this page.
-		unset( $_COOKIE['egps_42'] );
+		unset( $_COOKIE['pixfete_42'] );
 
 		$this->assertNull( Cookie::get_for_page( 42 ) );
 	}
@@ -293,7 +293,7 @@ class CookieTest extends TestCase {
 		$payload = $this->make_payload();
 		$signed  = Cookie::sign( $payload );
 
-		$_COOKIE['egps_42'] = $signed;
+		$_COOKIE['pixfete_42'] = $signed;
 
 		$result = Cookie::get_for_page( 42 );
 		$this->assertIsArray( $result );
@@ -311,7 +311,7 @@ class CookieTest extends TestCase {
 
 		// Store under the correct cookie name for page 42,
 		// but request page 99.
-		$_COOKIE['egps_42'] = $signed;
+		$_COOKIE['pixfete_42'] = $signed;
 
 		$this->assertNull( Cookie::get_for_page( 99 ) );
 	}
@@ -320,7 +320,7 @@ class CookieTest extends TestCase {
 	 * Test that get_for_page() returns null for a tampered cookie value.
 	 */
 	public function test_get_for_page_returns_null_for_tampered_cookie(): void {
-		$_COOKIE['egps_42'] = 'tampered-value';
+		$_COOKIE['pixfete_42'] = 'tampered-value';
 
 		$this->assertNull( Cookie::get_for_page( 42 ) );
 	}
@@ -329,7 +329,7 @@ class CookieTest extends TestCase {
 	 * Test that set_for_page() calls setcookie() with correct parameters.
 	 *
 	 * Uses a namespace-level setcookie stub that captures the call
-	 * arguments into $GLOBALS['egps_setcookie_last_call'].
+	 * arguments into $GLOBALS['pixfete_setcookie_last_call'].
 	 */
 	public function test_set_for_page_calls_setcookie_with_correct_params(): void {
 		Functions\when( 'is_ssl' )->justReturn( false );
@@ -337,14 +337,14 @@ class CookieTest extends TestCase {
 
 		$payload = $this->make_payload();
 
-		$GLOBALS['egps_setcookie_last_call'] = null;
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
 		Cookie::set_for_page( $payload );
 
-		$call = $GLOBALS['egps_setcookie_last_call'];
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called.' );
 
 		// Verify cookie name.
-		$this->assertSame( 'egps_42', $call['name'] );
+		$this->assertSame( 'pixfete_42', $call['name'] );
 
 		// Verify signed value has correct format.
 		$parts = explode( '.', $call['value'] );
@@ -367,16 +367,16 @@ class CookieTest extends TestCase {
 
 		$payload = $this->make_payload();
 
-		$GLOBALS['egps_setcookie_last_call'] = null;
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
 		Cookie::set_for_page( $payload );
 
-		$call = $GLOBALS['egps_setcookie_last_call'];
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called.' );
 		$this->assertTrue( $call['options']['secure'] );
 	}
 
 	/**
-	 * Test that set_for_page() applies the egps_cookie_expiry filter.
+	 * Test that set_for_page() applies the pixfete_cookie_expiry filter.
 	 */
 	public function test_set_for_page_applies_expiry_filter(): void {
 		Functions\when( 'is_ssl' )->justReturn( false );
@@ -386,13 +386,13 @@ class CookieTest extends TestCase {
 
 		Functions\expect( 'apply_filters' )
 			->once()
-			->with( 'egps_cookie_expiry', $payload['expires_at'], $payload )
+			->with( 'pixfete_cookie_expiry', $payload['expires_at'], $payload )
 			->andReturn( $custom_expiry );
 
-		$GLOBALS['egps_setcookie_last_call'] = null;
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
 		Cookie::set_for_page( $payload );
 
-		$call = $GLOBALS['egps_setcookie_last_call'];
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called.' );
 		$this->assertSame( $custom_expiry, $call['options']['expires'] );
 	}

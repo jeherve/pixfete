@@ -38,7 +38,7 @@ class Cleanup {
 	 * (its option entry references the page), then any slideshow pages that
 	 * reference this event, and finally the event page itself.
 	 *
-	 * After deletion, fires the `egps_after_event_cleanup` action so other
+	 * After deletion, fires the `pixfete_after_event_cleanup` action so other
 	 * code (audit logging, cache invalidation, etc.) can react.
 	 *
 	 * @param int $page_id The event page ID to delete.
@@ -152,7 +152,7 @@ class Cleanup {
 		 *                       - deleted_slideshow_pages (int) Number of orphaned slideshow pages removed.
 		 *                       - deleted_page           (true) Always true at this point.
 		 */
-		do_action( 'egps_after_event_cleanup', $page_id, $summary );
+		do_action( 'pixfete_after_event_cleanup', $page_id, $summary );
 
 		return $summary;
 	}

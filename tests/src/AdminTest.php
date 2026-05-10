@@ -211,7 +211,7 @@ class AdminTest extends TestCase {
 
 		// Archive data for this page.
 		Functions\expect( 'get_option' )
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn(
 				array(
 					42 => array(

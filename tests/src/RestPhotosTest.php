@@ -59,7 +59,7 @@ class RestPhotosTest extends TestCase {
 	 * Tear down Brain Monkey after each test.
 	 */
 	protected function tearDown(): void {
-		unset( $_COOKIE['egps_42'] );
+		unset( $_COOKIE['pixfete_42'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -145,7 +145,7 @@ class RestPhotosTest extends TestCase {
 	 * @param int   $page_id Page ID (used for cookie name).
 	 */
 	private function set_cookie( array $payload, int $page_id = 42 ): void {
-		$_COOKIE[ 'egps_' . $page_id ] = Cookie::sign( $payload );
+		$_COOKIE[ 'pixfete_' . $page_id ] = Cookie::sign( $payload );
 	}
 
 	// ─── §5: Route registration ──────────────────────────────────────
@@ -195,14 +195,14 @@ class RestPhotosTest extends TestCase {
 
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		unset( $_COOKIE['egps_42'] );
+		unset( $_COOKIE['pixfete_42'] );
 
 		$request = $this->make_request( array( 'page_id' => 42 ) );
 
 		$result = REST::check_photo_upload_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_cookie', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_cookie', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -222,7 +222,7 @@ class RestPhotosTest extends TestCase {
 		$result = REST::check_photo_upload_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_no_consent', $result->get_error_code() );
+		$this->assertSame( 'pixfete_no_consent', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -243,7 +243,7 @@ class RestPhotosTest extends TestCase {
 		$result = REST::check_photo_upload_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_event_version', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_event_version', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -278,7 +278,7 @@ class RestPhotosTest extends TestCase {
 		$result = REST::check_photo_upload_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_event_expired', $result->get_error_code() );
+		$this->assertSame( 'pixfete_event_expired', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -294,7 +294,7 @@ class RestPhotosTest extends TestCase {
 		// Set upload limit to 5, and current count to 5.
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
-				if ( 'egps_max_uploads_per_guest' === $filter ) {
+				if ( 'pixfete_max_uploads_per_guest' === $filter ) {
 					return 5;
 				}
 				return $args[0];
@@ -305,17 +305,17 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock              = new \stdClass();
 		$wp_query_mock->found_posts = 5;
 
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		$request = $this->make_request( array( 'page_id' => 42 ) );
 
 		$result = REST::check_photo_upload_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_upload_limit_reached', $result->get_error_code() );
+		$this->assertSame( 'pixfete_upload_limit_reached', $result->get_error_code() );
 		$this->assertSame( 429, $result->get_error_data()['status'] );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 	}
 
 	/**
@@ -387,9 +387,9 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				$meta = array(
-					'_egps_guest_name'  => 'Marie',
-					'_egps_table_name'  => 'Table 3',
-					'_egps_uploaded_at' => 1706000000,
+					'_pixfete_guest_name'  => 'Marie',
+					'_pixfete_table_name'  => 'Table 3',
+					'_pixfete_uploaded_at' => 1706000000,
 				);
 				return $meta[ $key ] ?? '';
 			}
@@ -398,7 +398,7 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		// Create a real 1x1 pixel JPEG via GD so getimagesize() passes.
-		$tmp_file = tempnam( sys_get_temp_dir(), 'egps_test_' ) . '.jpg';
+		$tmp_file = tempnam( sys_get_temp_dir(), 'pixfete_test_' ) . '.jpg';
 		$img      = imagecreatetruecolor( 1, 1 );
 		imagejpeg( $img, $tmp_file );
 		imagedestroy( $img );
@@ -455,7 +455,7 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$tmp_file = tempnam( sys_get_temp_dir(), 'egps_test_' );
+		$tmp_file = tempnam( sys_get_temp_dir(), 'pixfete_test_' );
 		file_put_contents( $tmp_file, 'GIF89a' );
 
 		$request = $this->make_request(
@@ -479,7 +479,7 @@ class RestPhotosTest extends TestCase {
 		}
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_file_type', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_file_type', $response->get_error_code() );
 		$this->assertSame( 415, $response->get_error_data()['status'] );
 	}
 
@@ -504,7 +504,7 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		// Create a temp file that is NOT a real image (just text).
-		$tmp_file = tempnam( sys_get_temp_dir(), 'egps_test_' );
+		$tmp_file = tempnam( sys_get_temp_dir(), 'pixfete_test_' );
 		file_put_contents( $tmp_file, 'This is not an image at all.' );
 
 		$request = $this->make_request(
@@ -528,7 +528,7 @@ class RestPhotosTest extends TestCase {
 		}
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_image', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_image', $response->get_error_code() );
 		$this->assertSame( 422, $response->get_error_data()['status'] );
 	}
 
@@ -556,7 +556,7 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		// Create a real 1x1 pixel JPEG via GD so getimagesize() passes.
-		$tmp_file = tempnam( sys_get_temp_dir(), 'egps_test_' ) . '.jpg';
+		$tmp_file = tempnam( sys_get_temp_dir(), 'pixfete_test_' ) . '.jpg';
 		$img      = imagecreatetruecolor( 1, 1 );
 		imagejpeg( $img, $tmp_file );
 		imagedestroy( $img );
@@ -582,7 +582,7 @@ class RestPhotosTest extends TestCase {
 		}
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_upload_failed', $response->get_error_code() );
+		$this->assertSame( 'pixfete_upload_failed', $response->get_error_code() );
 		$this->assertSame( 500, $response->get_error_data()['status'] );
 	}
 
@@ -596,14 +596,14 @@ class RestPhotosTest extends TestCase {
 
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		unset( $_COOKIE['egps_42'] );
+		unset( $_COOKIE['pixfete_42'] );
 
 		$request = $this->make_request( array( 'page_id' => 42 ) );
 
 		$result = REST::check_gallery_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_cookie', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_cookie', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -623,7 +623,7 @@ class RestPhotosTest extends TestCase {
 		$result = REST::check_gallery_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_no_consent', $result->get_error_code() );
+		$this->assertSame( 'pixfete_no_consent', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -644,7 +644,7 @@ class RestPhotosTest extends TestCase {
 		$result = REST::check_gallery_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_event_version', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_event_version', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -670,7 +670,7 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->posts          = array( $post1, $post2 );
 		$wp_query_mock->found_posts    = 2;
 		$wp_query_mock->max_num_pages  = 1;
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		Functions\when( 'wp_get_attachment_image_src' )->alias(
 			function ( $id, $size = 'thumbnail' ) {
@@ -685,9 +685,9 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				$meta = array(
-					'_egps_guest_name'  => 'Marie',
-					'_egps_table_name'  => 'Table 3',
-					'_egps_uploaded_at' => 1706000000,
+					'_pixfete_guest_name'  => 'Marie',
+					'_pixfete_table_name'  => 'Table 3',
+					'_pixfete_uploaded_at' => 1706000000,
 				);
 				return $meta[ $key ] ?? '';
 			}
@@ -705,7 +705,7 @@ class RestPhotosTest extends TestCase {
 
 		$response = REST::handle_gallery( $request );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertInstanceOf( WP_REST_Response::class, $response );
 
@@ -738,7 +738,7 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->posts          = array( $post );
 		$wp_query_mock->found_posts    = 1;
 		$wp_query_mock->max_num_pages  = 1;
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		Functions\when( 'wp_get_attachment_image_src' )->justReturn(
 			array( 'https://example.com/thumb.jpg', 150, 150, true )
@@ -747,9 +747,9 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				$meta = array(
-					'_egps_guest_name'  => 'Marie',
-					'_egps_table_name'  => 'Table 3',
-					'_egps_uploaded_at' => 1706000000,
+					'_pixfete_guest_name'  => 'Marie',
+					'_pixfete_table_name'  => 'Table 3',
+					'_pixfete_uploaded_at' => 1706000000,
 				);
 				return $meta[ $key ] ?? '';
 			}
@@ -759,7 +759,7 @@ class RestPhotosTest extends TestCase {
 		$request  = $this->make_request( array( 'page_id' => 42 ) );
 		$response = REST::handle_gallery( $request );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$data  = $response->get_data();
 		$photo = $data[0];
@@ -786,7 +786,7 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->posts          = array( $post );
 		$wp_query_mock->found_posts    = 35;
 		$wp_query_mock->max_num_pages  = 2;
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		Functions\when( 'wp_get_attachment_image_src' )->justReturn(
 			array( 'https://example.com/thumb.jpg', 150, 150, true )
@@ -795,9 +795,9 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				return match ( $key ) {
-					'_egps_guest_name'  => 'Marie',
-					'_egps_table_name'  => 'Table 3',
-					'_egps_uploaded_at' => 1706000000,
+					'_pixfete_guest_name'  => 'Marie',
+					'_pixfete_table_name'  => 'Table 3',
+					'_pixfete_uploaded_at' => 1706000000,
 					default             => '',
 				};
 			}
@@ -814,7 +814,7 @@ class RestPhotosTest extends TestCase {
 
 		$response = REST::handle_gallery( $request );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertInstanceOf( WP_REST_Response::class, $response );
 
@@ -836,14 +836,14 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->posts          = array();
 		$wp_query_mock->found_posts    = 0;
 		$wp_query_mock->max_num_pages  = 0;
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$request  = $this->make_request( array( 'page_id' => 42 ) );
 		$response = REST::handle_gallery( $request );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$headers = $response->get_headers();
 		$this->assertArrayHasKey( 'X-WP-Total', $headers );
@@ -867,11 +867,11 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->posts          = array( $post );
 		$wp_query_mock->found_posts    = 1;
 		$wp_query_mock->max_num_pages  = 1;
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		// Capture WP_Query args to verify 'since' was applied.
 		$captured_query_args           = null;
-		$GLOBALS['egps_wp_query_args_capture'] = &$captured_query_args;
+		$GLOBALS['pixfete_wp_query_args_capture'] = &$captured_query_args;
 
 		Functions\when( 'wp_get_attachment_image_src' )->justReturn(
 			array( 'https://example.com/thumb.jpg', 150, 150, true )
@@ -880,16 +880,16 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
 				return match ( $key ) {
-					'_egps_guest_name'  => 'Marie',
-					'_egps_table_name'  => 'Table 3',
-					'_egps_uploaded_at' => 1706001000,
+					'_pixfete_guest_name'  => 'Marie',
+					'_pixfete_table_name'  => 'Table 3',
+					'_pixfete_uploaded_at' => 1706001000,
 					default             => '',
 				};
 			}
 		);
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) use ( &$captured_query_args ) {
-				if ( 'egps_gallery_query_args' === $filter ) {
+				if ( 'pixfete_gallery_query_args' === $filter ) {
 					$captured_query_args = $args[0];
 				}
 				return $args[0];
@@ -905,8 +905,8 @@ class RestPhotosTest extends TestCase {
 
 		$response = REST::handle_gallery( $request );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
-		unset( $GLOBALS['egps_wp_query_args_capture'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_args_capture'] );
 
 		$this->assertInstanceOf( WP_REST_Response::class, $response );
 		$data = $response->get_data();
@@ -919,17 +919,17 @@ class RestPhotosTest extends TestCase {
 		// Find the 'since' clause.
 		$since_clause = null;
 		foreach ( $meta_query as $clause ) {
-			if ( is_array( $clause ) && isset( $clause['key'] ) && '_egps_uploaded_at' === $clause['key'] && isset( $clause['compare'] ) && '>' === $clause['compare'] ) {
+			if ( is_array( $clause ) && isset( $clause['key'] ) && '_pixfete_uploaded_at' === $clause['key'] && isset( $clause['compare'] ) && '>' === $clause['compare'] ) {
 				$since_clause = $clause;
 				break;
 			}
 		}
-		$this->assertNotNull( $since_clause, 'Meta query must include a since clause for _egps_uploaded_at.' );
+		$this->assertNotNull( $since_clause, 'Meta query must include a since clause for _pixfete_uploaded_at.' );
 		$this->assertSame( 1706000000, $since_clause['value'] );
 	}
 
 	/**
-	 * Test gallery excludes photos with _egps_requires_moderation = true.
+	 * Test gallery excludes photos with _pixfete_requires_moderation = true.
 	 */
 	public function test_gallery_excludes_moderated_photos(): void {
 		$this->stub_valid_page();
@@ -941,13 +941,13 @@ class RestPhotosTest extends TestCase {
 		$wp_query_mock->posts          = array();
 		$wp_query_mock->found_posts    = 0;
 		$wp_query_mock->max_num_pages  = 0;
-		$GLOBALS['egps_wp_query_mock'] = $wp_query_mock;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
 
 		// Capture query args to verify moderation exclusion.
 		$captured_query_args = null;
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) use ( &$captured_query_args ) {
-				if ( 'egps_gallery_query_args' === $filter ) {
+				if ( 'pixfete_gallery_query_args' === $filter ) {
 					$captured_query_args = $args[0];
 				}
 				return $args[0];
@@ -957,7 +957,7 @@ class RestPhotosTest extends TestCase {
 		$request  = $this->make_request( array( 'page_id' => 42 ) );
 		$response = REST::handle_gallery( $request );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertNotNull( $captured_query_args );
 		$meta_query = $captured_query_args['meta_query'];
@@ -969,13 +969,13 @@ class RestPhotosTest extends TestCase {
 				continue;
 			}
 			// Check direct clause.
-			if ( isset( $clause['key'] ) && '_egps_requires_moderation' === $clause['key'] ) {
+			if ( isset( $clause['key'] ) && '_pixfete_requires_moderation' === $clause['key'] ) {
 				$moderation_found = true;
 				break;
 			}
 			// Check inside OR/AND group.
 			foreach ( $clause as $sub_clause ) {
-				if ( is_array( $sub_clause ) && isset( $sub_clause['key'] ) && '_egps_requires_moderation' === $sub_clause['key'] ) {
+				if ( is_array( $sub_clause ) && isset( $sub_clause['key'] ) && '_pixfete_requires_moderation' === $sub_clause['key'] ) {
 					$moderation_found = true;
 					break 2;
 				}
@@ -1046,7 +1046,7 @@ class RestPhotosTest extends TestCase {
 		$result = REST::check_photo_upload_permission( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_event_expired', $result->get_error_code() );
+		$this->assertSame( 'pixfete_event_expired', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 }

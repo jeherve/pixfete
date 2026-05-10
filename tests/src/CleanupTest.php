@@ -47,7 +47,7 @@ class CleanupTest extends TestCase {
 	 * Test that delete_event returns a WP_Error for a non-existent page.
 	 *
 	 * REST::validate_page() checks get_post_status() first; when it returns
-	 * false (post does not exist), we should get back egps_invalid_page
+	 * false (post does not exist), we should get back pixfete_invalid_page
 	 * without touching any deletion functions.
 	 */
 	public function test_delete_event_returns_error_for_nonexistent_page(): void {
@@ -59,7 +59,7 @@ class CleanupTest extends TestCase {
 		$result = Cleanup::delete_event( 999 );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $result->get_error_code() );
 	}
 
 	/**
@@ -120,9 +120,9 @@ class CleanupTest extends TestCase {
 			);
 
 		// Two attachments returned by WP_Query.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array( 100, 101 );
-		$GLOBALS['egps_wp_query_mock']->found_posts = 2;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array( 100, 101 );
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 2;
 
 		// Both attachments must be force-deleted.
 		Functions\expect( 'wp_delete_attachment' )
@@ -139,7 +139,7 @@ class CleanupTest extends TestCase {
 		$archive_path = '/tmp/egps-archive-42-abc123.zip';
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = array() ) use ( $archive_path ) {
-				if ( 'egps_zip_archives' === $name ) {
+				if ( 'pixfete_zip_archives' === $name ) {
 					return array(
 						42 => array(
 							'status'    => 'complete',
@@ -161,7 +161,7 @@ class CleanupTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $name, $value ) {
-					return 'egps_zip_archives' === $name && ! isset( $value[42] );
+					return 'pixfete_zip_archives' === $name && ! isset( $value[42] );
 				}
 			)
 			->andReturn( true );
@@ -169,7 +169,7 @@ class CleanupTest extends TestCase {
 		// Any orphaned batch cron jobs for this page must be cleared.
 		Functions\expect( 'wp_clear_scheduled_hook' )
 			->once()
-			->with( 'egps_archive_build_batch', array( 42 ) );
+			->with( 'pixfete_archive_build_batch', array( 42 ) );
 
 		// No slideshow pages reference this event.
 		Functions\expect( 'get_posts' )
@@ -187,7 +187,7 @@ class CleanupTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $hook, $page_id, $summary ) use ( &$fired_args ) {
-					if ( 'egps_after_event_cleanup' === $hook ) {
+					if ( 'pixfete_after_event_cleanup' === $hook ) {
 						$fired_args = array( $page_id, $summary );
 						return true;
 					}
@@ -197,7 +197,7 @@ class CleanupTest extends TestCase {
 
 		$result = Cleanup::delete_event( 42 );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 2, $result['deleted_attachments'] );
@@ -241,14 +241,14 @@ class CleanupTest extends TestCase {
 			);
 
 		// No attachments.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 0;
 
 		// No archive entry.
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		// wp_delete_file must never be called when there is no archive.
@@ -265,7 +265,7 @@ class CleanupTest extends TestCase {
 
 		$result = Cleanup::delete_event( 42 );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 0, $result['deleted_attachments'] );
@@ -329,14 +329,14 @@ class CleanupTest extends TestCase {
 			);
 
 		// No attachments.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 0;
 
 		// No archive.
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
@@ -364,7 +364,7 @@ class CleanupTest extends TestCase {
 
 		$result = Cleanup::delete_event( 42 );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 1, $result['deleted_slideshow_pages'] );
@@ -424,14 +424,14 @@ class CleanupTest extends TestCase {
 			);
 
 		// No attachments.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 0;
 
 		// No archive.
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
@@ -452,7 +452,7 @@ class CleanupTest extends TestCase {
 
 		$result = Cleanup::delete_event( 42 );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 0, $result['deleted_slideshow_pages'] );
@@ -523,14 +523,14 @@ class CleanupTest extends TestCase {
 			);
 
 		// No attachments.
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 0;
 
 		// No archive.
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
@@ -559,7 +559,7 @@ class CleanupTest extends TestCase {
 
 		$result = Cleanup::delete_event( 42 );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 1, $result['deleted_slideshow_pages'], 'Nested slideshow page should be counted as deleted' );
@@ -568,7 +568,7 @@ class CleanupTest extends TestCase {
 	}
 
 	/**
-	 * Test that the egps_after_event_cleanup action fires with page ID and summary.
+	 * Test that the pixfete_after_event_cleanup action fires with page ID and summary.
 	 *
 	 * Third-party code may hook into this action for audit logging or cache
 	 * invalidation. We verify that it fires exactly once with the correct
@@ -595,13 +595,13 @@ class CleanupTest extends TestCase {
 				)
 			);
 
-		$GLOBALS['egps_wp_query_mock']              = new \stdClass();
-		$GLOBALS['egps_wp_query_mock']->posts       = array();
-		$GLOBALS['egps_wp_query_mock']->found_posts = 0;
+		$GLOBALS['pixfete_wp_query_mock']              = new \stdClass();
+		$GLOBALS['pixfete_wp_query_mock']->posts       = array();
+		$GLOBALS['pixfete_wp_query_mock']->found_posts = 0;
 
 		Functions\expect( 'get_option' )
 			->once()
-			->with( 'egps_zip_archives', array() )
+			->with( 'pixfete_zip_archives', array() )
 			->andReturn( array() );
 
 		Functions\expect( 'wp_delete_file' )->never();
@@ -621,7 +621,7 @@ class CleanupTest extends TestCase {
 			->once()
 			->withArgs(
 				function ( $hook, $page_id, $summary ) use ( &$action_fired, &$action_page_id, &$action_summary ) {
-					if ( 'egps_after_event_cleanup' === $hook ) {
+					if ( 'pixfete_after_event_cleanup' === $hook ) {
 						$action_fired   = true;
 						$action_page_id = $page_id;
 						$action_summary = $summary;
@@ -633,7 +633,7 @@ class CleanupTest extends TestCase {
 
 		Cleanup::delete_event( 42 );
 
-		unset( $GLOBALS['egps_wp_query_mock'] );
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
 
 		$this->assertTrue( $action_fired );
 		$this->assertSame( 42, $action_page_id );

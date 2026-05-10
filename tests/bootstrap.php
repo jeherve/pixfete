@@ -246,8 +246,8 @@ if ( ! class_exists( 'WP_Query' ) ) {
 		 * @param array $args Query arguments (stored but used via mock).
 		 */
 		public function __construct( array $args = array() ) {
-			if ( isset( $GLOBALS['egps_wp_query_mock'] ) ) {
-				$mock                = $GLOBALS['egps_wp_query_mock'];
+			if ( isset( $GLOBALS['pixfete_wp_query_mock'] ) ) {
+				$mock                = $GLOBALS['pixfete_wp_query_mock'];
 				$this->posts         = $mock->posts ?? array();
 				$this->found_posts   = $mock->found_posts ?? 0;
 				$this->max_num_pages = $mock->max_num_pages ?? 0;

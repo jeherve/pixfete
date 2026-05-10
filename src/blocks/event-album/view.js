@@ -35,7 +35,7 @@ const POLL_INTERVAL = 15000;
  * @return {Object|null} Decoded cookie payload, or null if not found/invalid.
  */
 function readCookie(pageId) {
-	const name = `egps_${pageId}=`;
+	const name = `pixfete_${pageId}=`;
 	const cookies = document.cookie.split('; ');
 
 	for (const cookie of cookies) {

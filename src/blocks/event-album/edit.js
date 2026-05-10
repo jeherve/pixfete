@@ -29,7 +29,7 @@ function generatePassword(length = 12) {
  * Minimum password length enforced in the editor.
  *
  * This must stay in sync with the server-side default for the
- * `egps_password_min_length` filter (currently 8).
+ * `pixfete_password_min_length` filter (currently 8).
  *
  * @type {number}
  */
@@ -100,7 +100,7 @@ export default function Edit({ attributes, setAttributes }) {
 	useEffect(() => {
 		apiFetch({ path: '/wp/v2/users?per_page=100&context=edit' }).then((users) => {
 			const eligible = users.filter(
-				(user) => user.capabilities?.egps_moderate_photos || user.capabilities?.manage_options
+				(user) => user.capabilities?.pixfete_moderate_photos || user.capabilities?.manage_options
 			);
 			setAllModeratorUsers(eligible);
 			setModeratorSuggestions(eligible.map((user) => user.name));

@@ -57,7 +57,7 @@ class RestAuthTest extends TestCase {
 	 * Tear down Brain Monkey after each test.
 	 */
 	protected function tearDown(): void {
-		unset( $_COOKIE['egps_42'] );
+		unset( $_COOKIE['pixfete_42'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -116,7 +116,7 @@ class RestAuthTest extends TestCase {
 	private function stub_valid_nonce( string $token = 'valid-nonce-token', int $page_id = 42 ): void {
 		Functions\when( 'get_transient' )->alias(
 			function ( $key ) use ( $token, $page_id ) {
-				if ( $key === 'egps_csrf_' . $token ) {
+				if ( $key === 'pixfete_csrf_' . $token ) {
 					return $page_id;
 				}
 				return false;
@@ -231,7 +231,7 @@ class RestAuthTest extends TestCase {
 		);
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$GLOBALS['egps_setcookie_last_call'] = null;
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
 
 		$request = $this->make_request(
 			array(
@@ -246,13 +246,13 @@ class RestAuthTest extends TestCase {
 
 		REST::handle_auth( $request );
 
-		$call = $GLOBALS['egps_setcookie_last_call'];
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called.' );
-		$this->assertSame( 'egps_42', $call['name'] );
+		$this->assertSame( 'pixfete_42', $call['name'] );
 	}
 
 	/**
-	 * Test registration with wrong password returns 403 egps_invalid_password.
+	 * Test registration with wrong password returns 403 pixfete_invalid_password.
 	 */
 	public function test_register_wrong_password_returns_403(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -275,12 +275,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test registration with honeypot filled returns 403 egps_invalid_password (same error).
+	 * Test registration with honeypot filled returns 403 pixfete_invalid_password (same error).
 	 */
 	public function test_register_honeypot_filled_returns_403_same_as_wrong_password(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -290,7 +290,7 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
-				if ( 'egps_honeypot_field_name' === $filter ) {
+				if ( 'pixfete_honeypot_field_name' === $filter ) {
 					return 'email';
 				}
 				return $args[0];
@@ -311,12 +311,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test registration with missing CSRF token returns 403 egps_invalid_nonce.
+	 * Test registration with missing CSRF token returns 403 pixfete_invalid_nonce.
 	 */
 	public function test_register_missing_csrf_returns_403(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -337,12 +337,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test registration with invalid CSRF token returns 403 egps_invalid_nonce.
+	 * Test registration with invalid CSRF token returns 403 pixfete_invalid_nonce.
 	 */
 	public function test_register_invalid_csrf_returns_403(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -364,7 +364,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
@@ -377,7 +377,7 @@ class RestAuthTest extends TestCase {
 		// Nonce transient stores page_id 99, but request is for page 42.
 		Functions\when( 'get_transient' )->alias(
 			function ( $key ) {
-				if ( $key === 'egps_csrf_valid-nonce-token' ) {
+				if ( $key === 'pixfete_csrf_valid-nonce-token' ) {
 					return 99; // Different page.
 				}
 				return false;
@@ -398,11 +398,11 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 	}
 
 	/**
-	 * Test registration with missing guest_name returns 400 egps_missing_fields.
+	 * Test registration with missing guest_name returns 400 pixfete_missing_fields.
 	 */
 	public function test_register_missing_guest_name_returns_400(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -425,12 +425,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 'pixfete_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test registration with empty guest_name returns 400 egps_missing_fields.
+	 * Test registration with empty guest_name returns 400 pixfete_missing_fields.
 	 */
 	public function test_register_empty_guest_name_returns_400(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -453,12 +453,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 'pixfete_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test that invalid action returns 400 egps_invalid_action.
+	 * Test that invalid action returns 400 pixfete_invalid_action.
 	 */
 	public function test_invalid_action_returns_400(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -477,12 +477,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_action', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_action', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test request to non-existent page returns 404 egps_invalid_page.
+	 * Test request to non-existent page returns 404 pixfete_invalid_page.
 	 */
 	public function test_nonexistent_page_returns_404(): void {
 		Functions\when( 'get_post_status' )->justReturn( false );
@@ -501,12 +501,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test request to page without our block returns 404 egps_invalid_page.
+	 * Test request to page without our block returns 404 pixfete_invalid_page.
 	 */
 	public function test_page_without_block_returns_404(): void {
 		Functions\when( 'get_post_status' )->justReturn( 'publish' );
@@ -525,12 +525,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test request to draft page returns 404 egps_invalid_page.
+	 * Test request to draft page returns 404 pixfete_invalid_page.
 	 */
 	public function test_draft_page_returns_404(): void {
 		Functions\when( 'get_post_status' )->justReturn( 'draft' );
@@ -549,12 +549,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test request to a post (not page) returns 404 egps_invalid_page.
+	 * Test request to a post (not page) returns 404 pixfete_invalid_page.
 	 */
 	public function test_post_type_not_page_returns_404(): void {
 		Functions\when( 'get_post_status' )->justReturn( 'publish' );
@@ -573,7 +573,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_page', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $response->get_error_code() );
 		$this->assertSame( 404, $response->get_error_data()['status'] );
 	}
 
@@ -589,7 +589,7 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
-				if ( 'egps_password_min_length' === $filter ) {
+				if ( 'pixfete_password_min_length' === $filter ) {
 					return 8; // Default minimum.
 				}
 				return $args[0];
@@ -609,7 +609,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 	}
 
 	// ─── §4b: action=consent ──────────────────────────────────────────
@@ -623,7 +623,7 @@ class RestAuthTest extends TestCase {
 		// Stub consent nonce.
 		Functions\when( 'get_transient' )->alias(
 			function ( $key ) {
-				if ( $key === 'egps_csrf_consent-nonce-token' ) {
+				if ( $key === 'pixfete_csrf_consent-nonce-token' ) {
 					return 42;
 				}
 				return false;
@@ -641,7 +641,7 @@ class RestAuthTest extends TestCase {
 
 		// Set a valid cookie with consent=false.
 		$payload = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
+		$_COOKIE['pixfete_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -665,7 +665,7 @@ class RestAuthTest extends TestCase {
 
 		Functions\when( 'get_transient' )->alias(
 			function ( $key ) {
-				if ( $key === 'egps_csrf_consent-nonce-token' ) {
+				if ( $key === 'pixfete_csrf_consent-nonce-token' ) {
 					return 42;
 				}
 				return false;
@@ -682,9 +682,9 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$payload = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
+		$_COOKIE['pixfete_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
-		$GLOBALS['egps_setcookie_last_call'] = null;
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
 
 		$request = $this->make_request(
 			array(
@@ -696,9 +696,9 @@ class RestAuthTest extends TestCase {
 
 		REST::handle_auth( $request );
 
-		$call = $GLOBALS['egps_setcookie_last_call'];
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called to update consent.' );
-		$this->assertSame( 'egps_42', $call['name'] );
+		$this->assertSame( 'pixfete_42', $call['name'] );
 
 		// Verify the new cookie payload has consent=true.
 		$parts     = explode( '.', $call['value'] );
@@ -710,7 +710,7 @@ class RestAuthTest extends TestCase {
 	}
 
 	/**
-	 * Test consent without a valid cookie returns 403 egps_invalid_cookie.
+	 * Test consent without a valid cookie returns 403 pixfete_invalid_cookie.
 	 *
 	 * Cookie is verified before the CSRF nonce, so no nonce is consumed.
 	 */
@@ -720,7 +720,7 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		// No cookie set.
-		unset( $_COOKIE['egps_42'] );
+		unset( $_COOKIE['pixfete_42'] );
 
 		$request = $this->make_request(
 			array(
@@ -733,7 +733,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_cookie', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_cookie', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
@@ -750,7 +750,7 @@ class RestAuthTest extends TestCase {
 		// Cookie with consent=true.
 		$payload              = $this->make_cookie_payload( 42, 1 );
 		$payload['consent']   = true;
-		$_COOKIE['egps_42']   = \Jeherve\Pixfete\Cookie::sign( $payload );
+		$_COOKIE['pixfete_42']   = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -763,11 +763,11 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_cookie', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_cookie', $response->get_error_code() );
 	}
 
 	/**
-	 * Test consent with wrong event_version returns 403 egps_invalid_event_version.
+	 * Test consent with wrong event_version returns 403 pixfete_invalid_event_version.
 	 */
 	public function test_consent_wrong_event_version_returns_403(): void {
 		// Block has eventVersion=2, but cookie has event_version=1.
@@ -775,7 +775,7 @@ class RestAuthTest extends TestCase {
 
 		Functions\when( 'get_transient' )->alias(
 			function ( $key ) {
-				if ( $key === 'egps_csrf_consent-nonce-token' ) {
+				if ( $key === 'pixfete_csrf_consent-nonce-token' ) {
 					return 42;
 				}
 				return false;
@@ -786,7 +786,7 @@ class RestAuthTest extends TestCase {
 
 		// Cookie with event_version=1 (outdated).
 		$payload            = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
+		$_COOKIE['pixfete_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -799,12 +799,12 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_event_version', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_event_version', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
 	/**
-	 * Test consent with missing CSRF nonce returns 403 egps_invalid_nonce.
+	 * Test consent with missing CSRF nonce returns 403 pixfete_invalid_nonce.
 	 *
 	 * Cookie is verified first (passes), then the nonce check fails.
 	 */
@@ -816,7 +816,7 @@ class RestAuthTest extends TestCase {
 
 		// Valid cookie with consent=false so cookie check passes.
 		$payload            = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
+		$_COOKIE['pixfete_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -829,7 +829,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
@@ -856,7 +856,7 @@ class RestAuthTest extends TestCase {
 		);
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$GLOBALS['egps_setcookie_last_call'] = null;
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
 
 		$request = $this->make_request(
 			array(
@@ -875,9 +875,9 @@ class RestAuthTest extends TestCase {
 		$this->assertSame( 'fresh-nonce-token', $response['nonce'] );
 
 		// Verify cookie was set with consent=true.
-		$call = $GLOBALS['egps_setcookie_last_call'];
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called.' );
-		$this->assertSame( 'egps_42', $call['name'] );
+		$this->assertSame( 'pixfete_42', $call['name'] );
 
 		// Decode cookie payload and verify consent is true and guest_name is 'Slideshow'.
 		$parts       = explode( '.', $call['value'] );
@@ -916,7 +916,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 
 		$error_data = $response->get_error_data();
@@ -949,7 +949,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 'pixfete_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 
@@ -979,7 +979,7 @@ class RestAuthTest extends TestCase {
 		$result = REST::validate_page( 42 );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $result->get_error_code() );
 	}
 
 	/**
@@ -993,7 +993,7 @@ class RestAuthTest extends TestCase {
 		$result = REST::validate_page( 42 );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $result->get_error_code() );
 	}
 
 	/**
@@ -1007,7 +1007,7 @@ class RestAuthTest extends TestCase {
 		$result = REST::validate_page( 42 );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'egps_invalid_page', $result->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_page', $result->get_error_code() );
 	}
 
 	/**
@@ -1155,7 +1155,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
@@ -1182,7 +1182,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 'pixfete_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 
@@ -1197,7 +1197,7 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
-				if ( 'egps_honeypot_field_name' === $filter ) {
+				if ( 'pixfete_honeypot_field_name' === $filter ) {
 					return 'email';
 				}
 				return $args[0];
@@ -1217,7 +1217,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
@@ -1242,7 +1242,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_nonce', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_nonce', $response->get_error_code() );
 		$this->assertSame( 403, $response->get_error_data()['status'] );
 	}
 
@@ -1274,7 +1274,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$error_data = $response->get_error_data();
 		$this->assertArrayHasKey( 'nonce', $error_data, 'Error response must include a fresh nonce for retry.' );
 		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
@@ -1294,7 +1294,7 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->alias(
 			function ( $filter, ...$args ) {
-				if ( 'egps_honeypot_field_name' === $filter ) {
+				if ( 'pixfete_honeypot_field_name' === $filter ) {
 					return 'email';
 				}
 				return $args[0];
@@ -1342,7 +1342,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 'pixfete_missing_fields', $response->get_error_code() );
 		$error_data = $response->get_error_data();
 		$this->assertArrayHasKey( 'nonce', $error_data );
 		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
@@ -1375,14 +1375,14 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_invalid_password', $response->get_error_code() );
+		$this->assertSame( 'pixfete_invalid_password', $response->get_error_code() );
 		$error_data = $response->get_error_data();
 		$this->assertArrayHasKey( 'nonce', $error_data, 'Error response must include a fresh nonce for retry.' );
 		$this->assertSame( 'fresh-retry-nonce', $error_data['nonce'] );
 	}
 
 	/**
-	 * Test registration with missing password returns 400 egps_missing_fields.
+	 * Test registration with missing password returns 400 pixfete_missing_fields.
 	 */
 	public function test_register_missing_password_returns_400(): void {
 		$this->stub_valid_page( 42, 'correct-password', 1 );
@@ -1405,7 +1405,7 @@ class RestAuthTest extends TestCase {
 		$response = REST::handle_auth( $request );
 
 		$this->assertInstanceOf( WP_Error::class, $response );
-		$this->assertSame( 'egps_missing_fields', $response->get_error_code() );
+		$this->assertSame( 'pixfete_missing_fields', $response->get_error_code() );
 		$this->assertSame( 400, $response->get_error_data()['status'] );
 	}
 }

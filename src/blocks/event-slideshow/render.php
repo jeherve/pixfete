@@ -22,17 +22,17 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
-$egps_event_page_id = (int) ( $attributes['eventPageId'] ?? 0 );
-$egps_csrf_token    = wp_generate_password( 32, false );
-set_transient( 'egps_csrf_' . $egps_csrf_token, $egps_event_page_id, HOUR_IN_SECONDS );
+$pixfete_event_page_id = (int) ( $attributes['eventPageId'] ?? 0 );
+$pixfete_csrf_token    = wp_generate_password( 32, false );
+set_transient( 'pixfete_csrf_' . $pixfete_csrf_token, $pixfete_event_page_id, HOUR_IN_SECONDS );
 
 /** This filter is documented in src/blocks/event-album/render.php. */
-$egps_honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+$pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
-$egps_context = array(
-	'eventPageId'   => $egps_event_page_id,
-	'nonce'         => $egps_csrf_token,
-	'honeypotField' => $egps_honeypot_field,
+$pixfete_context = array(
+	'eventPageId'   => $pixfete_event_page_id,
+	'nonce'         => $pixfete_csrf_token,
+	'honeypotField' => $pixfete_honeypot_field,
 	'eventVersion'  => (int) ( $attributes['eventVersion'] ?? 1 ),
 	'interval'      => (int) ( $attributes['interval'] ?? 5 ),
 	'dateStart'     => $attributes['dateRangeStart'] ?? '',
@@ -44,7 +44,7 @@ $egps_context = array(
 	<?php echo get_block_wrapper_attributes( array( 'class' => 'egps-slideshow' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
 	data-wp-interactive="pixfete/slideshow"
 	data-wp-init="actions.init"
-	data-wp-context='<?php echo esc_attr( wp_json_encode( $egps_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
+	data-wp-context='<?php echo esc_attr( wp_json_encode( $pixfete_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
 	<?php // Loading view — shown briefly during initialization. ?>
 	<div
@@ -82,7 +82,7 @@ $egps_context = array(
 			<div class="egps-hp" aria-hidden="true" tabindex="-1">
 				<input
 					type="text"
-					name="<?php echo esc_attr( $egps_honeypot_field ); ?>"
+					name="<?php echo esc_attr( $pixfete_honeypot_field ); ?>"
 					autocomplete="off"
 					tabindex="-1"
 				/>

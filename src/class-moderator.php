@@ -2,7 +2,7 @@
 /**
  * Moderator role and capabilities management.
  *
- * Handles registration and deregistration of the egps_moderator role.
+ * Handles registration and deregistration of the pixfete_moderator role.
  *
  * @package Jeherve\Pixfete
  */
@@ -23,14 +23,14 @@ class Moderator {
 	 *
 	 * @var string
 	 */
-	const ROLE = 'egps_moderator';
+	const ROLE = 'pixfete_moderator';
 
 	/**
 	 * Custom capability that grants photo moderation access.
 	 *
 	 * @var string
 	 */
-	const CAPABILITY = 'egps_moderate_photos';
+	const CAPABILITY = 'pixfete_moderate_photos';
 
 	/**
 	 * Block name for the event album block.
@@ -43,10 +43,10 @@ class Moderator {
 	const BLOCK_NAME = 'pixfete/event-album';
 
 	/**
-	 * Register the egps_moderator role with minimal capabilities.
+	 * Register the pixfete_moderator role with minimal capabilities.
 	 *
 	 * Called on plugin activation. The role grants only `read` (required for
-	 * authenticated frontend access) and the custom `egps_moderate_photos`
+	 * authenticated frontend access) and the custom `pixfete_moderate_photos`
 	 * capability used by the moderation REST endpoint.
 	 */
 	public static function register_role(): void {
@@ -61,7 +61,7 @@ class Moderator {
 	}
 
 	/**
-	 * Remove the egps_moderator role.
+	 * Remove the pixfete_moderator role.
 	 *
 	 * Called on plugin deactivation. Users who had this role will retain
 	 * their accounts but lose the role assignment.
@@ -86,7 +86,7 @@ class Moderator {
 	/**
 	 * Redirect moderator-only users away from wp-admin.
 	 *
-	 * Users whose sole role is egps_moderator have no business in the
+	 * Users whose sole role is pixfete_moderator have no business in the
 	 * dashboard. This fires on admin_init and sends them to the site's
 	 * home URL. AJAX and REST API requests are excluded so the moderation
 	 * endpoints remain functional.
@@ -152,7 +152,7 @@ class Moderator {
 	 *
 	 * Each event-album block stores a `moderators` attribute listing the
 	 * user IDs that may moderate photos on that page. This method combines
-	 * a capability gate (the user must hold `egps_moderate_photos` or
+	 * a capability gate (the user must hold `pixfete_moderate_photos` or
 	 * `manage_options`) with a per-page assignment check (the user's ID
 	 * must appear in the block's moderators array).
 	 *
@@ -206,15 +206,15 @@ class Moderator {
 	}
 
 	/**
-	 * Check whether a user's only role is egps_moderator.
+	 * Check whether a user's only role is pixfete_moderator.
 	 *
 	 * Users who hold additional roles (e.g., administrator) alongside
-	 * egps_moderator should retain full dashboard access. This helper
+	 * pixfete_moderator should retain full dashboard access. This helper
 	 * ensures lockout only applies to single-role moderators.
 	 *
 	 * @param object $user The user object to check.
 	 *
-	 * @return bool True if the user has exactly one role and it is egps_moderator.
+	 * @return bool True if the user has exactly one role and it is pixfete_moderator.
 	 */
 	private static function is_moderator_only( object $user ): bool {
 		$roles = (array) $user->roles;

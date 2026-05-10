@@ -164,7 +164,7 @@ class REST extends WP_REST_Controller {
 
 			default:
 				return new WP_Error(
-					'egps_invalid_action',
+					'pixfete_invalid_action',
 					'The action must be "validate_password", "register", "consent", or "slideshow_auth".',
 					array( 'status' => 400 )
 				);
@@ -199,14 +199,14 @@ class REST extends WP_REST_Controller {
 		// because the original nonce was already deleted in step 1. Without a
 		// fresh nonce, any subsequent retry would fail with "CSRF token invalid".
 		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+		set_transient( 'pixfete_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
 
 		// 3. Check honeypot field.
-		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+		$honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 		$honeypot_value = $request->get_param( $honeypot_field );
 		if ( ! empty( $honeypot_value ) ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -219,7 +219,7 @@ class REST extends WP_REST_Controller {
 		$password = $request->get_param( 'password' );
 		if ( empty( $password ) ) {
 			return new WP_Error(
-				'egps_missing_fields',
+				'pixfete_missing_fields',
 				'The password field is required.',
 				array(
 					'status' => 400,
@@ -232,11 +232,11 @@ class REST extends WP_REST_Controller {
 		$block_password = $block_attrs['password'] ?? '';
 
 		/** This filter is documented in self::handle_register(). */
-		$min_length = (int) apply_filters( 'egps_password_min_length', 8 );
+		$min_length = (int) apply_filters( 'pixfete_password_min_length', 8 );
 
 		if ( strlen( $block_password ) < $min_length ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -248,7 +248,7 @@ class REST extends WP_REST_Controller {
 		// 6. Validate password with timing-safe comparison.
 		if ( ! hash_equals( $block_password, $password ) ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -288,15 +288,15 @@ class REST extends WP_REST_Controller {
 		// This ensures retries are possible even if validation fails below,
 		// because the original nonce was already deleted in step 1.
 		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+		set_transient( 'pixfete_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
 
 		// 3. Check honeypot field.
 		// @var string $honeypot_field
-		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+		$honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 		$honeypot_value = $request->get_param( $honeypot_field );
 		if ( ! empty( $honeypot_value ) ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -311,7 +311,7 @@ class REST extends WP_REST_Controller {
 
 		if ( empty( $password ) || empty( $guest_name ) ) {
 			return new WP_Error(
-				'egps_missing_fields',
+				'pixfete_missing_fields',
 				'The password and guest_name fields are required.',
 				array(
 					'status' => 400,
@@ -330,11 +330,11 @@ class REST extends WP_REST_Controller {
 		 *
 		 * @param int $min_length Minimum password length. Default 8.
 		 */
-		$min_length = (int) apply_filters( 'egps_password_min_length', 8 );
+		$min_length = (int) apply_filters( 'pixfete_password_min_length', 8 );
 
 		if ( strlen( $block_password ) < $min_length ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -346,7 +346,7 @@ class REST extends WP_REST_Controller {
 		// 6. Validate password with timing-safe comparison.
 		if ( ! hash_equals( $block_password, $password ) ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -366,7 +366,7 @@ class REST extends WP_REST_Controller {
 		 *
 		 * @param int $expiry Expiry duration in seconds. Default 30 days.
 		 */
-		$expiry_duration = (int) apply_filters( 'egps_cookie_expiry_duration', 30 * DAY_IN_SECONDS );
+		$expiry_duration = (int) apply_filters( 'pixfete_cookie_expiry_duration', 30 * DAY_IN_SECONDS );
 
 		$payload = array(
 			'page_id'       => $page_id,
@@ -383,7 +383,7 @@ class REST extends WP_REST_Controller {
 
 		// 9. Generate consent nonce.
 		$consent_token = wp_generate_password( 32, false );
-		set_transient( 'egps_csrf_' . $consent_token, $page_id, HOUR_IN_SECONDS );
+		set_transient( 'pixfete_csrf_' . $consent_token, $page_id, HOUR_IN_SECONDS );
 
 		// 10. Return success response.
 		return rest_ensure_response(
@@ -410,7 +410,7 @@ class REST extends WP_REST_Controller {
 		$cookie_payload = Cookie::get_for_page( $page_id );
 		if ( null === $cookie_payload || true === ( $cookie_payload['consent'] ?? true ) ) {
 			return new WP_Error(
-				'egps_invalid_cookie',
+				'pixfete_invalid_cookie',
 				'A valid registration cookie is required.',
 				array( 'status' => 403 )
 			);
@@ -426,7 +426,7 @@ class REST extends WP_REST_Controller {
 		$current_version = $block_attrs['eventVersion'] ?? 1;
 		if ( (int) $cookie_payload['event_version'] !== (int) $current_version ) {
 			return new WP_Error(
-				'egps_invalid_event_version',
+				'pixfete_invalid_event_version',
 				'The event has been updated. Please re-register.',
 				array( 'status' => 403 )
 			);
@@ -470,14 +470,14 @@ class REST extends WP_REST_Controller {
 
 		// 2. Issue a fresh CSRF nonce immediately after consuming the old one.
 		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'egps_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+		set_transient( 'pixfete_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
 
 		// 3. Check honeypot field.
-		$honeypot_field = apply_filters( 'egps_honeypot_field_name', 'email' );
+		$honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 		$honeypot_value = $request->get_param( $honeypot_field );
 		if ( ! empty( $honeypot_value ) ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -490,7 +490,7 @@ class REST extends WP_REST_Controller {
 		$password = $request->get_param( 'password' );
 		if ( empty( $password ) ) {
 			return new WP_Error(
-				'egps_missing_fields',
+				'pixfete_missing_fields',
 				'The password field is required.',
 				array(
 					'status' => 400,
@@ -503,11 +503,11 @@ class REST extends WP_REST_Controller {
 		$block_password = $block_attrs['password'] ?? '';
 
 		/** This filter is documented in self::handle_register(). */
-		$min_length = (int) apply_filters( 'egps_password_min_length', 8 );
+		$min_length = (int) apply_filters( 'pixfete_password_min_length', 8 );
 
 		if ( strlen( $block_password ) < $min_length ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -519,7 +519,7 @@ class REST extends WP_REST_Controller {
 		// 6. Validate password with timing-safe comparison.
 		if ( ! hash_equals( $block_password, $password ) ) {
 			return new WP_Error(
-				'egps_invalid_password',
+				'pixfete_invalid_password',
 				'The password is incorrect.',
 				array(
 					'status' => 403,
@@ -533,7 +533,7 @@ class REST extends WP_REST_Controller {
 		$now           = time();
 
 		/** This filter is documented in self::handle_register(). */
-		$expiry_duration = (int) apply_filters( 'egps_cookie_expiry_duration', 30 * DAY_IN_SECONDS );
+		$expiry_duration = (int) apply_filters( 'pixfete_cookie_expiry_duration', 30 * DAY_IN_SECONDS );
 
 		$payload = array(
 			'page_id'       => $page_id,
@@ -572,24 +572,24 @@ class REST extends WP_REST_Controller {
 
 		if ( empty( $token ) ) {
 			return new WP_Error(
-				'egps_invalid_nonce',
+				'pixfete_invalid_nonce',
 				'A valid CSRF token is required.',
 				array( 'status' => 403 )
 			);
 		}
 
-		$transient_value = get_transient( 'egps_csrf_' . $token );
+		$transient_value = get_transient( 'pixfete_csrf_' . $token );
 
 		if ( false === $transient_value || (int) $transient_value !== $page_id ) {
 			return new WP_Error(
-				'egps_invalid_nonce',
+				'pixfete_invalid_nonce',
 				'The CSRF token is invalid or has expired.',
 				array( 'status' => 403 )
 			);
 		}
 
 		// One-time use: delete the transient.
-		delete_transient( 'egps_csrf_' . $token );
+		delete_transient( 'pixfete_csrf_' . $token );
 
 		return null;
 	}
@@ -607,7 +607,7 @@ class REST extends WP_REST_Controller {
 	public static function validate_page( int $page_id ): array|WP_Error {
 		if ( get_post_status( $page_id ) !== 'publish' ) {
 			return new WP_Error(
-				'egps_invalid_page',
+				'pixfete_invalid_page',
 				'The requested page does not exist or is not published.',
 				array( 'status' => 404 )
 			);
@@ -615,7 +615,7 @@ class REST extends WP_REST_Controller {
 
 		if ( get_post_type( $page_id ) !== 'page' ) {
 			return new WP_Error(
-				'egps_invalid_page',
+				'pixfete_invalid_page',
 				'The requested page does not exist or is not published.',
 				array( 'status' => 404 )
 			);
@@ -623,7 +623,7 @@ class REST extends WP_REST_Controller {
 
 		if ( ! has_block( self::BLOCK_NAME, $page_id ) ) {
 			return new WP_Error(
-				'egps_invalid_page',
+				'pixfete_invalid_page',
 				'The requested page does not contain an event album.',
 				array( 'status' => 404 )
 			);
@@ -632,7 +632,7 @@ class REST extends WP_REST_Controller {
 		$attrs = self::get_block_attributes( $page_id );
 		if ( null === $attrs ) {
 			return new WP_Error(
-				'egps_invalid_page',
+				'pixfete_invalid_page',
 				'The event album block could not be found.',
 				array( 'status' => 404 )
 			);
@@ -722,7 +722,7 @@ class REST extends WP_REST_Controller {
 		 * @param string $guest_id    SHA-256 hash identifying the guest.
 		 * @param int    $page_id     The event page ID.
 		 */
-		$max_uploads = (int) apply_filters( 'egps_max_uploads_per_guest', 0, $guest_id, $page_id );
+		$max_uploads = (int) apply_filters( 'pixfete_max_uploads_per_guest', 0, $guest_id, $page_id );
 		if ( $max_uploads > 0 && null !== $cookie_payload ) {
 			$query = new WP_Query(
 				array(
@@ -732,7 +732,7 @@ class REST extends WP_REST_Controller {
 					'posts_per_page' => 1,
 					'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 						array(
-							'key'   => '_egps_guest_id',
+							'key'   => '_pixfete_guest_id',
 							'value' => $guest_id,
 						),
 					),
@@ -742,7 +742,7 @@ class REST extends WP_REST_Controller {
 
 			if ( $query->found_posts >= $max_uploads ) {
 				return new WP_Error(
-					'egps_upload_limit_reached',
+					'pixfete_upload_limit_reached',
 					'You have reached the maximum number of photo uploads.',
 					array( 'status' => 429 )
 				);
@@ -769,7 +769,7 @@ class REST extends WP_REST_Controller {
 
 		if ( empty( $photo_file ) || empty( $photo_file['tmp_name'] ) ) {
 			return new WP_Error(
-				'egps_invalid_file_type',
+				'pixfete_invalid_file_type',
 				'No photo file was uploaded.',
 				array( 'status' => 415 )
 			);
@@ -784,7 +784,7 @@ class REST extends WP_REST_Controller {
 		$mime_type = $file_check['type'] ?? '';
 		if ( empty( $mime_type ) || ! Upload::is_valid_image_type( $mime_type ) ) {
 			return new WP_Error(
-				'egps_invalid_file_type',
+				'pixfete_invalid_file_type',
 				'The uploaded file type is not allowed.',
 				array( 'status' => 415 )
 			);
@@ -796,7 +796,7 @@ class REST extends WP_REST_Controller {
 			$image_info = @getimagesize( $photo_file['tmp_name'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			if ( false === $image_info ) {
 				return new WP_Error(
-					'egps_invalid_image',
+					'pixfete_invalid_image',
 					'The uploaded file is not a valid image.',
 					array( 'status' => 422 )
 				);
@@ -805,7 +805,7 @@ class REST extends WP_REST_Controller {
 
 		// 3. Handle the upload.
 		// File size limits are enforced by WordPress/PHP (upload_max_filesize, post_max_size).
-		// The egps_max_file_size filter is available for plugin-level enforcement but not
+		// The pixfete_max_file_size filter is available for plugin-level enforcement but not
 		// checked here in v1. See spec §1 (File size limits).
 		if ( ! function_exists( 'wp_handle_upload' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -815,13 +815,13 @@ class REST extends WP_REST_Controller {
 			$photo_file,
 			array(
 				'test_form' => false,
-				'action'    => 'egps_photo_upload',
+				'action'    => 'pixfete_photo_upload',
 			)
 		);
 
 		if ( isset( $upload_result['error'] ) ) {
 			return new WP_Error(
-				'egps_upload_failed',
+				'pixfete_upload_failed',
 				$upload_result['error'],
 				array( 'status' => 500 )
 			);
@@ -830,7 +830,7 @@ class REST extends WP_REST_Controller {
 		// 4. Create attachment with guest data from cookie.
 		$cookie_payload = Cookie::get_for_page( $page_id );
 		if ( null === $cookie_payload ) {
-			return new WP_Error( 'egps_invalid_cookie', __( 'Invalid or missing authentication.', 'pixfete' ), array( 'status' => 403 ) );
+			return new WP_Error( 'pixfete_invalid_cookie', __( 'Invalid or missing authentication.', 'pixfete' ), array( 'status' => 403 ) );
 		}
 		$guest_data = array(
 			'guest_name' => $cookie_payload['guest_name'] ?? '',
@@ -849,7 +849,7 @@ class REST extends WP_REST_Controller {
 		if ( 0 === $attachment_id ) {
 			wp_delete_file( $upload_result['file'] );
 			return new WP_Error(
-				'egps_upload_failed',
+				'pixfete_upload_failed',
 				'Failed to create the attachment.',
 				array( 'status' => 500 )
 			);
@@ -858,13 +858,13 @@ class REST extends WP_REST_Controller {
 		// 5. Build response.
 		$thumbnail_src = wp_get_attachment_image_src( $attachment_id, 'thumbnail' );
 		$full_url      = wp_get_attachment_url( $attachment_id );
-		$uploaded_at   = get_post_meta( $attachment_id, '_egps_uploaded_at', true );
+		$uploaded_at   = get_post_meta( $attachment_id, '_pixfete_uploaded_at', true );
 
 		$response_data = array(
 			'id'          => $attachment_id,
 			'thumbnail'   => $thumbnail_src ? $thumbnail_src[0] : $full_url,
 			'full'        => $full_url,
-			'guest_name'  => get_post_meta( $attachment_id, '_egps_guest_name', true ),
+			'guest_name'  => get_post_meta( $attachment_id, '_pixfete_guest_name', true ),
 			'uploaded_at' => (int) $uploaded_at,
 		);
 
@@ -927,11 +927,11 @@ class REST extends WP_REST_Controller {
 			array(
 				'relation' => 'OR',
 				array(
-					'key'     => '_egps_requires_moderation',
+					'key'     => '_pixfete_requires_moderation',
 					'compare' => 'NOT EXISTS',
 				),
 				array(
-					'key'     => '_egps_requires_moderation',
+					'key'     => '_pixfete_requires_moderation',
 					'value'   => '1',
 					'compare' => '!=',
 				),
@@ -941,7 +941,7 @@ class REST extends WP_REST_Controller {
 		// If 'since' param is provided, add a meta query for newer photos.
 		if ( null !== $since && '' !== $since ) {
 			$meta_query[] = array(
-				'key'     => '_egps_uploaded_at',
+				'key'     => '_pixfete_uploaded_at',
 				'value'   => (int) $since,
 				'compare' => '>',
 				'type'    => 'NUMERIC',
@@ -955,7 +955,7 @@ class REST extends WP_REST_Controller {
 			'posts_per_page' => $per_page,
 			'paged'          => $page,
 			'orderby'        => 'meta_value_num',
-			'meta_key'       => '_egps_uploaded_at', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			'meta_key'       => '_pixfete_uploaded_at', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 			'order'          => 'DESC',
 			'meta_query'     => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 		);
@@ -968,7 +968,7 @@ class REST extends WP_REST_Controller {
 		 * @param array $query_args WP_Query arguments.
 		 * @param int   $page_id   The event page ID.
 		 */
-		$query_args = (array) apply_filters( 'egps_gallery_query_args', $query_args, $page_id );
+		$query_args = (array) apply_filters( 'pixfete_gallery_query_args', $query_args, $page_id );
 
 		$query  = new WP_Query( $query_args );
 		$photos = array();
@@ -983,9 +983,9 @@ class REST extends WP_REST_Controller {
 				'id'          => $attachment_id,
 				'thumbnail'   => $thumbnail_src ? $thumbnail_src[0] : $full_url,
 				'full'        => $full_url,
-				'guest_name'  => get_post_meta( $attachment_id, '_egps_guest_name', true ),
-				'table_name'  => get_post_meta( $attachment_id, '_egps_table_name', true ),
-				'uploaded_at' => (int) get_post_meta( $attachment_id, '_egps_uploaded_at', true ),
+				'guest_name'  => get_post_meta( $attachment_id, '_pixfete_guest_name', true ),
+				'table_name'  => get_post_meta( $attachment_id, '_pixfete_table_name', true ),
+				'uploaded_at' => (int) get_post_meta( $attachment_id, '_pixfete_uploaded_at', true ),
 			);
 
 			/**
@@ -997,7 +997,7 @@ class REST extends WP_REST_Controller {
 			 * @param int   $attachment_id The attachment post ID.
 			 * @param int   $page_id       The event page ID.
 			 */
-			$photos[] = (array) apply_filters( 'egps_photo_response', $photo_data, $attachment_id, $page_id );
+			$photos[] = (array) apply_filters( 'pixfete_photo_response', $photo_data, $attachment_id, $page_id );
 		}
 
 		$response = new WP_REST_Response( $photos );
@@ -1024,7 +1024,7 @@ class REST extends WP_REST_Controller {
 		$cookie_payload = Cookie::get_for_page( $page_id );
 		if ( null === $cookie_payload ) {
 			return new WP_Error(
-				'egps_invalid_cookie',
+				'pixfete_invalid_cookie',
 				'A valid guest cookie is required.',
 				array( 'status' => 403 )
 			);
@@ -1033,7 +1033,7 @@ class REST extends WP_REST_Controller {
 		// Consent must be true.
 		if ( true !== ( $cookie_payload['consent'] ?? false ) ) {
 			return new WP_Error(
-				'egps_no_consent',
+				'pixfete_no_consent',
 				'Consent is required to access this resource.',
 				array( 'status' => 403 )
 			);
@@ -1043,7 +1043,7 @@ class REST extends WP_REST_Controller {
 		$current_version = $block_attrs['eventVersion'] ?? 1;
 		if ( (int) ( $cookie_payload['event_version'] ?? 0 ) !== (int) $current_version ) {
 			return new WP_Error(
-				'egps_invalid_event_version',
+				'pixfete_invalid_event_version',
 				'The event has been updated. Please re-register.',
 				array( 'status' => 403 )
 			);
@@ -1076,7 +1076,7 @@ class REST extends WP_REST_Controller {
 
 		if ( ! empty( $start_date ) && $today < $start_date ) {
 			return new WP_Error(
-				'egps_event_expired',
+				'pixfete_event_expired',
 				'This event is not yet accepting uploads.',
 				array( 'status' => 403 )
 			);
@@ -1084,7 +1084,7 @@ class REST extends WP_REST_Controller {
 
 		if ( ! empty( $end_date ) && $today > $end_date ) {
 			return new WP_Error(
-				'egps_event_expired',
+				'pixfete_event_expired',
 				'This event has ended and is no longer accepting uploads.',
 				array( 'status' => 403 )
 			);
@@ -1108,14 +1108,14 @@ class REST extends WP_REST_Controller {
 	 * @param WP_REST_Request $request The incoming REST request, which must
 	 *                                  include a valid X-WP-Nonce header.
 	 * @return true|WP_Error True if the user has permission, WP_Error with
-	 *                        code egps_forbidden and HTTP 403 if not.
+	 *                        code pixfete_forbidden and HTTP 403 if not.
 	 */
 	public static function check_cleanup_permission( WP_REST_Request $request ): true|WP_Error {
 		$page_id = (int) $request->get_param( 'page_id' );
 
 		if ( ! current_user_can( 'delete_post', $page_id ) ) {
 			return new WP_Error(
-				'egps_forbidden',
+				'pixfete_forbidden',
 				'You do not have permission to delete this event.',
 				array( 'status' => 403 )
 			);
@@ -1175,7 +1175,7 @@ class REST extends WP_REST_Controller {
 		// 1. Must be logged in.
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
-				'egps_unauthorized',
+				'pixfete_unauthorized',
 				'You must be logged in to moderate photos.',
 				array( 'status' => 401 )
 			);
@@ -1184,7 +1184,7 @@ class REST extends WP_REST_Controller {
 		// 2. Must hold the moderation capability or be an admin.
 		if ( ! current_user_can( Moderator::CAPABILITY ) && ! current_user_can( 'manage_options' ) ) {
 			return new WP_Error(
-				'egps_forbidden',
+				'pixfete_forbidden',
 				'You do not have permission to moderate photos.',
 				array( 'status' => 403 )
 			);
@@ -1200,7 +1200,7 @@ class REST extends WP_REST_Controller {
 		$user_id = get_current_user_id();
 		if ( ! Moderator::is_moderator_for_page( $user_id, $page_id ) ) {
 			return new WP_Error(
-				'egps_forbidden',
+				'pixfete_forbidden',
 				'You are not assigned as a moderator for this event.',
 				array( 'status' => 403 )
 			);
@@ -1210,7 +1210,7 @@ class REST extends WP_REST_Controller {
 		$attachment = get_post( $attachment_id );
 		if ( ! $attachment ) {
 			return new WP_Error(
-				'egps_not_found',
+				'pixfete_not_found',
 				'The requested photo does not exist.',
 				array( 'status' => 404 )
 			);
@@ -1219,7 +1219,7 @@ class REST extends WP_REST_Controller {
 		// 6. The attachment must belong to the specified page.
 		if ( wp_get_post_parent_id( $attachment_id ) !== $page_id ) {
 			return new WP_Error(
-				'egps_forbidden',
+				'pixfete_forbidden',
 				'This photo does not belong to the specified event.',
 				array( 'status' => 403 )
 			);

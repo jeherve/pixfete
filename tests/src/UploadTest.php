@@ -249,15 +249,15 @@ class UploadTest extends TestCase {
 			$guest_data
 		);
 
-		$this->assertArrayHasKey( '_egps_guest_name', $stored_meta );
-		$this->assertArrayHasKey( '_egps_table_name', $stored_meta );
-		$this->assertArrayHasKey( '_egps_guest_id', $stored_meta );
-		$this->assertArrayHasKey( '_egps_uploaded_at', $stored_meta );
-		$this->assertArrayHasKey( '_egps_requires_moderation', $stored_meta );
+		$this->assertArrayHasKey( '_pixfete_guest_name', $stored_meta );
+		$this->assertArrayHasKey( '_pixfete_table_name', $stored_meta );
+		$this->assertArrayHasKey( '_pixfete_guest_id', $stored_meta );
+		$this->assertArrayHasKey( '_pixfete_uploaded_at', $stored_meta );
+		$this->assertArrayHasKey( '_pixfete_requires_moderation', $stored_meta );
 	}
 
 	/**
-	 * Test that create_attachment() fires the egps_after_photo_upload action.
+	 * Test that create_attachment() fires the pixfete_after_photo_upload action.
 	 */
 	public function test_create_attachment_fires_after_photo_upload_action(): void {
 		$page_id       = 42;
@@ -273,7 +273,7 @@ class UploadTest extends TestCase {
 		$action_fired = false;
 		Functions\expect( 'do_action' )
 			->once()
-			->with( 'egps_after_photo_upload', $attachment_id, $page_id )
+			->with( 'pixfete_after_photo_upload', $attachment_id, $page_id )
 			->andReturnUsing(
 				function () use ( &$action_fired ) {
 					$action_fired = true;
@@ -288,11 +288,11 @@ class UploadTest extends TestCase {
 			$this->make_guest_data()
 		);
 
-		$this->assertTrue( $action_fired, 'egps_after_photo_upload action must be fired.' );
+		$this->assertTrue( $action_fired, 'pixfete_after_photo_upload action must be fired.' );
 	}
 
 	/**
-	 * Test that create_attachment() applies the egps_photo_requires_moderation filter.
+	 * Test that create_attachment() applies the pixfete_photo_requires_moderation filter.
 	 */
 	public function test_create_attachment_applies_moderation_filter(): void {
 		$attachment_id = 100;
@@ -305,7 +305,7 @@ class UploadTest extends TestCase {
 
 		Functions\expect( 'apply_filters' )
 			->once()
-			->with( 'egps_photo_requires_moderation', false, $attachment_id, 42 )
+			->with( 'pixfete_photo_requires_moderation', false, $attachment_id, 42 )
 			->andReturn( true );
 
 		$stored_meta = array();
@@ -330,7 +330,7 @@ class UploadTest extends TestCase {
 			$this->make_guest_data()
 		);
 
-		$this->assertTrue( $stored_meta['_egps_requires_moderation'] );
+		$this->assertTrue( $stored_meta['_pixfete_requires_moderation'] );
 	}
 
 	/**
@@ -399,8 +399,8 @@ class UploadTest extends TestCase {
 		);
 
 		// sanitize_text_field strips tags.
-		$this->assertSame( 'Alice', $stored_meta['_egps_guest_name'] );
-		$this->assertSame( 'Table 5', $stored_meta['_egps_table_name'] );
+		$this->assertSame( 'Alice', $stored_meta['_pixfete_guest_name'] );
+		$this->assertSame( 'Table 5', $stored_meta['_pixfete_table_name'] );
 	}
 
 	/**
@@ -444,7 +444,7 @@ class UploadTest extends TestCase {
 		);
 
 		// sanitize_key lowercases and strips non-alphanumeric chars (except _ and -).
-		$this->assertSame( 'abc-123xyz', $stored_meta['_egps_guest_id'] );
+		$this->assertSame( 'abc-123xyz', $stored_meta['_pixfete_guest_id'] );
 	}
 
 	/**
