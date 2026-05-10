@@ -42,7 +42,7 @@ $pixfete_i18n = array(
 	'passwordIncorrect'      => __( 'The password is incorrect.', 'pixfete' ),
 	'initFailed'             => __( 'Could not initialize. Please try again.', 'pixfete' ),
 	'initConnectionFailed'   => __( 'Could not initialize. Please check your connection and try again.', 'pixfete' ),
-	'nameRequired'           => __( 'Please enter your name.', 'pixfete' ),
+	'nameRequired'           => __( 'Please enter your first name.', 'pixfete' ),
 	'networkError'           => __( 'A network error occurred. Please try again.', 'pixfete' ),
 	'registrationFailed'     => __( 'Registration failed. Please try again.', 'pixfete' ),
 	'consentFailed'          => __( 'Failed to accept consent. Please try again.', 'pixfete' ),
@@ -195,13 +195,13 @@ if ( $pixfete_is_moderator ) {
 		<?php // Registration view. ?>
 		<div data-wp-bind--hidden="!state.isRegistrationView" class="pixfete-form">
 			<form data-wp-on--submit="actions.submitRegistration">
-				<label for="pixfete-guest-name"><?php esc_html_e( 'Your Name', 'pixfete' ); ?></label>
+				<label for="pixfete-guest-name"><?php esc_html_e( 'Your First Name', 'pixfete' ); ?></label>
 				<input
 					id="pixfete-guest-name"
 					type="text"
 					data-wp-bind--value="state.guestName"
 					data-wp-on--input="actions.updateGuestName"
-					placeholder="<?php esc_attr_e( 'Your name', 'pixfete' ); ?>"
+					placeholder="<?php esc_attr_e( 'Your first name', 'pixfete' ); ?>"
 					required
 				/>
 				<div data-wp-bind--hidden="!state.showTableName">

@@ -21,7 +21,7 @@ Your guests don't need to create an account or download an app. They scan a QR c
 1. Create a page in the block editor and add the Event Photo Album block.
 2. Configure a password for the event. You can also set a date range and enable table names.
 3. Share the page with your guests. Print QR codes for table cards, or send the link via email, WhatsApp, or text.
-4. Guests scan, enter their name, and start uploading and browsing photos.
+4. Guests scan, enter their first name, and start uploading and browsing photos.
 
 **Features:**
 
@@ -128,6 +128,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 **Changed**
 
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
+* Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
 
 **Fixed**
 
