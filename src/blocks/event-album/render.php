@@ -25,6 +25,42 @@ $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' 
 
 $pixfete_enable_table_names = ! empty( $attributes['enableTableNames'] );
 
+/*
+ * Translation strings consumed by the Interactivity API view module.
+ *
+ * View modules (--experimental-modules) cannot import @wordpress/i18n
+ * directly, so user-facing strings are translated server-side here and
+ * passed to the JS store via the data-wp-context attribute.
+ *
+ * Keys ending in *BannerSingle/Plural are templates for the new-photos
+ * banner; the JS picks the matching template based on count and
+ * substitutes %d. Keys ending in `BulkFailed` use %1$d/%2$d positional
+ * tokens and `confirmDeletePhoto` uses %s for the guest name.
+ */
+$pixfete_i18n = array(
+	'passwordRequired'       => __( 'Please enter the event password.', 'pixfete' ),
+	'passwordIncorrect'      => __( 'The password is incorrect.', 'pixfete' ),
+	'initFailed'             => __( 'Could not initialize. Please try again.', 'pixfete' ),
+	'initConnectionFailed'   => __( 'Could not initialize. Please check your connection and try again.', 'pixfete' ),
+	'nameRequired'           => __( 'Please enter your name.', 'pixfete' ),
+	'networkError'           => __( 'A network error occurred. Please try again.', 'pixfete' ),
+	'registrationFailed'     => __( 'Registration failed. Please try again.', 'pixfete' ),
+	'consentFailed'          => __( 'Failed to accept consent. Please try again.', 'pixfete' ),
+	'loadPhotosFailed'       => __( 'Failed to load photos.', 'pixfete' ),
+	'uploadFailed'           => __( 'Upload failed. Please try again.', 'pixfete' ),
+	'uploadConnectionFailed' => __( 'Upload failed. Please check your connection and try again.', 'pixfete' ),
+	/* translators: 1: number of failed uploads, 2: total number of files in the batch. */
+	'uploadBulkFailed'       => __( '%1$d of %2$d photos failed to upload.', 'pixfete' ),
+	/* translators: %s: guest name attached to the photo being deleted. */
+	'confirmDeletePhoto'     => __( '%s — delete this photo? This cannot be undone.', 'pixfete' ),
+	'deletePhotoFailed'      => __( 'Failed to delete photo. Please try again.', 'pixfete' ),
+	'deleteNetworkError'     => __( 'Network error. Please try again.', 'pixfete' ),
+	/* translators: %d: number of new photos waiting to be revealed. */
+	'newPhotoBannerSingle'   => __( '%d new photo — tap to see', 'pixfete' ),
+	/* translators: %d: number of new photos waiting to be revealed. */
+	'newPhotoBannerPlural'   => __( '%d new photos — tap to see', 'pixfete' ),
+);
+
 // Build the Interactivity API context.
 $pixfete_context = array(
 	'pageId'           => get_the_ID(),
@@ -34,6 +70,7 @@ $pixfete_context = array(
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'pixfete/v1' ),
+	'i18n'             => $pixfete_i18n,
 );
 
 // Detect whether the current visitor is an assigned moderator for this event.

@@ -11,6 +11,7 @@ let mockContext = {
 	restBase: '/wp-json/pixfete/v1',
 	dateStart: '',
 	dateEnd: '',
+	i18n: require('../__fixtures__/i18n'),
 };
 jest.mock(
 	'@wordpress/interactivity',
@@ -36,6 +37,7 @@ beforeEach(() => {
 		restBase: '/wp-json/pixfete/v1',
 		dateStart: '',
 		dateEnd: '',
+		i18n: require('../__fixtures__/i18n'),
 	};
 	jest.resetModules();
 });

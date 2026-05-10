@@ -14,6 +14,12 @@ let mockContext = {
 	interval: 5,
 	honeypotField: 'website',
 	nonce: 'test-nonce',
+	i18n: {
+		passwordIncorrect: 'The password is incorrect.',
+		networkError: 'A network error occurred.',
+		initFailed: 'Could not initialize. Please try again.',
+		initConnectionFailed: 'Could not initialize. Please check your connection and try again.',
+	},
 };
 jest.mock(
 	'@wordpress/interactivity',
@@ -39,6 +45,12 @@ beforeEach(() => {
 		interval: 5,
 		honeypotField: 'website',
 		nonce: 'test-nonce',
+		i18n: {
+			passwordIncorrect: 'The password is incorrect.',
+			networkError: 'A network error occurred.',
+			initFailed: 'Could not initialize. Please try again.',
+			initConnectionFailed: 'Could not initialize. Please check your connection and try again.',
+		},
 	};
 	jest.resetModules();
 });

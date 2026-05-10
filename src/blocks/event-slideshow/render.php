@@ -32,6 +32,20 @@ $pixfete_event_page_id = (int) ( $attributes['eventPageId'] ?? 0 );
 /** This filter is documented in src/blocks/event-album/render.php. */
 $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
+/*
+ * Translation strings consumed by the slideshow view module.
+ *
+ * Script modules can't import @wordpress/i18n yet, so user-facing strings
+ * are translated server-side and passed via data-wp-context. See
+ * src/blocks/event-album/render.php for the same pattern.
+ */
+$pixfete_i18n = array(
+	'passwordIncorrect'    => __( 'The password is incorrect.', 'pixfete' ),
+	'networkError'         => __( 'A network error occurred.', 'pixfete' ),
+	'initFailed'           => __( 'Could not initialize. Please try again.', 'pixfete' ),
+	'initConnectionFailed' => __( 'Could not initialize. Please check your connection and try again.', 'pixfete' ),
+);
+
 $pixfete_context = array(
 	'eventPageId'   => $pixfete_event_page_id,
 	'nonce'         => '',
@@ -41,6 +55,7 @@ $pixfete_context = array(
 	'dateStart'     => $attributes['dateRangeStart'] ?? '',
 	'dateEnd'       => $attributes['dateRangeEnd'] ?? '',
 	'restBase'      => rest_url( 'pixfete/v1' ),
+	'i18n'          => $pixfete_i18n,
 );
 ?>
 <div

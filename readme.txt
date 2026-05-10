@@ -138,6 +138,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * The moderation banner and photo delete buttons no longer appear to all visitors — they are now correctly shown only to assigned moderators.
 * The "event not started yet" and loading messages now use the theme's text color, so they remain readable on themes with tinted backgrounds.
 * A PHP warning that could appear on the login screen after a failed login attempt has been silenced.
+* Status messages shown to guests in the photo album and Live Photo Wall (such as "1 new photo — tap to see", "The password is incorrect.", and upload errors) are now translatable, so they can appear in the site's language alongside the rest of the plugin.
 * Some guests were getting sign-in errors when first opening an event page (especially on mobile, or when the event link had been shared via messaging apps), and the error persisted even after refreshing or re-entering the password. Event pages can now be cached safely by hosting providers and CDNs without breaking the sign-in flow, and guests are no longer stuck if they happen to land on a stale page.
 
 = 1.2.0 - 2026-03-26 =

@@ -175,13 +175,13 @@ const { state } = store('pixfete/slideshow', {
 					credentials: 'same-origin',
 				});
 				if (!response.ok) {
-					state.errorMessage = 'Could not initialize. Please try again.';
+					state.errorMessage = ctx.i18n.initFailed;
 					return;
 				}
 				const data = yield response.json();
 				ctx.nonce = data.nonce;
 			} catch {
-				state.errorMessage = 'Could not initialize. Please check your connection and try again.';
+				state.errorMessage = ctx.i18n.initConnectionFailed;
 				return;
 			}
 
@@ -228,7 +228,7 @@ const { state } = store('pixfete/slideshow', {
 						if (attempt === 1 && data?.code === 'pixfete_invalid_nonce' && data?.data?.nonce) {
 							continue;
 						}
-						state.errorMessage = data?.message || 'The password is incorrect.';
+						state.errorMessage = data?.message || ctx.i18n.passwordIncorrect;
 						return;
 					}
 
@@ -239,7 +239,7 @@ const { state } = store('pixfete/slideshow', {
 					return;
 				}
 			} catch {
-				state.errorMessage = 'A network error occurred.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
