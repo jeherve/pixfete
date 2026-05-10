@@ -120,7 +120,7 @@ After an event ends (based on the `dateRangeEnd` block attribute), the plugin au
 
 Archive status is displayed in the admin page below the QR Code Generator. Admins see the current state (queued, generating, ready, or failed) and can download the ZIP once it's complete.
 
-Archives are stored in `wp-content/uploads/egps-archives/` with randomized filenames that are hard to guess. Archive metadata (status, file path, URL) is tracked in the `egps_zip_archives` WordPress option, keyed by page ID.
+Archives are stored in `wp-content/uploads/pixfete-archives/` with randomized filenames that are hard to guess. Archive metadata (status, file path, URL) is tracked in the `pixfete_zip_archives` WordPress option, keyed by page ID.
 
 #### Event Cleanup
 
@@ -140,7 +140,7 @@ Event hosts can assign moderators to remove inappropriate photos from the live g
 
 **Setup:**
 
-1. Create a WordPress user with the **Event Photo Moderator** role (`egps_moderator`). This role grants only `read` and the custom `egps_moderate_photos` capability — nothing else.
+1. Create a WordPress user with the **Event Photo Moderator** role (`pixfete_moderator`). This role grants only `read` and the custom `pixfete_moderate_photos` capability — nothing else.
 2. In the block editor, open the Event Photo Album block settings and add the user in the **Moderators** panel.
 3. Share the event page URL and password with the moderator.
 
@@ -151,9 +151,9 @@ Event hosts can assign moderators to remove inappropriate photos from the live g
 - Once in the gallery, they see a moderation banner and a delete badge on each photo. Tapping the badge permanently deletes the photo after a confirmation dialog.
 - The delete is immediate — the photo disappears from all guests' galleries at the next poll (within 15 seconds).
 
-**Dashboard lockout:** Users whose only role is `egps_moderator` are redirected away from wp-admin and don't see the admin bar. Users with additional roles (e.g., administrator + moderator) are not affected.
+**Dashboard lockout:** Users whose only role is `pixfete_moderator` are redirected away from wp-admin and don't see the admin bar. Users with additional roles (e.g., administrator + moderator) are not affected.
 
-**Capability check:** The `DELETE /photos/{page_id}/{attachment_id}` endpoint requires the user to have `egps_moderate_photos` (or `manage_options`) AND be explicitly assigned to the event's `moderators` block attribute.
+**Capability check:** The `DELETE /photos/{page_id}/{attachment_id}` endpoint requires the user to have `pixfete_moderate_photos` (or `manage_options`) AND be explicitly assigned to the event's `moderators` block attribute.
 
 ### Page templates
 
@@ -234,11 +234,11 @@ Guest photo attachments store the following metadata:
 
 | Meta key | Type | Description |
 |----------|------|-------------|
-| `_egps_guest_name` | string | Guest's display name |
-| `_egps_table_name` | string | Guest's table/seating name |
-| `_egps_guest_id` | string | SHA-256 hash identifying the guest |
-| `_egps_uploaded_at` | int | Unix timestamp of upload |
-| `_egps_requires_moderation` | bool | Whether the photo is pending moderation |
+| `_pixfete_guest_name` | string | Guest's display name |
+| `_pixfete_table_name` | string | Guest's table/seating name |
+| `_pixfete_guest_id` | string | SHA-256 hash identifying the guest |
+| `_pixfete_uploaded_at` | int | Unix timestamp of upload |
+| `_pixfete_requires_moderation` | bool | Whether the photo is pending moderation |
 
 ## Hooks
 
@@ -246,31 +246,31 @@ Guest photo attachments store the following metadata:
 
 | Filter | Default | Description |
 |--------|---------|-------------|
-| `egps_allowed_mime_types` | `['image/jpeg', 'image/png', 'image/webp']` + HEIC/HEIF if supported | Allowed upload MIME types |
-| `egps_max_uploads_per_guest` | `0` (unlimited) | Maximum uploads per guest. Receives `$limit`, `$guest_id`, `$page_id` |
-| `egps_photo_requires_moderation` | `false` | Whether new uploads require moderation. Receives `$requires_moderation`, `$attachment_id`, `$page_id` |
-| `egps_password_min_length` | `8` | Minimum event password length |
-| `egps_cookie_expiry_duration` | `30 * DAY_IN_SECONDS` | Guest cookie lifetime in seconds |
-| `egps_cookie_expiry` | Computed expiry timestamp | Filters the cookie expiration timestamp directly |
-| `egps_honeypot_field_name` | `'email'` | Name of the honeypot form field for spam protection |
-| `egps_gallery_query_args` | WP_Query args array | Gallery endpoint query arguments |
-| `egps_photo_response` | Photo data array | Individual photo data in gallery API responses |
-| `egps_archive_batch_size` | `50` | Number of attachments processed per ZIP generation batch |
-| `egps_archive_directory` | `{uploads_basedir}/egps-archives` | Absolute path to the ZIP archive storage directory |
+| `pixfete_allowed_mime_types` | `['image/jpeg', 'image/png', 'image/webp']` + HEIC/HEIF if supported | Allowed upload MIME types |
+| `pixfete_max_uploads_per_guest` | `0` (unlimited) | Maximum uploads per guest. Receives `$limit`, `$guest_id`, `$page_id` |
+| `pixfete_photo_requires_moderation` | `false` | Whether new uploads require moderation. Receives `$requires_moderation`, `$attachment_id`, `$page_id` |
+| `pixfete_password_min_length` | `8` | Minimum event password length |
+| `pixfete_cookie_expiry_duration` | `30 * DAY_IN_SECONDS` | Guest cookie lifetime in seconds |
+| `pixfete_cookie_expiry` | Computed expiry timestamp | Filters the cookie expiration timestamp directly |
+| `pixfete_honeypot_field_name` | `'email'` | Name of the honeypot form field for spam protection |
+| `pixfete_gallery_query_args` | WP_Query args array | Gallery endpoint query arguments |
+| `pixfete_photo_response` | Photo data array | Individual photo data in gallery API responses |
+| `pixfete_archive_batch_size` | `50` | Number of attachments processed per ZIP generation batch |
+| `pixfete_archive_directory` | `{uploads_basedir}/pixfete-archives` | Absolute path to the ZIP archive storage directory |
 
 ### Actions
 
 | Action | Description |
 |--------|-------------|
-| `egps_after_photo_upload` | Fires after a photo is uploaded and saved. Receives `$attachment_id`, `$page_id` |
-| `egps_after_event_cleanup` | Fires after all event data is permanently deleted. Receives `$page_id`, `$summary` |
+| `pixfete_after_photo_upload` | Fires after a photo is uploaded and saved. Receives `$attachment_id`, `$page_id` |
+| `pixfete_after_event_cleanup` | Fires after all event data is permanently deleted. Receives `$page_id`, `$summary` |
 
 ### Examples
 
 **Limit uploads to 10 photos per guest:**
 
 ```php
-add_filter( 'egps_max_uploads_per_guest', function () {
+add_filter( 'pixfete_max_uploads_per_guest', function () {
     return 10;
 } );
 ```
@@ -278,13 +278,13 @@ add_filter( 'egps_max_uploads_per_guest', function () {
 **Enable photo moderation:**
 
 ```php
-add_filter( 'egps_photo_requires_moderation', '__return_true' );
+add_filter( 'pixfete_photo_requires_moderation', '__return_true' );
 ```
 
 **Only allow JPEG uploads:**
 
 ```php
-add_filter( 'egps_allowed_mime_types', function () {
+add_filter( 'pixfete_allowed_mime_types', function () {
     return array( 'image/jpeg' );
 } );
 ```
@@ -292,8 +292,8 @@ add_filter( 'egps_allowed_mime_types', function () {
 **Send a notification when a photo is uploaded:**
 
 ```php
-add_action( 'egps_after_photo_upload', function ( $attachment_id, $page_id ) {
-    $guest = get_post_meta( $attachment_id, '_egps_guest_name', true );
+add_action( 'pixfete_after_photo_upload', function ( $attachment_id, $page_id ) {
+    $guest = get_post_meta( $attachment_id, '_pixfete_guest_name', true );
     wp_mail( 'admin@example.com', 'New event photo', "$guest uploaded a photo to page $page_id." );
 }, 10, 2 );
 ```
