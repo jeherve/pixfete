@@ -185,12 +185,27 @@
 		transform: translateY(8px);
 		animation: pixfete-fab-slide-up 0.2s ease forwards;
 
+		// Reset native button chrome — .pixfete-fab-option is a <button> now.
+		appearance: none;
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+
 		&:nth-child(1) {
 			animation-delay: 0.05s;
 		}
 
 		&:nth-child(2) {
 			animation-delay: 0.1s;
+		}
+
+		&:focus-visible {
+			outline: 2px solid #007cba;
+			outline-offset: 2px;
+			border-radius: 8px;
 		}
 	}
 
@@ -211,18 +226,18 @@
 		font-weight: 500;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 		white-space: nowrap;
-		pointer-events: none;
 	}
 
 	.pixfete-fab-btn {
 		border: none;
 		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		color: #fff;
 		transition: background-color 0.15s ease;
 		padding: 0;
+
+		// Flex centering lives on &--main (which wraps the SVG icon directly).
+		// The &--secondary modifier is applied to the option button, which uses
+		// .pixfete-fab-option's row layout — centering would clobber it.
 
 		&--main {
 			width: 56px;
@@ -231,6 +246,9 @@
 			background: #007cba;
 			box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 			z-index: 99999;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 
 			&:hover {
 				background: #005a87;
@@ -246,16 +264,27 @@
 		}
 
 		&--secondary {
-			width: 44px;
-			height: 44px;
-			border-radius: 50%;
-			background: #007cba;
-			box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-
-			&:hover {
-				background: #005a87;
-			}
+			// The visible circle now lives on the inner .pixfete-fab-btn-icon span.
+			// Wrapping button has no chrome of its own beyond .pixfete-fab-btn defaults.
 		}
+	}
+
+	.pixfete-fab-btn-icon {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: #007cba;
+		color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+		transition: background-color 0.15s ease;
+		flex-shrink: 0;
+	}
+
+	.pixfete-fab-option:hover .pixfete-fab-btn-icon {
+		background: #005a87;
 	}
 
 	// ─── Upload progress banner ────────────────────────────────────
