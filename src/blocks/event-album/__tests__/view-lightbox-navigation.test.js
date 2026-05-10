@@ -4,14 +4,18 @@
  */
 /* eslint-enable jsdoc/check-tag-names */
 
-let registeredStore = {};
+let mockRegisteredStore = {};
 let mockContext = {};
 jest.mock(
 	'@wordpress/interactivity',
 	() => ({
 		store: (_name, definition) => {
-			registeredStore = definition;
-			return definition;
+			if (definition) {
+				mockRegisteredStore = definition;
+			}
+			// On subsequent calls (store('pixfete') inside actions), return
+			// the already-registered store so sibling actions are accessible.
+			return mockRegisteredStore;
 		},
 		getContext: () => mockContext,
 	}),
@@ -20,7 +24,7 @@ jest.mock(
 
 beforeEach(() => {
 	jest.resetModules();
-	registeredStore = {};
+	mockRegisteredStore = {};
 	mockContext = {
 		pageId: 42,
 		restBase: '/wp-json/pixfete/v1',
@@ -32,7 +36,7 @@ beforeEach(() => {
 
 function loadStore() {
 	require('../view');
-	return registeredStore;
+	return mockRegisteredStore;
 }
 
 function seedPhotos(store, count) {
@@ -153,5 +157,69 @@ describe('lightbox navigation actions', () => {
 		store.actions.prevPhoto();
 
 		expect(store.state.lightboxIndex).toBe(-1);
+	});
+});
+
+describe('lightbox touch swipe', () => {
+	function touchEvent(x, y) {
+		return {
+			touches: [{ clientX: x, clientY: y }],
+			changedTouches: [{ clientX: x, clientY: y }],
+		};
+	}
+
+	test('horizontal left swipe advances to the next photo', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 0;
+
+		store.actions.lightboxTouchStart(touchEvent(200, 100));
+		store.actions.lightboxTouchEnd(touchEvent(80, 110));
+
+		expect(store.state.lightboxIndex).toBe(1);
+	});
+
+	test('horizontal right swipe goes to the previous photo', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 2;
+
+		store.actions.lightboxTouchStart(touchEvent(80, 100));
+		store.actions.lightboxTouchEnd(touchEvent(200, 110));
+
+		expect(store.state.lightboxIndex).toBe(1);
+	});
+
+	test('swipes shorter than the threshold are ignored', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+
+		store.actions.lightboxTouchStart(touchEvent(100, 100));
+		store.actions.lightboxTouchEnd(touchEvent(120, 100)); // dx=20, below 50px threshold.
+
+		expect(store.state.lightboxIndex).toBe(1);
+	});
+
+	test('predominantly vertical swipes are ignored', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+
+		store.actions.lightboxTouchStart(touchEvent(100, 50));
+		store.actions.lightboxTouchEnd(touchEvent(160, 250)); // dx=60, dy=200.
+
+		expect(store.state.lightboxIndex).toBe(1);
+	});
+
+	test('swipe past the last photo does not advance', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 2;
+
+		store.actions.lightboxTouchStart(touchEvent(200, 100));
+		store.actions.lightboxTouchEnd(touchEvent(80, 110));
+
+		expect(store.state.lightboxIndex).toBe(2);
 	});
 });

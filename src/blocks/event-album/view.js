@@ -26,6 +26,20 @@ const PER_PAGE = 30;
 const POLL_INTERVAL = 15000;
 
 /**
+ * Touch swipe trackers for the lightbox. Module-scoped because they are
+ * transient gesture state — not reactive UI state — and should not trigger
+ * Interactivity API re-renders.
+ */
+let lightboxTouchStartX = 0;
+let lightboxTouchStartY = 0;
+
+/**
+ * Minimum horizontal distance (px) required to register a swipe. Below this,
+ * the gesture is treated as a tap or a noisy non-swipe.
+ */
+const SWIPE_THRESHOLD = 50;
+
+/**
  * Read and decode the Pixfête cookie for a given page ID.
  *
  * The cookie format is `{base64url-encoded JSON}.{HMAC}`. We only need
@@ -904,6 +918,40 @@ const { state } = store('pixfete', {
 			event?.stopPropagation();
 			if (state.lightboxIndex >= 0 && state.lightboxIndex < state.photos.length - 1) {
 				state.lightboxIndex += 1;
+			}
+		},
+
+		/**
+		 * Capture the starting position of a touch on the lightbox overlay.
+		 *
+		 * @param {TouchEvent} event The touchstart event.
+		 */
+		lightboxTouchStart(event) {
+			const t = event.touches[0];
+			lightboxTouchStartX = t.clientX;
+			lightboxTouchStartY = t.clientY;
+		},
+
+		/**
+		 * On touchend, decide whether the gesture was a horizontal swipe and,
+		 * if so, navigate to the previous or next photo. Vertical-dominant
+		 * gestures and short gestures (below SWIPE_THRESHOLD) are ignored so
+		 * we don't fight with the user's intent to scroll or tap.
+		 *
+		 * @param {TouchEvent} event The touchend event.
+		 */
+		lightboxTouchEnd(event) {
+			const t = event.changedTouches[0];
+			const dx = t.clientX - lightboxTouchStartX;
+			const dy = t.clientY - lightboxTouchStartY;
+			if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) {
+				return;
+			}
+			const { actions } = store('pixfete');
+			if (dx < 0) {
+				actions.nextPhoto();
+			} else {
+				actions.prevPhoto();
 			}
 		},
 
