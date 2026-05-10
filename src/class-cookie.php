@@ -162,10 +162,12 @@ class Cookie {
 	 * Set a signed guest cookie for an event page.
 	 *
 	 * Signs the payload and sends it as a browser cookie. The cookie uses
-	 * path `/` so it's available across the site, `httponly` is false so
-	 * the frontend JavaScript can read the guest name for UI display,
-	 * `samesite` is Lax to allow normal navigation, and `secure` follows
-	 * the current SSL state.
+	 * the WordPress home URL path (e.g. `/` on a root install, `/blog/`
+	 * on a subdirectory install, `/site-a/` on subdirectory multisite)
+	 * so it isn't leaked across sibling sites that share the same origin.
+	 * `httponly` is false so the frontend JavaScript can read the guest
+	 * name for UI display, `samesite` is Lax to allow normal navigation,
+	 * and `secure` follows the current SSL state.
 	 *
 	 * The expiry can be customized via the `pixfete_cookie_expiry` filter.
 	 *
@@ -192,11 +194,37 @@ class Cookie {
 			$signed,
 			array(
 				'expires'  => $expires,
-				'path'     => '/',
+				'path'     => self::cookie_path(),
 				'secure'   => is_ssl(),
 				'httponly' => false, // phpcs:ignore Jetpack.Functions.SetCookie.FoundNonHTTPOnlyFalse -- intentionally accessible to JavaScript for the Interactivity API consent flow.
 				'samesite' => 'Lax',
 			)
 		);
+	}
+
+	/**
+	 * Compute the cookie path for the current site's WordPress install.
+	 *
+	 * Returns `/` on a root install or the home-URL path (trailing slash
+	 * enforced) on a subdirectory install. On subdirectory multisite this
+	 * scopes each subsite's cookie to its own URL prefix so a cookie
+	 * issued by `example.com/site-a/` isn't sent on requests to
+	 * `example.com/site-b/`. WordPress's `COOKIEPATH` constant is the
+	 * source of truth when defined; otherwise we fall back to the parsed
+	 * home URL path so the behavior is consistent on installs that
+	 * never load `wp-includes/default-constants.php` in this context
+	 * (e.g. early REST API requests in the unit-test harness).
+	 *
+	 * @return string Trailing-slash-terminated path.
+	 */
+	private static function cookie_path(): string {
+		if ( defined( 'COOKIEPATH' ) && '' !== (string) COOKIEPATH ) {
+			return (string) COOKIEPATH;
+		}
+
+		$parts = wp_parse_url( home_url( '/' ) );
+		$path  = is_array( $parts ) && isset( $parts['path'] ) ? (string) $parts['path'] : '/';
+
+		return '' === $path ? '/' : rtrim( $path, '/' ) . '/';
 	}
 }

@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -115,6 +115,24 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 3. Block settings in the editor sidebar to configure the event password, date range, and table name tracking.
 
 == Changelog ==
+
+= 1.3.1 - 2026-05-10 =
+
+**Changed**
+
+* Pixfête now works correctly on WordPress installations in a subdirectory (like `example.com/blog/`) and on multisite networks: the offline upload helper, the upload session cookie, and the resume-uploads feature all stay scoped to your own site instead of leaking across sibling sites on the same domain.
+* On sites that already run another Service Worker plugin (Super PWA, OneSignal, Jetpack Boost, hosting-provider offline plugins, and similar), Pixfête now steps aside automatically rather than competing for control. Uploads still queue locally and resume — only the post-tab-close recovery is handed back to the other plugin.
+* When an upload's server response is intercepted by a caching plugin or CDN and arrives as something other than JSON, Pixfête now treats the upload as successful (since the server already accepted it) instead of retrying and creating a duplicate photo.
+
+**Fixed**
+
+* If an upload fails after several attempts, it now waits for you to tap "Retry uploads" before trying again — the same behavior on every browser. Previously some browsers would auto-retry failed uploads silently, masking persistent network or server problems.
+* When two event pages are open in different browser tabs and a photo finishes uploading in the background, it now appears in the right gallery instead of being prepended to whichever event the tab last switched to.
+* Photo upload errors from the server (such as "out of disk space" or MIME-type rejections) no longer expose internal filesystem paths to guests. Guests now see a clear, translatable message and admins can find the full error in the WordPress debug log.
+
+**Developer notes**
+
+* New filter `pixfete_serve_service_worker` (default `true`) lets site owners disable Pixfête's Service Worker entirely when another PWA plugin owns the origin scope.
 
 = 1.3.0 - 2026-05-10 =
 

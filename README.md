@@ -266,6 +266,7 @@ Guest photo attachments store the following metadata:
 | `pixfete_photo_response` | Photo data array | Individual photo data in gallery API responses |
 | `pixfete_archive_batch_size` | `50` | Number of attachments processed per ZIP generation batch |
 | `pixfete_archive_directory` | `{uploads_basedir}/pixfete-archives` | Absolute path to the ZIP archive storage directory |
+| `pixfete_serve_service_worker` | `true` | Whether Pixfête should manage its own Service Worker. Return `false` to let another PWA plugin (Super PWA, OneSignal, Jetpack Boost, etc.) own the origin scope; uploads still queue and drain via the in-page loop, just without Background Sync recovery after tab close |
 
 ### Actions
 

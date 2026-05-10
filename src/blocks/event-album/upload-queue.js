@@ -20,8 +20,9 @@ let dbPromise = null;
  * Open (and lazily upgrade) the queue database.
  *
  * Reuses a single IDBDatabase across calls in the page, since opening
- * the connection is the expensive part. The store has an autoincrement
- * keyPath and an index on `pageId` so listPending is a fast range query.
+ * the connection is the expensive part. The store has an `id` keyPath
+ * with autoincrement and an index on `pageId` so listPending is a fast
+ * range query.
  *
  * @return {Promise<IDBDatabase>} Resolved DB handle.
  */
@@ -41,7 +42,19 @@ export function openQueue() {
 				store.createIndex('pageId', 'pageId', { unique: false });
 			}
 		};
-		req.onsuccess = () => resolve(req.result);
+		req.onsuccess = () => {
+			const db = req.result;
+			// If a future version bump is opened by another realm (most
+			// commonly the Service Worker), close our connection so the
+			// upgrade isn't blocked. We also null the cached promise so
+			// the next call reopens at the new version instead of reusing
+			// a closed handle.
+			db.onversionchange = () => {
+				db.close();
+				dbPromise = null;
+			};
+			resolve(db);
+		};
 		req.onerror = () => {
 			// Clear the cached promise so callers can retry. Otherwise a
 			// transient failure (private-browsing quota, storage corruption)
@@ -77,10 +90,15 @@ function promisify(req) {
  * reconstruct a multipart request later — including after a page
  * reload or while offline — without needing the original File handle.
  *
- * @param {{pageId: number, blob: Blob, name: string}} item Upload payload.
+ * `restBase` is captured at enqueue time so the Service Worker can
+ * POST to the correct REST URL on subdirectory and subdir-multisite
+ * installs (where the SW's `registration.scope` doesn't carry enough
+ * information to reconstruct the right `/wp-json/pixfete/v1` path).
+ *
+ * @param {{pageId: number, blob: Blob, name: string, restBase: string}} item Upload payload.
  * @return {Promise<number>} The autoincremented id of the new record.
  */
-export async function enqueue({ pageId, blob, name }) {
+export async function enqueue({ pageId, blob, name, restBase }) {
 	const db = await openQueue();
 	const tx = db.transaction(STORE, 'readwrite');
 	const store = tx.objectStore(STORE);
@@ -89,6 +107,7 @@ export async function enqueue({ pageId, blob, name }) {
 			pageId,
 			blob,
 			name,
+			restBase,
 			type: blob.type,
 			size: blob.size,
 			status: 'pending',

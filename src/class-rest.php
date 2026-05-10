@@ -895,9 +895,20 @@ class REST extends WP_REST_Controller {
 		);
 
 		if ( isset( $upload_result['error'] ) ) {
+			// wp_handle_upload's error string can include absolute filesystem
+			// paths and host-specific MIME-rejection messages localized
+			// against the site (not the request) locale. Returning it
+			// verbatim to a guest leaks server-internal detail and isn't
+			// actionable. Log the full message for the admin (gated on
+			// WP_DEBUG so production hosts don't spam logs) and return a
+			// generic translated message instead.
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- admin-only diagnostic, gated on WP_DEBUG.
+				error_log( 'Pixfête upload failed: ' . $upload_result['error'] );
+			}
 			return new WP_Error(
 				'pixfete_upload_failed',
-				$upload_result['error'],
+				__( 'The photo could not be uploaded. Please try again.', 'pixfete' ),
 				array( 'status' => 500 )
 			);
 		}

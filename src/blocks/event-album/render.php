@@ -66,8 +66,15 @@ $pixfete_i18n = array(
 	'retryUploadsLabel'      => __( 'Retry uploads', 'pixfete' ),
 );
 
-// Build the Interactivity API context.
-$pixfete_context = array(
+// Build the Interactivity API context. swUrl is only populated when
+// Pixfête's PWA is enabled (see the `pixfete_serve_service_worker`
+// filter). An empty swUrl tells the frontend to skip SW registration
+// entirely, which is how Pixfête steps aside on sites that already run
+// a competing PWA/SW plugin. The scope mirrors the site's home URL path
+// so subdirectory and subdirectory-multisite installs get a tight scope
+// instead of one SW trying to claim the whole origin.
+$pixfete_pwa_enabled = \Jeherve\Pixfete\PWA::is_enabled();
+$pixfete_context     = array(
 	'pageId'           => get_the_ID(),
 	'nonce'            => '',
 	'honeypotField'    => $pixfete_honeypot_field,
@@ -75,7 +82,8 @@ $pixfete_context = array(
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'pixfete/v1' ),
-	'swUrl'            => home_url( '/pixfete-sw.js' ),
+	'swUrl'            => $pixfete_pwa_enabled ? home_url( \Jeherve\Pixfete\PWA::SW_PATH ) : '',
+	'swScope'          => $pixfete_pwa_enabled ? \Jeherve\Pixfete\PWA::sw_scope() : '',
 	'i18n'             => $pixfete_i18n,
 );
 

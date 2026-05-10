@@ -109,6 +109,7 @@ final class PwaTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\expect( 'status_header' )->never();
 
 		PWA::maybe_serve();
@@ -119,9 +120,87 @@ final class PwaTest extends TestCase {
 	 * Missing REQUEST_URI is handled without warnings.
 	 */
 	public function test_maybe_serve_returns_early_when_request_uri_absent(): void {
+		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\expect( 'status_header' )->never();
 
 		PWA::maybe_serve();
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * When the `pixfete_serve_service_worker` filter returns false,
+	 * Pixfête steps aside: matcher fallback still works (so URL checks
+	 * don't crash) but maybe_serve never emits anything. This lets
+	 * other PWA plugins (Super PWA, OneSignal, Jetpack Boost) own the
+	 * origin scope without forking Pixfête.
+	 */
+	public function test_maybe_serve_steps_aside_when_filter_disables(): void {
+		$_SERVER['REQUEST_URI'] = '/pixfete-sw.js';
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, bool $value ): bool {
+				return 'pixfete_serve_service_worker' === $hook ? false : $value;
+			}
+		);
+		Functions\expect( 'status_header' )->never();
+
+		PWA::maybe_serve();
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * `is_enabled()` defaults to true and respects the filter.
+	 */
+	public function test_is_enabled_respects_filter(): void {
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		$this->assertTrue( PWA::is_enabled() );
+
+		Functions\when( 'apply_filters' )->justReturn( false );
+		$this->assertFalse( PWA::is_enabled() );
+	}
+
+	/**
+	 * `sw_scope()` returns `/` on a root install — the default SW scope.
+	 */
+	public function test_sw_scope_root_install(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+
+		$this->assertSame( '/', PWA::sw_scope() );
+	}
+
+	/**
+	 * `sw_scope()` returns the home URL path on subdirectory installs.
+	 *
+	 * Critical for subdirectory multisite: each subsite must register
+	 * its SW under its own path scope so sibling sites on the same
+	 * origin don't trample each other's registrations.
+	 */
+	public function test_sw_scope_subdirectory_install(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+
+		$this->assertSame( '/blog/', PWA::sw_scope() );
+	}
+
+	/**
+	 * `sw_path()` returns the matcher's expected path so render.php
+	 * and the matcher stay in lockstep.
+	 */
+	public function test_sw_path_matches_matcher_expectation(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+
+		$this->assertSame( '/blog/pixfete-sw.js', PWA::sw_path() );
+	}
+
+	/**
+	 * Subdirectory-multisite simulation: site-A's SW path must not
+	 * collide with site-B's. The matcher rejects the sibling path.
+	 */
+	public function test_matches_sw_path_rejects_sibling_subsite(): void {
+		$this->stub_url_helpers( 'https://example.test/site-a' );
+
+		$this->assertTrue( PWA::matches_sw_path( '/site-a/pixfete-sw.js' ) );
+		$this->assertFalse( PWA::matches_sw_path( '/site-b/pixfete-sw.js' ) );
 	}
 }

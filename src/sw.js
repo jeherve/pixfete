@@ -22,10 +22,18 @@ const SYNC_TAG = 'pixfete-upload-queue';
  * that page so a single broken file doesn't burn the rest into the same
  * failure mode. The browser will fire `sync` again on its own schedule.
  *
- * @param {string} restBase Fully-qualified Pixfête REST namespace URL.
+ * Each queue record carries its own `restBase` (stashed by the page at
+ * enqueue time) so the SW doesn't have to derive a REST URL from
+ * `self.registration.scope` — that path drops subdirectory prefixes and
+ * silently misroutes uploads on subdirectory and subdir-multisite sites.
+ *
+ * Items missing a `restBase` are marked failed instead of POSTed: the
+ * record predates the field (an upgrade case) and we'd rather surface
+ * the failure than guess an origin and route uploads to the wrong site.
+ *
  * @return {Promise<void>}
  */
-export async function drainQueue(restBase) {
+export async function drainQueue() {
 	const allPages = await collectPendingPageIds();
 
 	for (const pageId of allPages) {
@@ -34,32 +42,28 @@ export async function drainQueue(restBase) {
 			if (item.status === 'failed') {
 				continue;
 			}
+			if (!item.restBase) {
+				await markFailed(item.id, 'no-rest-base');
+				await broadcast({
+					type: 'pixfete:upload-failed',
+					queueId: item.id,
+					pageId,
+				});
+				break;
+			}
+			let response;
 			try {
 				const formData = new FormData();
 				formData.append('photo', item.blob, item.name);
-				const response = await fetch(`${restBase}/photos/${pageId}`, {
+				response = await fetch(`${item.restBase}/photos/${pageId}`, {
 					method: 'POST',
 					credentials: 'same-origin',
 					body: formData,
 				});
-				if (!response.ok) {
-					await markFailed(item.id, 'http');
-					await broadcast({
-						type: 'pixfete:upload-failed',
-						queueId: item.id,
-						pageId,
-					});
-					break;
-				}
-				const photo = await response.json();
-				await markDone(item.id);
-				await broadcast({
-					type: 'pixfete:upload-success',
-					queueId: item.id,
-					pageId,
-					photo,
-				});
 			} catch {
+				// Network-layer failure — the request never reached the server,
+				// so the upload is genuinely unfinished. Mark failed and let the
+				// browser retry `sync` later.
 				await markFailed(item.id, 'network');
 				await broadcast({
 					type: 'pixfete:upload-failed',
@@ -68,6 +72,35 @@ export async function drainQueue(restBase) {
 				});
 				break;
 			}
+			if (!response.ok) {
+				await markFailed(item.id, 'http');
+				await broadcast({
+					type: 'pixfete:upload-failed',
+					queueId: item.id,
+					pageId,
+				});
+				break;
+			}
+			// The server accepted the upload; from here on, failures are
+			// post-success bookkeeping problems. Don't mark failed (which would
+			// auto-retry and produce duplicate photos): log so devs see them,
+			// remove the blob, and notify the page if we can parse the photo.
+			let photo = null;
+			try {
+				photo = await response.json();
+			} catch (err) {
+				// Caching plugin / CDN / WAF intercepted with a non-JSON body.
+				// The upload itself succeeded, so we can't safely re-attempt.
+				// eslint-disable-next-line no-console -- aids debugging without changing UX.
+				console.warn('Pixfête SW: upload succeeded but response was not JSON', err);
+			}
+			await markDone(item.id);
+			await broadcast({
+				type: photo ? 'pixfete:upload-success' : 'pixfete:upload-done-opaque',
+				queueId: item.id,
+				pageId,
+				photo,
+			});
 		}
 	}
 }
@@ -121,8 +154,5 @@ self.addEventListener('sync', (event) => {
 	if (event.tag !== SYNC_TAG) {
 		return;
 	}
-	const restBase = self.registration?.scope
-		? `${new URL(self.registration.scope).origin}/wp-json/pixfete/v1`
-		: '/wp-json/pixfete/v1';
-	event.waitUntil(drainQueue(restBase));
+	event.waitUntil(drainQueue());
 });
