@@ -30,10 +30,10 @@ class Block {
 	 */
 	public static function register(): void {
 		// 1. Register the block type from block.json metadata.
-		register_block_type( EGPS_PLUGIN_DIR . 'build/blocks/event-album' );
+		register_block_type( PIXFETE_PLUGIN_DIR . 'build/blocks/event-album' );
 
 		// 2. Register the full-screen page template.
-		$template_content = (string) file_get_contents( EGPS_PLUGIN_DIR . 'templates/page-event-album.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
+		$template_content = (string) file_get_contents( PIXFETE_PLUGIN_DIR . 'templates/page-event-album.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
 		register_block_template(
 			'pixfete//' . self::TEMPLATE_SLUG,
 			array(

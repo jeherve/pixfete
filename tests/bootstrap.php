@@ -18,16 +18,16 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 }
 
 // Plugin path constant used by Block::register().
-if ( ! defined( 'EGPS_PLUGIN_DIR' ) ) {
-	define( 'EGPS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
+if ( ! defined( 'PIXFETE_PLUGIN_DIR' ) ) {
+	define( 'PIXFETE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 }
 
-if ( ! defined( 'EGPS_PLUGIN_URL' ) ) {
-	define( 'EGPS_PLUGIN_URL', 'http://example.com/wp-content/plugins/pixfete/' );
+if ( ! defined( 'PIXFETE_PLUGIN_URL' ) ) {
+	define( 'PIXFETE_PLUGIN_URL', 'http://example.com/wp-content/plugins/pixfete/' );
 }
 
-if ( ! defined( 'EGPS_VERSION' ) ) {
-	define( 'EGPS_VERSION', '1.2.0' );
+if ( ! defined( 'PIXFETE_VERSION' ) ) {
+	define( 'PIXFETE_VERSION', '1.2.0' );
 }
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';

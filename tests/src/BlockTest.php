@@ -66,7 +66,7 @@ class BlockTest extends TestCase {
 		Block::register();
 
 		$this->assertSame(
-			EGPS_PLUGIN_DIR . 'build/blocks/event-album',
+			PIXFETE_PLUGIN_DIR . 'build/blocks/event-album',
 			$captured_path,
 			'register_block_type must be called with the correct block directory path.'
 		);

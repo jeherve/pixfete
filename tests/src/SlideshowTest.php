@@ -66,7 +66,7 @@ class SlideshowTest extends TestCase {
 		Slideshow::register();
 
 		$this->assertSame(
-			EGPS_PLUGIN_DIR . 'build/blocks/event-slideshow',
+			PIXFETE_PLUGIN_DIR . 'build/blocks/event-slideshow',
 			$captured_path,
 			'register_block_type must be called with the correct block directory path.'
 		);

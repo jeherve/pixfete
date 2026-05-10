@@ -18,19 +18,19 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EGPS_VERSION', '1.2.0' );
-define( 'EGPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'EGPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'PIXFETE_VERSION', '1.2.0' );
+define( 'PIXFETE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'PIXFETE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-require_once EGPS_PLUGIN_DIR . 'src/class-cookie.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-upload.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-rest.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-block.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-admin.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-archive.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-cleanup.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-slideshow.php';
-require_once EGPS_PLUGIN_DIR . 'src/class-moderator.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-cookie.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-upload.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-rest.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-block.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-admin.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-archive.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-cleanup.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-slideshow.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-moderator.php';
 
 add_action( 'init', array( \Jeherve\Pixfete\Block::class, 'register' ) );
 add_action( 'init', array( \Jeherve\Pixfete\Slideshow::class, 'register' ) );

@@ -49,15 +49,15 @@ class Admin {
 			return;
 		}
 
-		$asset_file = EGPS_PLUGIN_DIR . 'build/admin.asset.php';
+		$asset_file = PIXFETE_PLUGIN_DIR . 'build/admin.asset.php';
 		$asset      = file_exists( $asset_file ) ? require $asset_file : array(
 			'dependencies' => array(),
-			'version'      => EGPS_VERSION,
+			'version'      => PIXFETE_VERSION,
 		);
 
 		wp_enqueue_script(
 			self::SCRIPT_HANDLE,
-			EGPS_PLUGIN_URL . 'build/admin.js',
+			PIXFETE_PLUGIN_URL . 'build/admin.js',
 			$asset['dependencies'],
 			$asset['version'],
 			true
@@ -65,7 +65,7 @@ class Admin {
 
 		wp_enqueue_style(
 			self::SCRIPT_HANDLE,
-			EGPS_PLUGIN_URL . 'build/style-admin.css',
+			PIXFETE_PLUGIN_URL . 'build/style-admin.css',
 			array( 'wp-components' ),
 			$asset['version']
 		);
