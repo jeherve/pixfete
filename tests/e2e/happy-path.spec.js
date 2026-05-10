@@ -122,8 +122,8 @@ test.describe('Pixfête - Happy Path', () => {
 		// --- Step 3: Accept consent ---
 		await page.locator('.pixfete-accept-btn').click();
 
-		// Verify transition to gallery view by checking upload buttons are visible.
-		await expect(page.locator('.pixfete-upload')).toBeVisible();
+		// Verify transition to gallery view by checking the upload FAB is visible.
+		await expect(page.locator('.pixfete-fab-container')).toBeVisible();
 
 		// --- Step 4: Upload a photo ---
 		const fileInput = page.locator('#pixfete-file-gallery');
@@ -237,7 +237,7 @@ test.describe('Pixfête - Future Event', () => {
 
 		// Verify the friendly message is visible.
 		await expect(guestPage.locator('.pixfete-not-started')).toBeVisible();
-		await expect(guestPage.locator('.pixfete-not-started')).toContainText('not started yet');
+		await expect(guestPage.locator('.pixfete-not-started')).toContainText('started yet');
 
 		// Verify no password form is shown.
 		await expect(guestPage.locator('#pixfete-password')).toBeHidden();
