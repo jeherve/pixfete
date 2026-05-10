@@ -6,6 +6,11 @@ module.exports = {
 	_x: (str) => str,
 	sprintf: (fmt, ...args) => {
 		let i = 0;
-		return fmt.replace(/%[sdif]/g, () => String(args[i++]));
+		return fmt.replace(/%(?:(\d+)\$)?[sdif]/g, (_, position) => {
+			if (position) {
+				return String(args[parseInt(position, 10) - 1]);
+			}
+			return String(args[i++]);
+		});
 	},
 };

@@ -191,7 +191,7 @@ const { state } = store('pixfete/slideshow', {
 					if (data?.data?.nonce) {
 						ctx.nonce = data.data.nonce;
 					}
-					state.errorMessage = data?.message || 'The password is incorrect.';
+					state.errorMessage = data?.message || ctx.i18n.passwordIncorrect;
 					return;
 				}
 
@@ -200,7 +200,7 @@ const { state } = store('pixfete/slideshow', {
 				actions.loadPhotos();
 				actions.startPolling();
 			} catch {
-				state.errorMessage = 'A network error occurred.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
