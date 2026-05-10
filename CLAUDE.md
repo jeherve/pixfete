@@ -72,6 +72,14 @@ If you can't drive the browser, say so in your hand-off — never claim a UI or 
 - Use the PR template (`.github/PULL_REQUEST_TEMPLATE.md`): reference the issue with `Fixes #`, describe changes, and include testing instructions.
 - `readme.txt` is customer-facing (WordPress.org listing only). Developer docs go in `README.md`.
 
+## Internationalization (i18n)
+
+- **Every user-facing string must be translatable** with the `pixfete` text domain. This includes labels, button text, placeholders, error messages, ARIA labels, and any other text shown to guests, hosts, or moderators.
+- **In PHP**, wrap strings with `__()`, `_x()`, `_n()`, `esc_html__()`, `esc_attr__()`, `esc_html_e()`, `esc_attr_e()` as appropriate, always with `'pixfete'` as the second argument.
+- **In JS/TS view modules** (Interactivity API), do **not** import `@wordpress/i18n` — pass translated strings from PHP into the Interactivity context (`$pixfete_context`) and read them via `getContext()` in the store. This keeps view-module bundles small and avoids depending on script-module translation loaders.
+- **In editor-side JS** (`edit.js` and similar), use `__()` from `@wordpress/i18n` directly with the `pixfete` text domain — that path already loads translations.
+- **Whenever you add, change, or move a user-facing string, double-check the i18n path.** Hardcoded English in any user-facing surface is a bug.
+
 ## Code Documentation
 
 - **Every function and method must have a docblock** — be generous with documentation.

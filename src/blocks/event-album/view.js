@@ -104,6 +104,35 @@ const { state } = store('pixfete', {
 		/** The attachment ID currently being deleted, or null if idle. */
 		deletingPhotoId: null,
 
+		/** Whether the password field is currently shown in plain text. */
+		passwordVisible: false,
+
+		/**
+		 * The `type` attribute for the password input.
+		 *
+		 * Bound to the input via `data-wp-bind--type` so the show/hide
+		 * toggle can flip between masked and plain text without losing focus.
+		 *
+		 * @return {string} 'text' when revealed, 'password' otherwise.
+		 */
+		get passwordInputType() {
+			return state.passwordVisible ? 'text' : 'password';
+		},
+
+		/**
+		 * Accessible label for the password visibility toggle button.
+		 *
+		 * Strings are translated server-side and passed in via the
+		 * Interactivity context so we don't need to load `@wordpress/i18n`
+		 * inside the view module.
+		 *
+		 * @return {string} Localized label describing the next action.
+		 */
+		get passwordToggleLabel() {
+			const ctx = getContext();
+			return state.passwordVisible ? ctx.hidePasswordLabel : ctx.showPasswordLabel;
+		},
+
 		/**
 		 * Whether the current view is the loading view.
 		 *
@@ -332,6 +361,17 @@ const { state } = store('pixfete', {
 		 */
 		updatePasswordInput(event) {
 			state.passwordInput = event.target.value;
+		},
+
+		/**
+		 * Toggle whether the password field shows its value in plain text.
+		 *
+		 * Lets guests verify the password they typed without retyping it,
+		 * which is especially helpful on mobile keyboards where mistypes are
+		 * common and the password is being shared verbally on the day of the event.
+		 */
+		togglePasswordVisibility() {
+			state.passwordVisible = !state.passwordVisible;
 		},
 
 		/**

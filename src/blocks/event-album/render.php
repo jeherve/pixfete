@@ -26,13 +26,15 @@ $pixfete_enable_table_names = ! empty( $attributes['enableTableNames'] );
 
 // Build the Interactivity API context.
 $pixfete_context = array(
-	'pageId'           => get_the_ID(),
-	'nonce'            => $pixfete_csrf_token,
-	'honeypotField'    => $pixfete_honeypot_field,
-	'enableTableNames' => $pixfete_enable_table_names,
-	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
-	'dateStart'        => $attributes['dateRangeStart'] ?? '',
-	'restBase'         => rest_url( 'pixfete/v1' ),
+	'pageId'            => get_the_ID(),
+	'nonce'             => $pixfete_csrf_token,
+	'honeypotField'     => $pixfete_honeypot_field,
+	'enableTableNames'  => $pixfete_enable_table_names,
+	'dateEnd'           => $attributes['dateRangeEnd'] ?? '',
+	'dateStart'         => $attributes['dateRangeStart'] ?? '',
+	'restBase'          => rest_url( 'pixfete/v1' ),
+	'showPasswordLabel' => __( 'Show password', 'pixfete' ),
+	'hidePasswordLabel' => __( 'Hide password', 'pixfete' ),
 );
 
 // Detect whether the current visitor is an assigned moderator for this event.
@@ -73,14 +75,64 @@ if ( $pixfete_is_moderator ) {
 		<div data-wp-bind--hidden="!state.isPasswordView" class="pixfete-form">
 			<form data-wp-on--submit="actions.submitPassword">
 				<label for="pixfete-password"><?php esc_html_e( 'Event Password', 'pixfete' ); ?></label>
-				<input
-					id="pixfete-password"
-					type="password"
-					data-wp-bind--value="state.passwordInput"
-					data-wp-on--input="actions.updatePasswordInput"
-					placeholder="<?php esc_attr_e( 'Enter the event password', 'pixfete' ); ?>"
-					required
-				/>
+				<div class="pixfete-password-field">
+					<input
+						id="pixfete-password"
+						type="password"
+						data-wp-bind--type="state.passwordInputType"
+						data-wp-bind--value="state.passwordInput"
+						data-wp-on--input="actions.updatePasswordInput"
+						placeholder="<?php esc_attr_e( 'Enter the event password', 'pixfete' ); ?>"
+						required
+					/>
+					<button
+						type="button"
+						class="pixfete-password-toggle"
+						data-wp-on--click="actions.togglePasswordVisibility"
+						data-wp-bind--aria-label="state.passwordToggleLabel"
+						data-wp-bind--aria-pressed="state.passwordVisible"
+					>
+						<?php // Eye (closed = password hidden). ?>
+						<svg
+							data-wp-bind--hidden="state.passwordVisible"
+							class="pixfete-password-toggle-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							width="20"
+							height="20"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+							focusable="false"
+						>
+							<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+							<circle cx="12" cy="12" r="3" />
+						</svg>
+						<?php // Eye-off (visible = password revealed). Hidden by default so both icons don't flash before hydration. ?>
+						<svg
+							data-wp-bind--hidden="!state.passwordVisible"
+							class="pixfete-password-toggle-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							width="20"
+							height="20"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+							focusable="false"
+							hidden
+						>
+							<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.17-6.17M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-3.17 4.31M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+							<line x1="1" y1="1" x2="23" y2="23" />
+						</svg>
+					</button>
+				</div>
 				<?php // Honeypot field — hidden from humans. ?>
 				<div class="pixfete-hp" aria-hidden="true" tabindex="-1">
 					<input type="text" name="<?php echo esc_attr( $pixfete_honeypot_field ); ?>" autocomplete="off" tabindex="-1" />

@@ -123,6 +123,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * New Live Photo Wall block for projecting submitted photos onto a big screen during your event. The photo wall displays photos one at a time with smooth crossfade transitions, automatically cycling through submissions as guests upload them.
 * When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
 * Event hosts can now assign moderators who can remove inappropriate photos from the live gallery on their phone, without needing access to the WordPress dashboard.
+* The event password field now has a show/hide toggle, so guests can verify what they typed before submitting — especially helpful on mobile keyboards.
 
 **Changed**
 
