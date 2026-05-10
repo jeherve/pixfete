@@ -1039,4 +1039,37 @@ const { state } = store('pixfete', {
 			document.getElementById('pixfete-file-gallery')?.click();
 		},
 	},
+
+	callbacks: {
+		/**
+		 * Bind a window-level keydown listener for lightbox navigation.
+		 *
+		 * Triggered by data-wp-init on the lightbox root. Uses a global
+		 * sentinel so the listener is bound only once even if the block
+		 * appears multiple times on the page or the init callback fires
+		 * more than once during hydration.
+		 *
+		 * Only acts when the lightbox is open so arrow keys keep their
+		 * default browser behavior the rest of the time.
+		 */
+		initLightboxKeyboard() {
+			if (window.__pixfeteLightboxKeyboardBound) {
+				return;
+			}
+			window.__pixfeteLightboxKeyboardBound = true;
+
+			window.addEventListener('keydown', (event) => {
+				if (!state.lightboxOpen) {
+					return;
+				}
+				if (event.key === 'ArrowLeft') {
+					state.lightboxIndex = Math.max(0, state.lightboxIndex - 1);
+				} else if (event.key === 'ArrowRight') {
+					state.lightboxIndex = Math.min(state.photos.length - 1, state.lightboxIndex + 1);
+				} else if (event.key === 'Escape') {
+					state.lightboxIndex = -1;
+				}
+			});
+		},
+	},
 });
