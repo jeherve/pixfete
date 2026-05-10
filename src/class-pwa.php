@@ -43,9 +43,10 @@ class PWA {
 	 * If the current request is for the SW URL, stream the built JS file.
 	 *
 	 * Sends `Service-Worker-Allowed: /` so the registration call in the
-	 * page can claim any path on the origin. The Cache-Control header
-	 * keeps the network tab quiet during navigation but expires fast
-	 * enough that bug-fix releases reach guests within minutes.
+	 * page can claim any path on the origin. `Cache-Control: no-cache`
+	 * forces the browser to revalidate on every fetch — Service Worker
+	 * update checks already bypass HTTP caching, so a long max-age would
+	 * only mislead intermediaries about a file that's always validated.
 	 *
 	 * The matcher logic is delegated to {@see self::matches_sw_path()}
 	 * so tests can exercise it directly without tripping the `exit()`
@@ -71,7 +72,7 @@ class PWA {
 		status_header( 200 );
 		header( 'Content-Type: application/javascript; charset=utf-8' );
 		header( 'Service-Worker-Allowed: /' );
-		header( 'Cache-Control: max-age=300, must-revalidate' );
+		header( 'Cache-Control: no-cache, must-revalidate' );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- streaming a local plugin asset, no remote IO.
 		readfile( $path );
 		exit;

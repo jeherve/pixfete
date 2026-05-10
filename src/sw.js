@@ -126,9 +126,3 @@ self.addEventListener('sync', (event) => {
 		: '/wp-json/pixfete/v1';
 	event.waitUntil(drainQueue(restBase));
 });
-
-self.addEventListener('message', (event) => {
-	if (event.data && event.data.type === 'pixfete:drain-now') {
-		event.waitUntil(drainQueue(event.data.restBase));
-	}
-});

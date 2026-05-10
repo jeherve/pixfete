@@ -93,6 +93,34 @@ async function registerServiceWorker(url) {
 }
 
 /**
+ * Ask the Service Worker to drain via the Background Sync API.
+ *
+ * Returning `true` means the SW will own the drain, so the caller MUST
+ * skip its in-page drain to avoid both paths racing on the same queue
+ * record and double-POSTing the blob. Returning `false` means the
+ * platform didn't accept the registration (no SW, no Background Sync,
+ * permission denied, etc.) and the caller should fall back to the
+ * in-page drain.
+ *
+ * @return {Promise<boolean>} True when the SW will handle the drain.
+ */
+async function tryRegisterBackgroundSync() {
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+		return false;
+	}
+	try {
+		const reg = await navigator.serviceWorker.ready;
+		if (!reg || !('sync' in reg)) {
+			return false;
+		}
+		await reg.sync.register('pixfete-upload-queue');
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Wire up the message listener that lets the SW push upload results back.
  *
  * Mutates store state directly so the UI updates without a poll round-trip.
@@ -575,7 +603,10 @@ const { state } = store('pixfete', {
 				state.currentView = 'gallery';
 				const { actions } = store('pixfete');
 				if (state.pendingUploads.length) {
-					actions.drainQueue();
+					const synced = yield tryRegisterBackgroundSync();
+					if (!synced) {
+						actions.drainQueue();
+					}
 				}
 				actions.loadPhotos();
 				actions.startPolling();
@@ -831,7 +862,10 @@ const { state } = store('pixfete', {
 					const { actions } = store('pixfete');
 					actions.loadPhotos();
 					if (state.pendingUploads.length) {
-						actions.drainQueue();
+						const synced = yield tryRegisterBackgroundSync();
+						if (!synced) {
+							actions.drainQueue();
+						}
 					}
 					actions.startPolling();
 					return;
@@ -1015,17 +1049,14 @@ const { state } = store('pixfete', {
 			// Reset the input so the same file can be selected again later.
 			event.target.value = '';
 
-			try {
-				const reg = navigator.serviceWorker?.ready ? yield navigator.serviceWorker.ready : null;
-				if (reg && 'sync' in reg) {
-					yield reg.sync.register('pixfete-upload-queue');
-				}
-			} catch {
-				// Fall through to in-page drain — no SW or no Background Sync.
+			// Prefer Background Sync when the platform offers it: the SW
+			// owns the drain end-to-end and won't race the in-page loop.
+			// Otherwise fall back to the in-page drain.
+			const synced = yield tryRegisterBackgroundSync();
+			if (!synced) {
+				const { actions } = store('pixfete');
+				yield actions.drainQueue();
 			}
-
-			const { actions } = store('pixfete');
-			yield actions.drainQueue();
 		},
 
 		/**
@@ -1042,8 +1073,14 @@ const { state } = store('pixfete', {
 			await requeueFailed(ctx.pageId);
 			const pending = await listPending(ctx.pageId);
 			state.pendingUploads = decoratePending(pending, ctx.i18n);
-			const { actions } = store('pixfete');
-			await actions.drainQueue();
+
+			// Same dual-path rule as handleFileSelect: BG Sync owns the
+			// drain when available, in-page loop only runs as fallback.
+			const synced = await tryRegisterBackgroundSync();
+			if (!synced) {
+				const { actions } = store('pixfete');
+				await actions.drainQueue();
+			}
 		},
 
 		/**
