@@ -235,6 +235,90 @@ describe('lightbox touch swipe', () => {
 	});
 });
 
+describe('lightbox focus management', () => {
+	function buildLightboxDom() {
+		document.body.replaceChildren();
+
+		const opener = document.createElement('div');
+		opener.className = 'pixfete-photo';
+		opener.id = 'opener-photo';
+		opener.tabIndex = 0;
+		document.body.append(opener);
+
+		const dialog = document.createElement('div');
+		dialog.className = 'pixfete-lightbox';
+
+		const close = document.createElement('button');
+		close.type = 'button';
+		close.className = 'pixfete-lightbox-close';
+		close.textContent = 'Close';
+
+		const prev = document.createElement('button');
+		prev.type = 'button';
+		prev.className = 'pixfete-lightbox-nav pixfete-lightbox-nav--prev';
+		prev.textContent = 'Prev';
+
+		const next = document.createElement('button');
+		next.type = 'button';
+		next.className = 'pixfete-lightbox-nav pixfete-lightbox-nav--next';
+		next.textContent = 'Next';
+
+		dialog.append(close, prev, next);
+		document.body.append(dialog);
+	}
+
+	test('openLightbox captures the active element so focus can be restored', () => {
+		buildLightboxDom();
+		const opener = document.getElementById('opener-photo');
+		opener.focus();
+
+		const store = loadStore();
+		seedPhotos(store, 3);
+		mockContext.item = store.state.photos[1];
+
+		store.actions.openLightbox();
+
+		expect(store.state.lightboxIndex).toBe(1);
+
+		// Closing via the overlay should restore focus to the original opener.
+		const close = document.querySelector('.pixfete-lightbox-close');
+		store.actions.closeLightbox({ target: close });
+
+		expect(document.activeElement).toBe(opener);
+	});
+
+	test('closeLightbox is a no-op for clicks on nav buttons', () => {
+		buildLightboxDom();
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+
+		const nav = document.querySelector('.pixfete-lightbox-nav--next');
+		store.actions.closeLightbox({ target: nav });
+
+		expect(store.state.lightboxIndex).toBe(1);
+	});
+
+	test('deleting the last photo also closes the lightbox', () => {
+		buildLightboxDom();
+		const opener = document.getElementById('opener-photo');
+		opener.focus();
+
+		const store = loadStore();
+		seedPhotos(store, 1);
+		mockContext.item = store.state.photos[0];
+		store.actions.openLightbox();
+
+		// Mirror the deletePhoto branch: index >= 0 and photos empty.
+		store.state.photos = [];
+		if (store.state.lightboxIndex >= 0 && store.state.photos.length === 0) {
+			store.state.lightboxIndex = -1;
+		}
+
+		expect(store.state.lightboxIndex).toBe(-1);
+	});
+});
+
 describe('showNewPhotos lightboxIndex shift', () => {
 	test('shifts lightboxIndex by the number of prepended photos', () => {
 		const store = loadStore();

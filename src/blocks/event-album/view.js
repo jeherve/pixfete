@@ -40,6 +40,30 @@ let lightboxTouchStartY = 0;
 const SWIPE_THRESHOLD = 50;
 
 /**
+ * The element that held focus before the lightbox opened. Stored at module
+ * scope so we can restore focus when the lightbox closes — required for
+ * dialogs marked with aria-modal so keyboard and screen reader users return
+ * to the thumbnail they came from instead of being dropped on the body.
+ */
+let lightboxOpener = null;
+
+/**
+ * Restore focus to the element that opened the lightbox, if it is still in
+ * the DOM. Called from every lightbox close path (overlay/close-button click,
+ * Escape key, last photo deleted by a moderator).
+ */
+function restoreLightboxFocus() {
+	if (
+		lightboxOpener &&
+		typeof lightboxOpener.focus === 'function' &&
+		lightboxOpener.ownerDocument?.contains(lightboxOpener)
+	) {
+		lightboxOpener.focus();
+	}
+	lightboxOpener = null;
+}
+
+/**
  * Read and decode the Pixfête cookie for a given page ID.
  *
  * The cookie format is `{base64url-encoded JSON}.{HMAC}`. We only need
@@ -855,6 +879,7 @@ const { state } = store('pixfete', {
 					if (state.lightboxIndex >= 0) {
 						if (state.photos.length === 0) {
 							state.lightboxIndex = -1;
+							restoreLightboxFocus();
 						} else if (state.lightboxIndex >= state.photos.length) {
 							state.lightboxIndex = state.photos.length - 1;
 						}
@@ -888,7 +913,24 @@ const { state } = store('pixfete', {
 				// removed by a concurrent moderator deletion. Nothing to open.
 				return;
 			}
+
+			// Capture the element that triggered the open so we can restore
+			// focus on close. activeElement is normally the .pixfete-photo
+			// thumbnail, but tolerate the unlikely null/non-Element case.
+			// Use the dialog's ownerDocument (rather than the global
+			// document) so the lookup is correct in iframed contexts.
+			const lightboxEl = document.querySelector('.pixfete-lightbox');
+			const candidate = lightboxEl?.ownerDocument.activeElement;
+			lightboxOpener = candidate && typeof candidate.focus === 'function' ? candidate : null;
+
 			state.lightboxIndex = idx;
+
+			// Move focus into the dialog after Interactivity API renders it
+			// visible. Close is the safest target — always present, never
+			// disabled, regardless of which photo is shown.
+			window.requestAnimationFrame(() => {
+				document.querySelector('.pixfete-lightbox-close')?.focus();
+			});
 		},
 
 		/**
@@ -909,6 +951,7 @@ const { state } = store('pixfete', {
 				return;
 			}
 			state.lightboxIndex = -1;
+			restoreLightboxFocus();
 		},
 
 		/**
@@ -1072,6 +1115,34 @@ const { state } = store('pixfete', {
 					state.lightboxIndex = Math.min(state.photos.length - 1, state.lightboxIndex + 1);
 				} else if (event.key === 'Escape') {
 					state.lightboxIndex = -1;
+					restoreLightboxFocus();
+				} else if (event.key === 'Tab') {
+					// Trap focus inside the dialog while it is open. Re-query
+					// each Tab press so disabled prev/next buttons (at the
+					// boundaries) are correctly excluded from the cycle.
+					const dialog = document.querySelector('.pixfete-lightbox');
+					if (!dialog) {
+						return;
+					}
+					const focusables = Array.from(dialog.querySelectorAll('button:not([disabled])'));
+					if (focusables.length === 0) {
+						return;
+					}
+					const idx = focusables.indexOf(dialog.ownerDocument.activeElement);
+					if (idx === -1) {
+						// Focus has escaped (or landed on a now-disabled nav
+						// button) — pull it back to the dialog.
+						event.preventDefault();
+						focusables[0].focus();
+						return;
+					}
+					if (event.shiftKey && idx === 0) {
+						event.preventDefault();
+						focusables[focusables.length - 1].focus();
+					} else if (!event.shiftKey && idx === focusables.length - 1) {
+						event.preventDefault();
+						focusables[0].focus();
+					}
 				}
 			});
 		},
