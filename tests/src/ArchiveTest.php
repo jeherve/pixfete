@@ -2,16 +2,16 @@
 /**
  * Tests for the Archive class.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Archive;
+use Jeherve\Pixfete\Archive;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -218,11 +218,11 @@ class ArchiveTest extends TestCase {
 		$page = $this->make_mock_page( 42 );
 
 		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
-		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )->once()->andReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array( 'dateRangeEnd' => '2099-12-31' ),
 				),
 			)
@@ -248,11 +248,11 @@ class ArchiveTest extends TestCase {
 		$page = $this->make_mock_page( 42 );
 
 		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
-		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )->once()->andReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array( 'dateRangeEnd' => '2026-01-01' ),
 				),
 			)
@@ -279,11 +279,11 @@ class ArchiveTest extends TestCase {
 		$page = $this->make_mock_page( 42 );
 
 		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
-		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )->once()->andReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array( 'dateRangeEnd' => '2026-01-01' ),
 				),
 			)
@@ -313,11 +313,11 @@ class ArchiveTest extends TestCase {
 		$page = $this->make_mock_page( 42 );
 
 		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
-		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )->once()->andReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array( 'dateRangeEnd' => '2026-01-01' ),
 				),
 			)
@@ -380,11 +380,11 @@ class ArchiveTest extends TestCase {
 		$page = $this->make_mock_page( 42 );
 
 		Functions\expect( 'get_posts' )->once()->andReturn( array( $page ) );
-		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\expect( 'get_post_field' )->once()->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )->once()->andReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array(),
 				),
 			)

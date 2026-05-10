@@ -1,6 +1,6 @@
 <div align="center">
 	<img src=".wordpress-org/icon-256x256.png" width="200" height="200">
-	<h1>Event Guest Photos Sharing</h1>
+	<h1>Pixfête</h1>
 	<p>
 		<b>A WordPress plugin that lets event guests share photos in a shared album. They just scan a QR code and start sharing.</b>
 		<br>
@@ -66,10 +66,10 @@ npm run test:e2e:headed # E2E tests with browser visible
 
 ## Architecture
 
-The plugin registers two blocks and a REST API under the `event-guest-photos-sharing/v1` namespace:
+The plugin registers two blocks and a REST API under the `pixfete/v1` namespace:
 
-- **Event Photo Album** (`event-guest-photos-sharing/event-album`) — the main guest-facing block for uploading and browsing photos.
-- **Live Photo Wall** (`event-guest-photos-sharing/event-slideshow`) — a full-screen projection block that cycles through submitted photos with crossfade transitions.
+- **Event Photo Album** (`pixfete/event-album`) — the main guest-facing block for uploading and browsing photos.
+- **Live Photo Wall** (`pixfete/event-slideshow`) — a full-screen projection block that cycles through submitted photos with crossfade transitions.
 
 ### Source files
 
@@ -79,7 +79,7 @@ The plugin registers two blocks and a REST API under the `event-guest-photos-sha
 | `src/class-cookie.php` | HMAC-signed cookie management for guest sessions |
 | `src/class-rest.php` | REST API endpoints (auth, upload, gallery, cleanup) |
 | `src/class-upload.php` | File upload handling and MIME type validation |
-| `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Event Guest Photos Sharing) |
+| `src/class-admin.php` | Admin settings page with QR code generation and archive status (Settings > Pixfête) |
 | `src/class-archive.php` | Cron-based ZIP archive generation for completed event photos |
 | `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
 | `src/class-moderator.php` | Custom moderator role, dashboard lockout, and per-event moderator assignment checks |
@@ -99,7 +99,7 @@ The plugin registers two blocks and a REST API under the `event-guest-photos-sha
 
 ### Settings Page
 
-Under **Settings > Event Guest Photos Sharing**, admins can access plugin settings and tools.
+Under **Settings > Pixfête**, admins can access plugin settings and tools.
 
 #### QR Code Generator
 
@@ -207,7 +207,7 @@ The Live Photo Wall block is designed for projecting photos onto a big screen du
 
 ### REST API endpoints
 
-All endpoints are under the `event-guest-photos-sharing/v1` namespace.
+All endpoints are under the `pixfete/v1` namespace.
 
 | Method | Route | Description |
 |--------|-------|-------------|

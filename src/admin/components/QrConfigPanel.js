@@ -2,9 +2,9 @@ import { CheckboxControl, TextControl, ColorPicker, Button } from '@wordpress/co
 import { __ } from '@wordpress/i18n';
 
 const CORNER_STYLES = [
-	{ value: 'square', label: __('Square', 'event-guest-photos-sharing') },
-	{ value: 'dot', label: __('Dot', 'event-guest-photos-sharing') },
-	{ value: 'extra-rounded', label: __('Extra Rounded', 'event-guest-photos-sharing') },
+	{ value: 'square', label: __('Square', 'pixfete') },
+	{ value: 'dot', label: __('Dot', 'pixfete') },
+	{ value: 'extra-rounded', label: __('Extra Rounded', 'pixfete') },
 ];
 
 export function QrConfigPanel({ page, config, onConfigChange }) {
@@ -12,36 +12,34 @@ export function QrConfigPanel({ page, config, onConfigChange }) {
 
 	return (
 		<div className="egps-qr-config-panel">
-			<h2>{__('QR Code Settings', 'event-guest-photos-sharing')}</h2>
+			<h2>{__('QR Code Settings', 'pixfete')}</h2>
 
 			<fieldset>
-				<legend>{__('Include in URL', 'event-guest-photos-sharing')}</legend>
+				<legend>{__('Include in URL', 'pixfete')}</legend>
 
 				{page.password ? (
 					<CheckboxControl
-						label={__('Password (skips password entry)', 'event-guest-photos-sharing')}
+						label={__('Password (skips password entry)', 'pixfete')}
 						checked={config.includePassword}
 						onChange={(v) => update('includePassword', v)}
 					/>
 				) : (
-					<p className="egps-qr-no-password">
-						{__('No password set for this event.', 'event-guest-photos-sharing')}
-					</p>
+					<p className="egps-qr-no-password">{__('No password set for this event.', 'pixfete')}</p>
 				)}
 
 				{page.enableTableNames && (
 					<>
 						<CheckboxControl
-							label={__('Table name', 'event-guest-photos-sharing')}
+							label={__('Table name', 'pixfete')}
 							checked={config.includeTable}
 							onChange={(v) => update('includeTable', v)}
 						/>
 						{config.includeTable && (
 							<TextControl
-								label={__('Table name', 'event-guest-photos-sharing')}
+								label={__('Table name', 'pixfete')}
 								value={config.tableName}
 								onChange={(v) => update('tableName', v)}
-								placeholder={__('e.g. Table 5', 'event-guest-photos-sharing')}
+								placeholder={__('e.g. Table 5', 'pixfete')}
 							/>
 						)}
 					</>
@@ -50,9 +48,9 @@ export function QrConfigPanel({ page, config, onConfigChange }) {
 
 			{page.logoDataUrl && (
 				<fieldset>
-					<legend>{__('Logo', 'event-guest-photos-sharing')}</legend>
+					<legend>{__('Logo', 'pixfete')}</legend>
 					<CheckboxControl
-						label={__('Include logo', 'event-guest-photos-sharing')}
+						label={__('Include logo', 'pixfete')}
 						checked={config.includeLogo}
 						onChange={(v) => update('includeLogo', v)}
 					/>
@@ -60,17 +58,17 @@ export function QrConfigPanel({ page, config, onConfigChange }) {
 			)}
 
 			<fieldset>
-				<legend>{__('Foreground Color', 'event-guest-photos-sharing')}</legend>
+				<legend>{__('Foreground Color', 'pixfete')}</legend>
 				<ColorPicker color={config.fgColor} onChange={(v) => update('fgColor', v)} enableAlpha={false} />
 			</fieldset>
 
 			<fieldset>
-				<legend>{__('Background Color', 'event-guest-photos-sharing')}</legend>
+				<legend>{__('Background Color', 'pixfete')}</legend>
 				<ColorPicker color={config.bgColor} onChange={(v) => update('bgColor', v)} enableAlpha={false} />
 			</fieldset>
 
 			<fieldset>
-				<legend>{__('Corner Style', 'event-guest-photos-sharing')}</legend>
+				<legend>{__('Corner Style', 'pixfete')}</legend>
 				<div className="egps-qr-corner-styles">
 					{CORNER_STYLES.map((style) => (
 						<Button

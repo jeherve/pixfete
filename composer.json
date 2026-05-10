@@ -1,11 +1,11 @@
 {
-  "name": "jeherve/event-guest-photos-sharing",
+  "name": "jeherve/pixfete",
   "description": "Allow your guests to share their photos of your event in a shared photo album, and display those photos live",
-  "homepage": "https://herve.bz/my-plugins/event-guest-photos-sharing/",
+  "homepage": "https://herve.bz/my-plugins/pixfete/",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "support": {
-    "issues": "https://github.com/jeherve/event-guest-photos-sharing/issues"
+    "issues": "https://github.com/jeherve/pixfete/issues"
   },
   "require": {
     "php": "^8.3"

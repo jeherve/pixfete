@@ -72,7 +72,7 @@ function cleanUrlParams() {
 	window.history.replaceState({}, '', url.toString());
 }
 
-const { state } = store('event-guest-photos-sharing', {
+const { state } = store('pixfete', {
 	state: {
 		currentView: 'loading',
 		isSubmitting: false,
@@ -307,7 +307,7 @@ const { state } = store('event-guest-photos-sharing', {
 				// Valid cookie with consent — go to gallery.
 				state.currentView = 'gallery';
 				// Start loading photos and polling.
-				const { actions } = store('event-guest-photos-sharing');
+				const { actions } = store('pixfete');
 				actions.loadPhotos();
 				actions.startPolling();
 			} else if (cookie && cookie.consent === false) {
@@ -510,7 +510,7 @@ const { state } = store('event-guest-photos-sharing', {
 
 				state.currentView = 'gallery';
 
-				const { actions } = store('event-guest-photos-sharing');
+				const { actions } = store('pixfete');
 				actions.loadPhotos();
 				actions.startPolling();
 			} catch {
@@ -573,7 +573,7 @@ const { state } = store('event-guest-photos-sharing', {
 		 */
 		*loadMore() {
 			state.currentPage += 1;
-			const { actions } = store('event-guest-photos-sharing');
+			const { actions } = store('pixfete');
 			yield actions.loadPhotos();
 		},
 
@@ -859,7 +859,7 @@ const { state } = store('event-guest-photos-sharing', {
 		 */
 		handleFabKeydown(event) {
 			if (event.key === 'Escape' && state.fabOpen) {
-				const { actions } = store('event-guest-photos-sharing');
+				const { actions } = store('pixfete');
 				actions.closeFab();
 			}
 		},

@@ -7,12 +7,12 @@
  * photos onto a big screen — it displays one photo at a time with
  * crossfade transitions, auto-advancing through submissions.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -49,10 +49,10 @@ class Slideshow {
 		// 2. Register the full-screen page template.
 		$template_content = (string) file_get_contents( EGPS_PLUGIN_DIR . 'templates/page-event-slideshow.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
 		register_block_template(
-			'event-guest-photos-sharing//' . self::TEMPLATE_SLUG,
+			'pixfete//' . self::TEMPLATE_SLUG,
 			array(
-				'title'       => esc_html__( 'Live Photo Wall (Full Screen)', 'event-guest-photos-sharing' ),
-				'description' => esc_html__( 'A minimal full-screen template for projecting event photos. No header or footer — just the photo wall.', 'event-guest-photos-sharing' ),
+				'title'       => esc_html__( 'Live Photo Wall (Full Screen)', 'pixfete' ),
+				'description' => esc_html__( 'A minimal full-screen template for projecting event photos. No header or footer — just the photo wall.', 'pixfete' ),
 				'content'     => $template_content,
 				'post_types'  => array( 'page' ),
 			)

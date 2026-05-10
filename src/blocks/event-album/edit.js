@@ -42,10 +42,7 @@ const INNER_BLOCKS_TEMPLATE = [
 	[
 		'core/paragraph',
 		{
-			placeholder: __(
-				'Enter the consent message guests will see before uploading photos…',
-				'event-guest-photos-sharing'
-			),
+			placeholder: __('Enter the consent message guests will see before uploading photos…', 'pixfete'),
 		},
 	],
 ];
@@ -156,9 +153,9 @@ export default function Edit({ attributes, setAttributes }) {
 	return (
 		<>
 			<InspectorControls>
-				<PanelBody title={__('Event Settings', 'event-guest-photos-sharing')}>
+				<PanelBody title={__('Event Settings', 'pixfete')}>
 					<TextControl
-						label={__('Event Password', 'event-guest-photos-sharing')}
+						label={__('Event Password', 'pixfete')}
 						value={password}
 						onChange={(value) => setAttributes({ password: value })}
 						help={
@@ -167,21 +164,21 @@ export default function Edit({ attributes, setAttributes }) {
 										/* translators: %d: minimum number of characters required for the event password */
 										__(
 											'Password must be at least %d characters. Guests will not be able to access the album until this is fixed.',
-											'event-guest-photos-sharing'
+											'pixfete'
 										),
 										MIN_PASSWORD_LENGTH
 									)
-								: __('Guests will use this password to access the album.', 'event-guest-photos-sharing')
+								: __('Guests will use this password to access the album.', 'pixfete')
 						}
 						__nextHasNoMarginBottom
 					/>
 					<Button variant="secondary" onClick={handleRegeneratePassword} style={{ marginTop: '8px' }}>
-						{__('Regenerate Password', 'event-guest-photos-sharing')}
+						{__('Regenerate Password', 'pixfete')}
 					</Button>
 				</PanelBody>
 
-				<PanelBody title={__('Date Range', 'event-guest-photos-sharing')} initialOpen={false}>
-					<p className="components-base-control__label">{__('Start Date', 'event-guest-photos-sharing')}</p>
+				<PanelBody title={__('Date Range', 'pixfete')} initialOpen={false}>
+					<p className="components-base-control__label">{__('Start Date', 'pixfete')}</p>
 					<DatePicker
 						currentDate={dateRangeStart || undefined}
 						onChange={(date) =>
@@ -197,12 +194,12 @@ export default function Edit({ attributes, setAttributes }) {
 							onClick={() => setAttributes({ dateRangeStart: '' })}
 							style={{ marginBottom: '16px' }}
 						>
-							{__('Clear start date', 'event-guest-photos-sharing')}
+							{__('Clear start date', 'pixfete')}
 						</Button>
 					)}
 
 					<p className="components-base-control__label" style={{ marginTop: '16px' }}>
-						{__('End Date', 'event-guest-photos-sharing')}
+						{__('End Date', 'pixfete')}
 					</p>
 					<DatePicker
 						currentDate={dateRangeEnd || undefined}
@@ -214,30 +211,30 @@ export default function Edit({ attributes, setAttributes }) {
 					/>
 					{dateRangeEnd && (
 						<Button variant="link" isDestructive onClick={() => setAttributes({ dateRangeEnd: '' })}>
-							{__('Clear end date', 'event-guest-photos-sharing')}
+							{__('Clear end date', 'pixfete')}
 						</Button>
 					)}
 				</PanelBody>
 
-				<PanelBody title={__('Guest Registration', 'event-guest-photos-sharing')} initialOpen={false}>
+				<PanelBody title={__('Guest Registration', 'pixfete')} initialOpen={false}>
 					<ToggleControl
-						label={__('Enable table names', 'event-guest-photos-sharing')}
+						label={__('Enable table names', 'pixfete')}
 						checked={enableTableNames}
 						onChange={(value) => setAttributes({ enableTableNames: value })}
-						help={__('Ask guests which table they are seated at.', 'event-guest-photos-sharing')}
+						help={__('Ask guests which table they are seated at.', 'pixfete')}
 						__nextHasNoMarginBottom
 					/>
 				</PanelBody>
 
-				<PanelBody title={__('Moderators', 'event-guest-photos-sharing')} initialOpen={false}>
+				<PanelBody title={__('Moderators', 'pixfete')} initialOpen={false}>
 					<p className="egps-editor-help">
 						{__(
 							'Assign users who can delete photos from the live gallery on their phone. Users must have the Event Photo Moderator role.',
-							'event-guest-photos-sharing'
+							'pixfete'
 						)}
 					</p>
 					<FormTokenField
-						label={__('Moderators', 'event-guest-photos-sharing')}
+						label={__('Moderators', 'pixfete')}
 						value={moderatorTokens}
 						suggestions={moderatorSuggestions}
 						onChange={onModeratorsChange}
@@ -248,25 +245,18 @@ export default function Edit({ attributes, setAttributes }) {
 
 			<div {...blockProps}>
 				<div className="egps-editor-consent">
-					<p className="egps-editor-label">{__('Consent Message', 'event-guest-photos-sharing')}</p>
+					<p className="egps-editor-label">{__('Consent Message', 'pixfete')}</p>
 					<p className="egps-editor-help">
-						{__(
-							'This message will be shown to guests before they can upload photos.',
-							'event-guest-photos-sharing'
-						)}
+						{__('This message will be shown to guests before they can upload photos.', 'pixfete')}
 					</p>
 					<InnerBlocks template={INNER_BLOCKS_TEMPLATE} />
 				</div>
 
 				<div className="egps-editor-preview-placeholder">
-					<p className="egps-editor-label">{__('Guest View Preview', 'event-guest-photos-sharing')}</p>
+					<p className="egps-editor-label">{__('Guest View Preview', 'pixfete')}</p>
 					<div className="egps-editor-preview-buttons">
-						<span className="egps-editor-preview-button">
-							{__('Take Photo', 'event-guest-photos-sharing')}
-						</span>
-						<span className="egps-editor-preview-button">
-							{__('Choose from Library', 'event-guest-photos-sharing')}
-						</span>
+						<span className="egps-editor-preview-button">{__('Take Photo', 'pixfete')}</span>
+						<span className="egps-editor-preview-button">{__('Choose from Library', 'pixfete')}</span>
 					</div>
 					<div className="egps-editor-preview-grid">
 						<div className="egps-editor-preview-cell" />

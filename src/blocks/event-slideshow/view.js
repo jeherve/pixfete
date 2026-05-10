@@ -82,7 +82,7 @@ function readCookie(eventPageId) {
 	return null;
 }
 
-const { state } = store('event-guest-photos-sharing/slideshow', {
+const { state } = store('pixfete/slideshow', {
 	state: {
 		currentView: 'loading',
 		passwordInput: '',
@@ -385,4 +385,4 @@ const { state } = store('event-guest-photos-sharing/slideshow', {
 // Forward reference: `actions` is used inside init(), submitPassword(), etc.
 // This works because those functions are only invoked after module load completes,
 // at which point this destructuring has already run.
-const { actions } = store('event-guest-photos-sharing/slideshow');
+const { actions } = store('pixfete/slideshow');

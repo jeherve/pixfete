@@ -2,16 +2,16 @@
 /**
  * Tests for the Admin class.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Admin;
+use Jeherve\Pixfete\Admin;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -59,11 +59,11 @@ class AdminTest extends TestCase {
 					return true;
 				}
 			)
-			->andReturn( 'settings_page_event-guest-photos-sharing' );
+			->andReturn( 'settings_page_pixfete' );
 
 		Admin::register_menu();
 
-		$this->assertSame( 'event-guest-photos-sharing', $captured_slug );
+		$this->assertSame( 'pixfete', $captured_slug );
 		$this->assertSame( 'manage_options', $captured_capability );
 	}
 
@@ -177,7 +177,7 @@ class AdminTest extends TestCase {
 				}
 			);
 
-		Admin::enqueue_scripts( 'settings_page_event-guest-photos-sharing' );
+		Admin::enqueue_scripts( 'settings_page_pixfete' );
 
 		// Mockery enforces the ->once() and ->withArgs() expectations above.
 		$this->assertTrue( true );
@@ -196,11 +196,11 @@ class AdminTest extends TestCase {
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/wedding' );
 		Functions\when( 'get_the_post_thumbnail_url' )->justReturn( false );
 		Functions\when( 'get_site_icon_url' )->justReturn( '' );
-		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )->once()->andReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array(
 						'password'     => 'secret',
 						'dateRangeEnd' => '2026-01-01',
@@ -234,7 +234,7 @@ class AdminTest extends TestCase {
 				}
 			);
 
-		Admin::enqueue_scripts( 'settings_page_event-guest-photos-sharing' );
+		Admin::enqueue_scripts( 'settings_page_pixfete' );
 
 		$this->assertArrayHasKey( 'archive', $captured_data['pages'][0] );
 		$this->assertSame( 'complete', $captured_data['pages'][0]['archive']['status'] );
@@ -318,13 +318,13 @@ class AdminTest extends TestCase {
 		Functions\when( 'get_site_icon_url' )->justReturn( '' );
 
 		// Mock REST::get_block_attributes chain to indicate this page has the event block.
-		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:jeherve/event-guest-photos-sharing -->' );
+		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:jeherve/pixfete -->' );
 		Functions\expect( 'parse_blocks' )
 			->once()
 			->andReturn(
 				array(
 					array(
-						'blockName' => 'event-guest-photos-sharing/event-album',
+						'blockName' => 'pixfete/event-album',
 						'attrs'     => array( 'password' => 'secret' ),
 					),
 				)
@@ -345,7 +345,7 @@ class AdminTest extends TestCase {
 				}
 			);
 
-		Admin::enqueue_scripts( 'settings_page_event-guest-photos-sharing' );
+		Admin::enqueue_scripts( 'settings_page_pixfete' );
 
 		$this->assertCount( 1, $captured_data['pages'] );
 		$this->assertSame(

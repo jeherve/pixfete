@@ -14,7 +14,7 @@ export function PageSelector({ pages, selectedPageId, onChange }) {
 	return (
 		<div className="egps-qr-page-selector">
 			<SelectControl
-				label={__('Select Event Page', 'event-guest-photos-sharing')}
+				label={__('Select Event Page', 'pixfete')}
 				value={String(selectedPageId)}
 				options={options}
 				onChange={(value) => onChange(Number(value))}

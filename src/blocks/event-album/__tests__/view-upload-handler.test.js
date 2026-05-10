@@ -16,7 +16,7 @@ jest.mock(
 		},
 		getContext: () => ({
 			pageId: 42,
-			restBase: '/wp-json/event-guest-photos-sharing/v1',
+			restBase: '/wp-json/pixfete/v1',
 			dateStart: '',
 			dateEnd: '',
 		}),

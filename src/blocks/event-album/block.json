@@ -1,13 +1,13 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "event-guest-photos-sharing/event-album",
+    "name": "pixfete/event-album",
     "version": "1.1.0",
     "title": "Event Photo Album",
     "category": "media",
     "icon": "format-image",
     "description": "A photo sharing album for event guests.",
-    "textdomain": "event-guest-photos-sharing",
+    "textdomain": "pixfete",
     "attributes": {
         "password": {
             "type": "string",

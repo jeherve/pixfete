@@ -7,7 +7,7 @@
 	"steps": [
 		{
 			"step": "activatePlugin",
-			"pluginPath": "event-guest-photos-sharing/event-guest-photos-sharing.php"
+			"pluginPath": "pixfete/pixfete.php"
 		}
 	]
 }

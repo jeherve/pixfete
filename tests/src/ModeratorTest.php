@@ -2,18 +2,18 @@
 /**
  * Tests for the Moderator class.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Actions;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Moderator;
+use Jeherve\Pixfete\Moderator;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -263,7 +263,7 @@ class ModeratorTest extends TestCase {
 	 * @param array $moderators Array of user IDs assigned as moderators.
 	 */
 	private function stub_page_with_moderators( int $page_id, array $moderators ): void {
-		$block_content = '<!-- wp:event-guest-photos-sharing/event-album -->';
+		$block_content = '<!-- wp:pixfete/event-album -->';
 
 		Functions\expect( 'get_post_field' )
 			->once()
@@ -276,7 +276,7 @@ class ModeratorTest extends TestCase {
 			->andReturn(
 				array(
 					array(
-						'blockName'  => 'event-guest-photos-sharing/event-album',
+						'blockName'  => 'pixfete/event-album',
 						'attrs'      => array( 'moderators' => $moderators ),
 						'innerBlocks' => array(),
 					),

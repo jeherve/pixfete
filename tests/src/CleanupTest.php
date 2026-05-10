@@ -2,16 +2,16 @@
 /**
  * Tests for the Cleanup class.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Cleanup;
+use Jeherve\Pixfete\Cleanup;
 use PHPUnit\Framework\TestCase;
 use WP_Error;
 
@@ -82,7 +82,7 @@ class CleanupTest extends TestCase {
 
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( false );
 
 		$result = Cleanup::delete_event( 42 );
@@ -103,17 +103,17 @@ class CleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 		Functions\expect( 'get_post_field' )
 			->once()
-			->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+			->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )
 			->once()
 			->andReturn(
 				array(
 					array(
-						'blockName' => 'event-guest-photos-sharing/event-album',
+						'blockName' => 'pixfete/event-album',
 						'attrs'     => array(),
 					),
 				)
@@ -224,17 +224,17 @@ class CleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 		Functions\expect( 'get_post_field' )
 			->once()
-			->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+			->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )
 			->once()
 			->andReturn(
 				array(
 					array(
-						'blockName' => 'event-guest-photos-sharing/event-album',
+						'blockName' => 'pixfete/event-album',
 						'attrs'     => array(),
 					),
 				)
@@ -287,7 +287,7 @@ class CleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 
 		// get_post_field is called twice: once by validate_page() and once
@@ -296,10 +296,10 @@ class CleanupTest extends TestCase {
 			->andReturnUsing(
 				function ( $field, $post_id ) {
 					if ( 42 === $post_id ) {
-						return '<!-- wp:event-guest-photos-sharing/event-album -->';
+						return '<!-- wp:pixfete/event-album -->';
 					}
 					if ( 200 === $post_id ) {
-						return '<!-- wp:event-guest-photos-sharing/event-slideshow {"eventPageId":42} /-->';
+						return '<!-- wp:pixfete/event-slideshow {"eventPageId":42} /-->';
 					}
 					return '';
 				}
@@ -313,14 +313,14 @@ class CleanupTest extends TestCase {
 					if ( str_contains( $content, 'event-album' ) ) {
 						return array(
 							array(
-								'blockName' => 'event-guest-photos-sharing/event-album',
+								'blockName' => 'pixfete/event-album',
 								'attrs'     => array(),
 							),
 						);
 					}
 					return array(
 						array(
-							'blockName'   => 'event-guest-photos-sharing/event-slideshow',
+							'blockName'   => 'pixfete/event-slideshow',
 							'attrs'       => array( 'eventPageId' => 42 ),
 							'innerBlocks' => array(),
 						),
@@ -385,18 +385,18 @@ class CleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 
 		Functions\expect( 'get_post_field' )
 			->andReturnUsing(
 				function ( $field, $post_id ) {
 					if ( 42 === $post_id ) {
-						return '<!-- wp:event-guest-photos-sharing/event-album -->';
+						return '<!-- wp:pixfete/event-album -->';
 					}
 					if ( 300 === $post_id ) {
 						// This slideshow references event 99, not event 42.
-						return '<!-- wp:event-guest-photos-sharing/event-slideshow {"eventPageId":99} /-->';
+						return '<!-- wp:pixfete/event-slideshow {"eventPageId":99} /-->';
 					}
 					return '';
 				}
@@ -408,14 +408,14 @@ class CleanupTest extends TestCase {
 					if ( str_contains( $content, 'event-album' ) ) {
 						return array(
 							array(
-								'blockName' => 'event-guest-photos-sharing/event-album',
+								'blockName' => 'pixfete/event-album',
 								'attrs'     => array(),
 							),
 						);
 					}
 					return array(
 						array(
-							'blockName'   => 'event-guest-photos-sharing/event-slideshow',
+							'blockName'   => 'pixfete/event-slideshow',
 							'attrs'       => array( 'eventPageId' => 99 ),
 							'innerBlocks' => array(),
 						),
@@ -473,7 +473,7 @@ class CleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 
 		// get_post_field is called twice: once by validate_page() for event page 42,
@@ -482,10 +482,10 @@ class CleanupTest extends TestCase {
 			->andReturnUsing(
 				function ( $field, $post_id ) {
 					if ( 42 === $post_id ) {
-						return '<!-- wp:event-guest-photos-sharing/event-album -->';
+						return '<!-- wp:pixfete/event-album -->';
 					}
 					if ( 200 === $post_id ) {
-						return '<!-- wp:core/group --><!-- wp:event-guest-photos-sharing/event-slideshow {"eventPageId":42} /--><!-- /wp:core/group -->';
+						return '<!-- wp:core/group --><!-- wp:pixfete/event-slideshow {"eventPageId":42} /--><!-- /wp:core/group -->';
 					}
 					return '';
 				}
@@ -499,7 +499,7 @@ class CleanupTest extends TestCase {
 					if ( str_contains( $content, 'event-album' ) ) {
 						return array(
 							array(
-								'blockName'   => 'event-guest-photos-sharing/event-album',
+								'blockName'   => 'pixfete/event-album',
 								'attrs'       => array(),
 								'innerBlocks' => array(),
 							),
@@ -512,7 +512,7 @@ class CleanupTest extends TestCase {
 							'attrs'       => array(),
 							'innerBlocks' => array(
 								array(
-									'blockName'   => 'event-guest-photos-sharing/event-slideshow',
+									'blockName'   => 'pixfete/event-slideshow',
 									'attrs'       => array( 'eventPageId' => 42 ),
 									'innerBlocks' => array(),
 								),
@@ -579,17 +579,17 @@ class CleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 		Functions\expect( 'get_post_field' )
 			->once()
-			->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+			->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )
 			->once()
 			->andReturn(
 				array(
 					array(
-						'blockName' => 'event-guest-photos-sharing/event-album',
+						'blockName' => 'pixfete/event-album',
 						'attrs'     => array(),
 					),
 				)

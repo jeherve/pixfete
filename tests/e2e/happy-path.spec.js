@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 
 /**
- * Happy path e2e test for the Event Guest Photos Sharing plugin.
+ * Happy path e2e test for the Pixfête plugin.
  *
  * Test 1 (Admin): Log into WP admin, create a page with the Event Album block,
  * read the auto-generated password, type a consent message, publish.
@@ -17,7 +17,7 @@ const path = require('path');
 let pageUrl = '';
 let eventPassword = '';
 
-test.describe('Event Guest Photos Sharing - Happy Path', () => {
+test.describe('Pixfête - Happy Path', () => {
 	test.describe.configure({ mode: 'serial' });
 
 	test('Admin: create a page with the Event Album block', async ({ page }) => {
@@ -40,7 +40,7 @@ test.describe('Event Guest Photos Sharing - Happy Path', () => {
 		});
 
 		// Create the page via REST API with block content.
-		const blockContent = `<!-- wp:event-guest-photos-sharing/event-album {"password":"${password}"} -->\n<!-- wp:paragraph -->\n<p>I consent to sharing my photos at this event.</p>\n<!-- /wp:paragraph -->\n<!-- /wp:event-guest-photos-sharing/event-album -->`;
+		const blockContent = `<!-- wp:pixfete/event-album {"password":"${password}"} -->\n<!-- wp:paragraph -->\n<p>I consent to sharing my photos at this event.</p>\n<!-- /wp:paragraph -->\n<!-- /wp:pixfete/event-album -->`;
 
 		const result = await page.evaluate(
 			async ({ content, wpNonce }) => {
@@ -173,7 +173,7 @@ test.describe('Event Guest Photos Sharing - Happy Path', () => {
 	});
 });
 
-test.describe('Event Guest Photos Sharing - Future Event', () => {
+test.describe('Pixfête - Future Event', () => {
 	test('Guest sees "not yet" message for a future event', async ({ page }) => {
 		// Log in as admin to create the page.
 		await page.goto('/wp-login.php');
@@ -190,7 +190,7 @@ test.describe('Event Guest Photos Sharing - Future Event', () => {
 
 		// Create a page with a future dateRangeStart.
 		const blockContent =
-			'<!-- wp:event-guest-photos-sharing/event-album {"password":"FutureTest1","dateRangeStart":"2099-12-31"} -->\n<!-- wp:paragraph -->\n<p>Consent text.</p>\n<!-- /wp:paragraph -->\n<!-- /wp:event-guest-photos-sharing/event-album -->';
+			'<!-- wp:pixfete/event-album {"password":"FutureTest1","dateRangeStart":"2099-12-31"} -->\n<!-- wp:paragraph -->\n<p>Consent text.</p>\n<!-- /wp:paragraph -->\n<!-- /wp:pixfete/event-album -->';
 
 		const result = await page.evaluate(
 			async ({ content, wpNonce }) => {

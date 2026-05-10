@@ -24,7 +24,7 @@ beforeEach(() => {
 	registeredStore = {};
 	mockContext = {
 		pageId: 42,
-		restBase: '/wp-json/event-guest-photos-sharing/v1',
+		restBase: '/wp-json/pixfete/v1',
 		restNonce: 'test-nonce-abc',
 		dateStart: '',
 		dateEnd: '',
@@ -97,7 +97,7 @@ describe('deletePhoto action', () => {
 		await runGenerator(actions.deletePhoto(event));
 
 		expect(global.fetch).toHaveBeenCalledWith(
-			'/wp-json/event-guest-photos-sharing/v1/photos/42/101',
+			'/wp-json/pixfete/v1/photos/42/101',
 			expect.objectContaining({
 				method: 'DELETE',
 				credentials: 'same-origin',

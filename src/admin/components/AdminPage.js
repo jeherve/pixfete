@@ -44,9 +44,9 @@ export function AdminPage() {
 	if (!pages.length) {
 		return (
 			<div className="egps-qr-empty">
-				<p>{__('No pages with the Event Photo Album block were found.', 'event-guest-photos-sharing')}</p>
+				<p>{__('No pages with the Event Photo Album block were found.', 'pixfete')}</p>
 				<p>
-					<a href="post-new.php?post_type=page">{__('Create a new page', 'event-guest-photos-sharing')}</a>
+					<a href="post-new.php?post_type=page">{__('Create a new page', 'pixfete')}</a>
 				</p>
 			</div>
 		);
@@ -71,7 +71,7 @@ export function AdminPage() {
 		<div className="egps-qr-admin">
 			<PageSelector pages={pages} selectedPageId={selectedPageId} onChange={handlePageChange} />
 
-			<h2>{__('QR Code Generator', 'event-guest-photos-sharing')}</h2>
+			<h2>{__('QR Code Generator', 'pixfete')}</h2>
 			<div className="egps-qr-admin-columns">
 				<QrConfigPanel page={selectedPage} config={configWithLogo} onConfigChange={setConfig} />
 				<QrPreview
@@ -82,12 +82,12 @@ export function AdminPage() {
 				/>
 			</div>
 
-			<h2>{__('Photo Archive', 'event-guest-photos-sharing')}</h2>
+			<h2>{__('Photo Archive', 'pixfete')}</h2>
 			<div className="egps-archive-section">
 				<ArchiveStatus archive={selectedPage.archive} dateRangeEnd={selectedPage.dateRangeEnd || ''} />
 			</div>
 
-			<h2>{__('Event Cleanup', 'event-guest-photos-sharing')}</h2>
+			<h2>{__('Event Cleanup', 'pixfete')}</h2>
 			<div className="egps-cleanup-section">
 				<EventCleanup
 					pageId={selectedPage.id}

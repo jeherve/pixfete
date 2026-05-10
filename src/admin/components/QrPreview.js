@@ -50,13 +50,13 @@ export function QrPreview({ url, slug, tableName, config }) {
 
 	return (
 		<div className="egps-qr-preview">
-			<h2>{__('Preview', 'event-guest-photos-sharing')}</h2>
+			<h2>{__('Preview', 'pixfete')}</h2>
 			<div ref={containerRef} className="egps-qr-preview-canvas" />
 			<p className="egps-qr-preview-url">
 				<code>{url}</code>
 			</p>
 			<Button variant="primary" onClick={handleDownload} disabled={!isReady}>
-				{__('Download PNG', 'event-guest-photos-sharing')}
+				{__('Download PNG', 'pixfete')}
 			</Button>
 		</div>
 	);

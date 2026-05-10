@@ -1,4 +1,4 @@
-# CLAUDE.md — Event Guest Photos Sharing
+# CLAUDE.md — Pixfête
 
 ## Quick Reference
 
@@ -26,8 +26,8 @@
 
 ## Architecture
 
-- **Namespace**: `Jeherve\Event_Guest_Photos_Sharing` — all PHP classes use this namespace with `declare(strict_types=1)`.
-- **No Composer autoloader for `src/`** — classes are manually `require_once`'d. When adding a new class, you must add it to both `event-guest-photos-sharing.php` and `tests/bootstrap.php`.
+- **Namespace**: `Jeherve\Pixfete` — all PHP classes use this namespace with `declare(strict_types=1)`.
+- **No Composer autoloader for `src/`** — classes are manually `require_once`'d. When adding a new class, you must add it to both `pixfete.php` and `tests/bootstrap.php`.
 - **Hook prefix**: all custom filters and actions use the `egps_` prefix (e.g., `egps_allowed_mime_types`, `egps_after_photo_upload`).
 - **Static class design**: `Block`, `Cookie`, and `Upload` use static methods. `REST` extends `WP_REST_Controller`.
 - **ABSPATH guard**: every PHP file must include `defined( 'ABSPATH' ) || exit;` at the top.

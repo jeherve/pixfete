@@ -2,7 +2,7 @@
 /**
  * PHPUnit bootstrap file.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
@@ -23,7 +23,7 @@ if ( ! defined( 'EGPS_PLUGIN_DIR' ) ) {
 }
 
 if ( ! defined( 'EGPS_PLUGIN_URL' ) ) {
-	define( 'EGPS_PLUGIN_URL', 'http://example.com/wp-content/plugins/event-guest-photos-sharing/' );
+	define( 'EGPS_PLUGIN_URL', 'http://example.com/wp-content/plugins/pixfete/' );
 }
 
 if ( ! defined( 'EGPS_VERSION' ) ) {

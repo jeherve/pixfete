@@ -5,7 +5,7 @@
  * photo gallery grid, upload buttons, and lightbox overlay.
  */
 
-.wp-block-event-guest-photos-sharing-event-album {
+.wp-block-pixfete-event-album {
 	// Required to suppress horizontal scroll introduced by the edge-to-edge
 	// grid technique on mobile (see .egps-grid margin/width rules below).
 	overflow-x: hidden;
@@ -15,7 +15,6 @@
 	.egps-loading {
 		text-align: center;
 		padding: 48px 16px;
-		color: #757575;
 	}
 
 	// ─── Not Started ────────────────────────────────────────────────
@@ -23,7 +22,6 @@
 	.egps-not-started {
 		text-align: center;
 		padding: 48px 16px;
-		color: #757575;
 	}
 
 	// ─── Forms (password + registration) ────────────────────────────

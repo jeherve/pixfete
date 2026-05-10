@@ -2,12 +2,12 @@
 /**
  * Register the Gutenberg block and page template.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -35,10 +35,10 @@ class Block {
 		// 2. Register the full-screen page template.
 		$template_content = (string) file_get_contents( EGPS_PLUGIN_DIR . 'templates/page-event-album.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local file, not a remote URL.
 		register_block_template(
-			'event-guest-photos-sharing//' . self::TEMPLATE_SLUG,
+			'pixfete//' . self::TEMPLATE_SLUG,
 			array(
-				'title'       => esc_html__( 'Event Album (Full Screen)', 'event-guest-photos-sharing' ),
-				'description' => esc_html__( 'A minimal template for the event photo album — just the site logo and page content, no header or footer.', 'event-guest-photos-sharing' ),
+				'title'       => esc_html__( 'Event Album (Full Screen)', 'pixfete' ),
+				'description' => esc_html__( 'A minimal template for the event photo album — just the site logo and page content, no header or footer.', 'pixfete' ),
 				'content'     => $template_content,
 				'post_types'  => array( 'page' ),
 			)

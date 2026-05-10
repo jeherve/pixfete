@@ -1,9 +1,9 @@
 {
-	"name": "event-guest-photos-sharing",
+	"name": "pixfete",
 	"description": "Allow your guests to share their photos of your event in a shared photo album, and display those photos live!",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/jeherve/event-guest-photos-sharing.git"
+		"url": "git+https://github.com/jeherve/pixfete.git"
 	},
 	"author": {
 		"name": "Jeremy Herve",
@@ -24,9 +24,9 @@
 	},
 	"license": "GPL-2.0-or-later",
 	"bugs": {
-		"url": "https://github.com/jeherve/event-guest-photos-sharing/issues"
+		"url": "https://github.com/jeherve/pixfete/issues"
 	},
-	"homepage": "https://github.com/jeherve/event-guest-photos-sharing#readme",
+	"homepage": "https://github.com/jeherve/pixfete#readme",
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",
 		"@testing-library/jest-dom": "^6.9.1",

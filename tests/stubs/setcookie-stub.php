@@ -6,12 +6,12 @@
  * PHP resolves it within the namespace first. This stub intercepts those
  * calls during tests and records the arguments for assertion.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 /**
  * Captured setcookie call arguments (last call).

@@ -48,7 +48,7 @@ export function EventCleanup({ pageId, dateRangeEnd, onEventDeleted }) {
 		const confirmed = confirm(
 			__(
 				'Are you sure? This will permanently delete the event page, all photos, and archive files. This cannot be undone.',
-				'event-guest-photos-sharing'
+				'pixfete'
 			)
 		);
 		if (!confirmed) {
@@ -60,7 +60,7 @@ export function EventCleanup({ pageId, dateRangeEnd, onEventDeleted }) {
 
 		try {
 			/* global wpApiSettings */
-			const response = await fetch(`${wpApiSettings.root}event-guest-photos-sharing/v1/events/${pageId}`, {
+			const response = await fetch(`${wpApiSettings.root}pixfete/v1/events/${pageId}`, {
 				method: 'DELETE',
 				headers: {
 					'X-WP-Nonce': wpApiSettings.nonce,
@@ -82,12 +82,7 @@ export function EventCleanup({ pageId, dateRangeEnd, onEventDeleted }) {
 
 	return (
 		<div className="egps-cleanup-section">
-			<p>
-				{__(
-					'Permanently delete this event page, all uploaded photos, and any archive files.',
-					'event-guest-photos-sharing'
-				)}
-			</p>
+			<p>{__('Permanently delete this event page, all uploaded photos, and any archive files.', 'pixfete')}</p>
 			{error && (
 				<Notice status="error" isDismissible onRemove={() => setError(null)}>
 					{error}
@@ -97,10 +92,10 @@ export function EventCleanup({ pageId, dateRangeEnd, onEventDeleted }) {
 				{isDeleting ? (
 					<>
 						<Spinner />
-						{__('Deleting…', 'event-guest-photos-sharing')}
+						{__('Deleting…', 'pixfete')}
 					</>
 				) : (
-					__('Delete Event Data', 'event-guest-photos-sharing')
+					__('Delete Event Data', 'pixfete')
 				)}
 			</Button>
 		</div>

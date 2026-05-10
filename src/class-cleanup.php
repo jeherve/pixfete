@@ -9,12 +9,12 @@
  * atomic operation prevents orphaned uploads from accumulating on disk and
  * ensures the option table stays tidy.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 use WP_Error;
 use WP_Query;
@@ -108,7 +108,7 @@ class Cleanup {
 				'post_type'      => 'page',
 				'post_status'    => array( 'publish', 'draft', 'private' ),
 				'numberposts'    => 100,
-				's'              => 'event-guest-photos-sharing/event-slideshow',
+				's'              => 'pixfete/event-slideshow',
 				'search_columns' => array( 'post_content' ),
 				'no_found_rows'  => true,
 			)
@@ -172,7 +172,7 @@ class Cleanup {
 	private static function has_slideshow_for_event( array $blocks, int $page_id ): bool {
 		foreach ( $blocks as $block ) {
 			if (
-				'event-guest-photos-sharing/event-slideshow' === ( $block['blockName'] ?? '' )
+				'pixfete/event-slideshow' === ( $block['blockName'] ?? '' )
 				&& ( (int) ( $block['attrs']['eventPageId'] ?? 0 ) ) === $page_id
 			) {
 				return true;

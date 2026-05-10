@@ -4,12 +4,12 @@
  *
  * Handles registration and deregistration of the egps_moderator role.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -40,7 +40,7 @@ class Moderator {
 	 *
 	 * @var string
 	 */
-	const BLOCK_NAME = 'event-guest-photos-sharing/event-album';
+	const BLOCK_NAME = 'pixfete/event-album';
 
 	/**
 	 * Register the egps_moderator role with minimal capabilities.

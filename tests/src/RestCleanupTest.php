@@ -2,16 +2,16 @@
 /**
  * Tests for the REST DELETE /events/{page_id} cleanup endpoint.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\REST;
+use Jeherve\Pixfete\REST;
 use PHPUnit\Framework\TestCase;
 use WP_Error;
 use WP_REST_Request;
@@ -113,17 +113,17 @@ class RestCleanupTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 		Functions\expect( 'get_post_field' )
 			->once()
-			->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+			->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )
 			->once()
 			->andReturn(
 				array(
 					array(
-						'blockName' => 'event-guest-photos-sharing/event-album',
+						'blockName' => 'pixfete/event-album',
 						'attrs'     => array(),
 					),
 				)

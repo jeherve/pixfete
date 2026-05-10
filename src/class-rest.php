@@ -12,12 +12,12 @@
  * Uses CSRF tokens stored as transients and HMAC-signed
  * cookies for stateless guest auth.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 use WP_Error;
 use WP_Query;
@@ -37,14 +37,14 @@ class REST extends WP_REST_Controller {
 	 *
 	 * @var string
 	 */
-	private const NAMESPACE = 'event-guest-photos-sharing/v1';
+	private const NAMESPACE = 'pixfete/v1';
 
 	/**
 	 * Block name for the event album.
 	 *
 	 * @var string
 	 */
-	private const BLOCK_NAME = 'event-guest-photos-sharing/event-album';
+	private const BLOCK_NAME = 'pixfete/event-album';
 
 	/**
 	 * Register REST API routes.
@@ -830,7 +830,7 @@ class REST extends WP_REST_Controller {
 		// 4. Create attachment with guest data from cookie.
 		$cookie_payload = Cookie::get_for_page( $page_id );
 		if ( null === $cookie_payload ) {
-			return new WP_Error( 'egps_invalid_cookie', __( 'Invalid or missing authentication.', 'event-guest-photos-sharing' ), array( 'status' => 403 ) );
+			return new WP_Error( 'egps_invalid_cookie', __( 'Invalid or missing authentication.', 'pixfete' ), array( 'status' => 403 ) );
 		}
 		$guest_data = array(
 			'guest_name' => $cookie_payload['guest_name'] ?? '',

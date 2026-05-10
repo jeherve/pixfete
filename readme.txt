@@ -1,4 +1,4 @@
-=== Event Guest Photos Sharing ===
+=== Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
 Stable tag: 1.2.0
@@ -12,7 +12,7 @@ Allow guests at your event to share photos in a shared album. They just scan a Q
 
 == Description ==
 
-Event Guest Photos Sharing lets event and wedding planners create pages where guests can upload and browse photos together.
+Pixfête lets event and wedding planners create pages where guests can upload and browse photos together.
 
 Your guests don't need to create an account or download an app. They scan a QR code at the venue, or tap a link you send them via email, WhatsApp, or text, and they're in. They can start sharing photos right away.
 
@@ -28,7 +28,7 @@ Your guests don't need to create an account or download an app. They scan a QR c
 * Guests don't need an account or an app. They scan a QR code or tap a link and start sharing right away.
 * Designed for phones at events, so the experience feels natural on mobile.
 * Password-protected pages with QR code support. You can embed the password in the QR code so guests go straight in.
-* Built-in QR code generator (Settings > Event Guest Photos Sharing) with custom colors, corner styles, and logo support.
+* Built-in QR code generator (Settings > Pixfête) with custom colors, corner styles, and logo support.
 * The gallery updates in real time as new photos come in.
 * Photos fill the screen edge-to-edge on mobile for an immersive, gallery-app feel.
 * Lightbox viewer for full-size photos.
@@ -66,11 +66,11 @@ No. Guests authenticate with a shared event password and provide their name. No 
 
 = How do guests access the event page? =
 
-Share the page URL directly, or use the built-in QR code generator under Settings > Event Guest Photos Sharing. You can create QR codes that include the event password and table name, so guests scan and go straight to the registration step. QR codes can be customized with your event's colors and logo.
+Share the page URL directly, or use the built-in QR code generator under Settings > Pixfête. You can create QR codes that include the event password and table name, so guests scan and go straight to the registration step. QR codes can be customized with your event's colors and logo.
 
 = How do I generate QR codes for my event? =
 
-Go to Settings > Event Guest Photos Sharing in your WordPress admin. Select an event page, choose which URL parameters to include (password, table name), optionally customize colors and corner styles, then download the QR code as a PNG. You can generate a different QR code for each table.
+Go to Settings > Pixfête in your WordPress admin. Select an event page, choose which URL parameters to include (password, table name), optionally customize colors and corner styles, then download the QR code as a PNG. You can generate a different QR code for each table.
 
 = What image formats are supported? =
 
@@ -98,7 +98,7 @@ Yes. In the site editor, assign the "Event Album (Full Screen)" page template to
 
 = How do I download all photos from an event? =
 
-After your event ends (based on the end date you set in the block settings), the plugin automatically generates a ZIP file with all original, full-resolution photos. Go to Settings > Event Guest Photos Sharing, select the event page, and you'll see a "Download ZIP" button in the Photo Archive section. No action needed — the archive is created in the background after the event date passes.
+After your event ends (based on the end date you set in the block settings), the plugin automatically generates a ZIP file with all original, full-resolution photos. Go to Settings > Pixfête, select the event page, and you'll see a "Download ZIP" button in the Photo Archive section. No action needed — the archive is created in the background after the event date passes.
 
 = Can I show photos on a projector during the event? =
 
@@ -132,6 +132,7 @@ Not by default, but developers can use the `egps_max_uploads_per_guest` filter t
 * The Live Photo Wall now loads photos correctly on sites using plain permalink structures.
 * The Live Photo Wall password form and other views now display correctly instead of being hidden behind the loading screen.
 * The moderation banner and photo delete buttons no longer appear to all visitors — they are now correctly shown only to assigned moderators.
+* The "event not started yet" and loading messages now use the theme's text color, so they remain readable on themes with tinted backgrounds.
 
 = 1.2.0 - 2026-03-26 =
 

@@ -1,13 +1,13 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "event-guest-photos-sharing/event-slideshow",
+    "name": "pixfete/event-slideshow",
     "version": "1.0.0",
     "title": "Live Photo Wall",
     "category": "media",
     "icon": "slides",
     "description": "A full-screen live photo wall for projecting event photos.",
-    "textdomain": "event-guest-photos-sharing",
+    "textdomain": "pixfete",
     "attributes": {
         "password": {
             "type": "string",

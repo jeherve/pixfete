@@ -7,7 +7,7 @@
  * context. The slideshow has four views: loading, not-started, password
  * form, and the main slideshow display.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  *
  * @var array    $attributes Block attributes.
  * @var string   $content    Inner block content (unused — this block has no InnerBlocks).
@@ -16,7 +16,7 @@
 
 declare(strict_types=1);
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,12 +37,12 @@ $egps_context = array(
 	'interval'      => (int) ( $attributes['interval'] ?? 5 ),
 	'dateStart'     => $attributes['dateRangeStart'] ?? '',
 	'dateEnd'       => $attributes['dateRangeEnd'] ?? '',
-	'restBase'      => rest_url( 'event-guest-photos-sharing/v1' ),
+	'restBase'      => rest_url( 'pixfete/v1' ),
 );
 ?>
 <div
 	<?php echo get_block_wrapper_attributes( array( 'class' => 'egps-slideshow' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped attributes. ?>
-	data-wp-interactive="event-guest-photos-sharing/slideshow"
+	data-wp-interactive="pixfete/slideshow"
 	data-wp-init="actions.init"
 	data-wp-context='<?php echo esc_attr( wp_json_encode( $egps_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
@@ -51,7 +51,7 @@ $egps_context = array(
 		class="egps-slideshow-loading"
 		data-wp-bind--hidden="!state.isLoadingView"
 	>
-		<p><?php echo esc_html__( 'Loading…', 'event-guest-photos-sharing' ); ?></p>
+		<p><?php echo esc_html__( 'Loading…', 'pixfete' ); ?></p>
 	</div>
 
 	<?php // Not-started view — event hasn't begun yet. ?>
@@ -59,7 +59,7 @@ $egps_context = array(
 		class="egps-slideshow-not-started"
 		data-wp-bind--hidden="!state.isNotStartedView"
 	>
-		<p><?php echo esc_html__( "You're a little early! This event hasn't started yet — check back soon.", 'event-guest-photos-sharing' ); ?></p>
+		<p><?php echo esc_html__( "You're a little early! This event hasn't started yet — check back soon.", 'pixfete' ); ?></p>
 	</div>
 
 	<?php // Password form — simplified auth, no registration or consent. ?>
@@ -69,7 +69,7 @@ $egps_context = array(
 	>
 		<form data-wp-on-async--submit="actions.submitPassword">
 			<label for="egps-slideshow-password">
-				<?php echo esc_html__( 'Event Password', 'event-guest-photos-sharing' ); ?>
+				<?php echo esc_html__( 'Event Password', 'pixfete' ); ?>
 			</label>
 			<input
 				id="egps-slideshow-password"
@@ -88,7 +88,7 @@ $egps_context = array(
 				/>
 			</div>
 			<button type="submit" data-wp-bind--disabled="state.isSubmitting">
-				<?php echo esc_html__( 'Enter', 'event-guest-photos-sharing' ); ?>
+				<?php echo esc_html__( 'Enter', 'pixfete' ); ?>
 			</button>
 			<p
 				class="egps-slideshow-error"
@@ -147,7 +147,7 @@ $egps_context = array(
 			class="egps-slideshow-waiting"
 			data-wp-bind--hidden="!state.isWaiting"
 		>
-			<p><?php echo esc_html__( 'Waiting for photos…', 'event-guest-photos-sharing' ); ?></p>
+			<p><?php echo esc_html__( 'Waiting for photos…', 'pixfete' ); ?></p>
 		</div>
 	</div>
 </div>

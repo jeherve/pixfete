@@ -6,12 +6,12 @@
  * of original event photos after events end. Uses batched processing
  * to stay within PHP time limits on any hosting environment.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 defined( 'ABSPATH' ) || exit;
 

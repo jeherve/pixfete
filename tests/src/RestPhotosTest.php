@@ -2,17 +2,17 @@
 /**
  * Tests for the REST photo upload and gallery endpoints.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Cookie;
-use Jeherve\Event_Guest_Photos_Sharing\REST;
+use Jeherve\Pixfete\Cookie;
+use Jeherve\Pixfete\REST;
 use PHPUnit\Framework\TestCase;
 use WP_Error;
 use WP_REST_Request;
@@ -107,11 +107,11 @@ class RestPhotosTest extends TestCase {
 			$extra
 		);
 
-		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+		Functions\when( 'get_post_field' )->justReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\when( 'parse_blocks' )->justReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => $attrs,
 				),
 			)
@@ -175,12 +175,12 @@ class RestPhotosTest extends TestCase {
 		$gallery = $captured[2] ?? null;
 
 		$this->assertNotNull( $upload, 'Upload route must be registered.' );
-		$this->assertSame( 'event-guest-photos-sharing/v1', $upload['namespace'] );
+		$this->assertSame( 'pixfete/v1', $upload['namespace'] );
 		$this->assertSame( '/photos/(?P<page_id>\d+)', $upload['route'] );
 		$this->assertSame( 'POST', $upload['args']['methods'] );
 
 		$this->assertNotNull( $gallery, 'Gallery route must be registered.' );
-		$this->assertSame( 'event-guest-photos-sharing/v1', $gallery['namespace'] );
+		$this->assertSame( 'pixfete/v1', $gallery['namespace'] );
 		$this->assertSame( '/photos/(?P<page_id>\d+)', $gallery['route'] );
 		$this->assertSame( 'GET', $gallery['args']['methods'] );
 	}

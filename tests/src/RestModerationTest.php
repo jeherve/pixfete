@@ -6,16 +6,16 @@
  * attachment ownership) and the handler logic (successful deletion,
  * failed deletion).
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\REST;
+use Jeherve\Pixfete\REST;
 use PHPUnit\Framework\TestCase;
 use WP_Error;
 use WP_REST_Request;
@@ -89,7 +89,7 @@ class RestModerationTest extends TestCase {
 		$found = false;
 		foreach ( $registered_routes as $r ) {
 			if (
-				'event-guest-photos-sharing/v1' === $r['namespace']
+				'pixfete/v1' === $r['namespace']
 				&& '/photos/(?P<page_id>\d+)/(?P<attachment_id>\d+)' === $r['route']
 				&& 'DELETE' === $r['methods']
 			) {
@@ -177,19 +177,19 @@ class RestModerationTest extends TestCase {
 		Functions\expect( 'get_post_type' )->once()->with( 42 )->andReturn( 'page' );
 		Functions\expect( 'has_block' )
 			->once()
-			->with( 'event-guest-photos-sharing/event-album', 42 )
+			->with( 'pixfete/event-album', 42 )
 			->andReturn( true );
 		// get_post_field is called twice: once by validate_page() -> get_block_attributes()
 		// and once by Moderator::is_moderator_for_page().
 		Functions\expect( 'get_post_field' )
 			->twice()
-			->andReturn( '<!-- wp:event-guest-photos-sharing/event-album -->' );
+			->andReturn( '<!-- wp:pixfete/event-album -->' );
 		Functions\expect( 'parse_blocks' )
 			->twice()
 			->andReturn(
 				array(
 					array(
-						'blockName' => 'event-guest-photos-sharing/event-album',
+						'blockName' => 'pixfete/event-album',
 						'attrs'     => array( 'moderators' => array( 7 ) ),
 					),
 				)

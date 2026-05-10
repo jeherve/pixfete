@@ -1,13 +1,13 @@
 <?php
 /**
- * Admin class — registers the Settings > Event Guest Photos Sharing page.
+ * Admin class — registers the Settings > Pixfête page.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing;
+namespace Jeherve\Pixfete;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class Admin {
 
-	private const MENU_SLUG     = 'event-guest-photos-sharing';
+	private const MENU_SLUG     = 'pixfete';
 	private const SCRIPT_HANDLE = 'egps-qr-admin';
 
 	/**
@@ -24,8 +24,8 @@ class Admin {
 	 */
 	public static function register_menu(): void {
 		add_options_page(
-			__( 'Event Guest Photos Sharing', 'event-guest-photos-sharing' ),
-			__( 'Event Guest Photos Sharing', 'event-guest-photos-sharing' ),
+			__( 'Pixfête', 'pixfete' ),
+			__( 'Pixfête', 'pixfete' ),
 			'manage_options',
 			self::MENU_SLUG,
 			array( static::class, 'render_page' )

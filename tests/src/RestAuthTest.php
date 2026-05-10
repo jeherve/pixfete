@@ -2,16 +2,16 @@
 /**
  * Tests for the REST auth endpoint.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\REST;
+use Jeherve\Pixfete\REST;
 use PHPUnit\Framework\TestCase;
 use WP_Error;
 use WP_REST_Request;
@@ -92,12 +92,12 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'get_post_type' )->justReturn( 'page' );
 		Functions\when( 'has_block' )->justReturn( true );
 		Functions\when( 'get_post_field' )->justReturn(
-			'<!-- wp:event-guest-photos-sharing/event-album {"password":"' . $password . '","eventVersion":' . $version . '} -->'
+			'<!-- wp:pixfete/event-album {"password":"' . $password . '","eventVersion":' . $version . '} -->'
 		);
 		Functions\when( 'parse_blocks' )->justReturn(
 			array(
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array(
 						'password'     => $password,
 						'eventVersion' => $version,
@@ -170,7 +170,7 @@ class RestAuthTest extends TestCase {
 		// The first registration must be the auth endpoint.
 		$auth = $captured[0] ?? null;
 		$this->assertNotNull( $auth, 'Auth route must be registered.' );
-		$this->assertSame( 'event-guest-photos-sharing/v1', $auth['namespace'] );
+		$this->assertSame( 'pixfete/v1', $auth['namespace'] );
 		$this->assertSame( '/auth/(?P<page_id>\d+)', $auth['route'] );
 		$this->assertSame( 'POST', $auth['args']['methods'] );
 		$this->assertIsCallable( $auth['args']['callback'] );
@@ -641,7 +641,7 @@ class RestAuthTest extends TestCase {
 
 		// Set a valid cookie with consent=false.
 		$payload = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Event_Guest_Photos_Sharing\Cookie::sign( $payload );
+		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -682,7 +682,7 @@ class RestAuthTest extends TestCase {
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$payload = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Event_Guest_Photos_Sharing\Cookie::sign( $payload );
+		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$GLOBALS['egps_setcookie_last_call'] = null;
 
@@ -750,7 +750,7 @@ class RestAuthTest extends TestCase {
 		// Cookie with consent=true.
 		$payload              = $this->make_cookie_payload( 42, 1 );
 		$payload['consent']   = true;
-		$_COOKIE['egps_42']   = \Jeherve\Event_Guest_Photos_Sharing\Cookie::sign( $payload );
+		$_COOKIE['egps_42']   = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -786,7 +786,7 @@ class RestAuthTest extends TestCase {
 
 		// Cookie with event_version=1 (outdated).
 		$payload            = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Event_Guest_Photos_Sharing\Cookie::sign( $payload );
+		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -816,7 +816,7 @@ class RestAuthTest extends TestCase {
 
 		// Valid cookie with consent=false so cookie check passes.
 		$payload            = $this->make_cookie_payload( 42, 1 );
-		$_COOKIE['egps_42'] = \Jeherve\Event_Guest_Photos_Sharing\Cookie::sign( $payload );
+		$_COOKIE['egps_42'] = \Jeherve\Pixfete\Cookie::sign( $payload );
 
 		$request = $this->make_request(
 			array(
@@ -1015,7 +1015,7 @@ class RestAuthTest extends TestCase {
 	 */
 	public function test_get_block_attributes_returns_attrs(): void {
 		Functions\when( 'get_post_field' )->justReturn(
-			'<!-- wp:event-guest-photos-sharing/event-album {"password":"pw","eventVersion":2} -->'
+			'<!-- wp:pixfete/event-album {"password":"pw","eventVersion":2} -->'
 		);
 		Functions\when( 'parse_blocks' )->justReturn(
 			array(
@@ -1024,7 +1024,7 @@ class RestAuthTest extends TestCase {
 					'attrs'     => array(),
 				),
 				array(
-					'blockName' => 'event-guest-photos-sharing/event-album',
+					'blockName' => 'pixfete/event-album',
 					'attrs'     => array(
 						'password'     => 'pw',
 						'eventVersion' => 2,
@@ -1063,7 +1063,7 @@ class RestAuthTest extends TestCase {
 	 * Test get_block_attributes finds the block nested inside a group block.
 	 */
 	public function test_get_block_attributes_finds_nested_block(): void {
-		$content = '<!-- wp:group --><div class="wp-block-group"><!-- wp:event-guest-photos-sharing/event-album {"password":"test1234","eventVersion":1} /--></div><!-- /wp:group -->';
+		$content = '<!-- wp:group --><div class="wp-block-group"><!-- wp:pixfete/event-album {"password":"test1234","eventVersion":1} /--></div><!-- /wp:group -->';
 		Functions\when( 'get_post_field' )->justReturn( $content );
 		Functions\when( 'parse_blocks' )->justReturn(
 			array(
@@ -1072,7 +1072,7 @@ class RestAuthTest extends TestCase {
 					'attrs'       => array(),
 					'innerBlocks' => array(
 						array(
-							'blockName'   => 'event-guest-photos-sharing/event-album',
+							'blockName'   => 'pixfete/event-album',
 							'attrs'       => array(
 								'password'     => 'test1234',
 								'eventVersion' => 1,

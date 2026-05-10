@@ -47,7 +47,7 @@ async function fetchEventAttributes(pageId) {
 	 */
 	function findBlockAttrs(searchBlocks) {
 		for (const block of searchBlocks) {
-			if (block.blockName === 'event-guest-photos-sharing/event-album') {
+			if (block.blockName === 'pixfete/event-album') {
 				return block.attrs;
 			}
 			if (block.innerBlocks) {
@@ -85,7 +85,7 @@ export default function Edit({ attributes, setAttributes }) {
 		});
 		return (allPages || []).map((page) => ({
 			value: page.id,
-			label: decodeEntities(page.title.rendered) || __('(no title)', 'event-guest-photos-sharing'),
+			label: decodeEntities(page.title.rendered) || __('(no title)', 'pixfete'),
 		}));
 	}, []);
 
@@ -99,7 +99,7 @@ export default function Edit({ attributes, setAttributes }) {
 			try {
 				const attrs = await fetchEventAttributes(pageId);
 				if (!attrs) {
-					setSyncError(__('No Event Photo Album block found on that page.', 'event-guest-photos-sharing'));
+					setSyncError(__('No Event Photo Album block found on that page.', 'pixfete'));
 					return;
 				}
 				setAttributes({
@@ -110,7 +110,7 @@ export default function Edit({ attributes, setAttributes }) {
 					dateRangeEnd: attrs.dateRangeEnd || '',
 				});
 			} catch {
-				setSyncError(__('Could not fetch event page data.', 'event-guest-photos-sharing'));
+				setSyncError(__('Could not fetch event page data.', 'pixfete'));
 			} finally {
 				setIsSyncing(false);
 			}
@@ -131,16 +131,13 @@ export default function Edit({ attributes, setAttributes }) {
 	return (
 		<div {...blockProps}>
 			<InspectorControls>
-				<PanelBody title={__('Event Page', 'event-guest-photos-sharing')}>
+				<PanelBody title={__('Event Page', 'pixfete')}>
 					<ComboboxControl
-						label={__('Select Event Page', 'event-guest-photos-sharing')}
+						label={__('Select Event Page', 'pixfete')}
 						value={eventPageId || ''}
 						options={pages}
 						onChange={handlePageChange}
-						help={__(
-							'Choose the page containing the Event Photo Album block.',
-							'event-guest-photos-sharing'
-						)}
+						help={__('Choose the page containing the Event Photo Album block.', 'pixfete')}
 					/>
 					{eventPageId > 0 && (
 						<Button
@@ -149,7 +146,7 @@ export default function Edit({ attributes, setAttributes }) {
 							disabled={isSyncing}
 							onClick={() => syncFromEvent(eventPageId)}
 						>
-							{__('Refresh from event', 'event-guest-photos-sharing')}
+							{__('Refresh from event', 'pixfete')}
 						</Button>
 					)}
 					{syncError && (
@@ -158,31 +155,25 @@ export default function Edit({ attributes, setAttributes }) {
 						</Notice>
 					)}
 				</PanelBody>
-				<PanelBody title={__('Photo Wall Settings', 'event-guest-photos-sharing')} initialOpen={true}>
+				<PanelBody title={__('Photo Wall Settings', 'pixfete')} initialOpen={true}>
 					<RangeControl
-						label={__('Seconds per photo', 'event-guest-photos-sharing')}
+						label={__('Seconds per photo', 'pixfete')}
 						value={interval}
 						onChange={(value) => setAttributes({ interval: value })}
 						min={2}
 						max={30}
-						help={__(
-							'How long each photo is displayed before transitioning to the next.',
-							'event-guest-photos-sharing'
-						)}
+						help={__('How long each photo is displayed before transitioning to the next.', 'pixfete')}
 					/>
 				</PanelBody>
 			</InspectorControls>
 
 			<Placeholder
 				icon="slides"
-				label={__('Live Photo Wall', 'event-guest-photos-sharing')}
+				label={__('Live Photo Wall', 'pixfete')}
 				instructions={
 					eventPageId > 0 && password
-						? __(
-								'Photo wall is configured. Photos will appear here during the event.',
-								'event-guest-photos-sharing'
-							)
-						: __('Select an event page in the block settings to get started.', 'event-guest-photos-sharing')
+						? __('Photo wall is configured. Photos will appear here during the event.', 'pixfete')
+						: __('Select an event page in the block settings to get started.', 'pixfete')
 				}
 			/>
 		</div>

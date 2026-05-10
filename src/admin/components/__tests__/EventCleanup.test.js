@@ -74,7 +74,7 @@ describe('EventCleanup', () => {
 		});
 
 		await waitFor(() => {
-			expect(global.fetch).toHaveBeenCalledWith('/wp-json/event-guest-photos-sharing/v1/events/42', {
+			expect(global.fetch).toHaveBeenCalledWith('/wp-json/pixfete/v1/events/42', {
 				method: 'DELETE',
 				headers: { 'X-WP-Nonce': 'test-nonce' },
 			});

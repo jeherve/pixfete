@@ -9,7 +9,7 @@ let mockRegisteredStore = {};
 let mockContext = {
 	eventPageId: 1,
 	eventVersion: 1,
-	restBase: '/wp-json/event-guest-photos-sharing/v1',
+	restBase: '/wp-json/pixfete/v1',
 	dateStart: '',
 	interval: 5,
 	honeypotField: 'website',
@@ -34,7 +34,7 @@ beforeEach(() => {
 	mockContext = {
 		eventPageId: 1,
 		eventVersion: 1,
-		restBase: '/wp-json/event-guest-photos-sharing/v1',
+		restBase: '/wp-json/pixfete/v1',
 		dateStart: '',
 		interval: 5,
 		honeypotField: 'website',
@@ -54,7 +54,7 @@ function loadStore() {
 }
 
 describe('store namespace', () => {
-	test('registers under event-guest-photos-sharing/slideshow', () => {
+	test('registers under pixfete/slideshow', () => {
 		const mockStore = jest.fn((_name, definition) => {
 			if (definition) {
 				mockRegisteredStore = definition;
@@ -73,7 +73,7 @@ describe('store namespace', () => {
 
 		require('../view');
 
-		expect(mockStore).toHaveBeenCalledWith('event-guest-photos-sharing/slideshow', expect.any(Object));
+		expect(mockStore).toHaveBeenCalledWith('pixfete/slideshow', expect.any(Object));
 	});
 });
 

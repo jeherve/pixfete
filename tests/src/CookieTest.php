@@ -2,16 +2,16 @@
 /**
  * Tests for the Cookie class.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Cookie;
+use Jeherve\Pixfete\Cookie;
 use PHPUnit\Framework\TestCase;
 
 /**

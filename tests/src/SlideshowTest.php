@@ -2,16 +2,16 @@
 /**
  * Tests for the Slideshow class.
  *
- * @package Jeherve\Event_Guest_Photos_Sharing
+ * @package Jeherve\Pixfete
  */
 
 declare( strict_types=1 );
 
-namespace Jeherve\Event_Guest_Photos_Sharing\Tests;
+namespace Jeherve\Pixfete\Tests;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Jeherve\Event_Guest_Photos_Sharing\Slideshow;
+use Jeherve\Pixfete\Slideshow;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -97,7 +97,7 @@ class SlideshowTest extends TestCase {
 		Slideshow::register();
 
 		$this->assertSame(
-			'event-guest-photos-sharing//page-event-slideshow',
+			'pixfete//page-event-slideshow',
 			$captured_id,
 			'Template ID must follow the plugin-slug//template-slug format.'
 		);
