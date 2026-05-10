@@ -27,8 +27,26 @@ const eventPassword = 'LightboxNav99';
  * @return {Promise<string>} The published page URL.
  */
 async function createEventPage(page) {
-	// Log in to obtain auth cookies required for the REST API.
-	await page.goto('/wp-login.php');
+	// Log in to obtain auth cookies required for the REST API. Playground's
+	// first PHP request after server start can be slow enough that the login
+	// form has not rendered before Playwright tries to fill it, so retry the
+	// initial navigation until the form is present.
+	let loaded = false;
+	for (let attempt = 0; attempt < 3; attempt++) {
+		await page.goto('/wp-login.php', { waitUntil: 'domcontentloaded' });
+		if (
+			await page
+				.locator('#user_login')
+				.isVisible({ timeout: 10000 })
+				.catch(() => false)
+		) {
+			loaded = true;
+			break;
+		}
+		await page.waitForTimeout(2000);
+	}
+	expect(loaded, 'wp-login.php failed to render').toBeTruthy();
+
 	await page.fill('#user_login', 'admin');
 	await page.fill('#user_pass', 'password');
 	await page.click('#wp-submit');
