@@ -86,8 +86,7 @@ const { state } = store('pixfete', {
 		newPhotoCount: 0,
 		pendingPhotos: [],
 		consentNonce: '',
-		lightboxOpen: false,
-		lightboxPhoto: { full: '', guest_name: '' },
+		lightboxIndex: -1,
 		fabOpen: false,
 		latestUploadedAt: 0,
 		pollingId: 0,
@@ -185,6 +184,50 @@ const { state } = store('pixfete', {
 		 */
 		get showFab() {
 			return state.isGalleryView && state.isUploadEnabled && !state.lightboxOpen;
+		},
+
+		/**
+		 * Whether the lightbox is currently open.
+		 *
+		 * Derived from lightboxIndex so the open state is always consistent
+		 * with whether a valid photo index is selected.
+		 *
+		 * @return {boolean} True if a photo is selected for lightbox display.
+		 */
+		get lightboxOpen() {
+			return state.lightboxIndex >= 0;
+		},
+
+		/**
+		 * The photo currently displayed in the lightbox.
+		 *
+		 * Reads from state.photos[lightboxIndex] so the lightbox stays in
+		 * sync with the underlying photos array if it mutates (e.g., a
+		 * moderator deletes a photo or polling prepends new ones — see
+		 * deletePhoto and showNewPhotos for the index-correction logic).
+		 *
+		 * @return {Object} The active photo object, or an empty fallback when closed.
+		 */
+		get lightboxPhoto() {
+			return state.photos[state.lightboxIndex] ?? { full: '', guest_name: '' };
+		},
+
+		/**
+		 * Whether the lightbox can navigate to a previous photo.
+		 *
+		 * @return {boolean} True if the active photo is not the first one.
+		 */
+		get canGoPrev() {
+			return state.lightboxIndex > 0;
+		},
+
+		/**
+		 * Whether the lightbox can navigate to a next photo.
+		 *
+		 * @return {boolean} True if the active photo is not the last one.
+		 */
+		get canGoNext() {
+			return state.lightboxIndex >= 0 && state.lightboxIndex < state.photos.length - 1;
 		},
 
 		/**
@@ -791,37 +834,40 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Open the lightbox with the clicked photo.
+		 * Open the lightbox at the position of the clicked photo.
 		 *
-		 * Reads the photo data from the `data-wp-each` item context.
+		 * Reads the photo from the data-wp-each item context, finds its
+		 * position in state.photos, and stores that index. Storing the
+		 * index (rather than a copy of the photo) keeps the lightbox in
+		 * sync with the photos array if it mutates.
 		 */
 		openLightbox() {
 			const ctx = getContext();
-			if (ctx.item) {
-				state.lightboxPhoto = {
-					full: ctx.item.full,
-					guest_name: ctx.item.guest_name,
-				};
-				state.lightboxOpen = true;
+			if (!ctx.item) {
+				return;
+			}
+			const idx = state.photos.findIndex((p) => p.id === ctx.item.id);
+			if (idx >= 0) {
+				state.lightboxIndex = idx;
 			}
 		},
 
 		/**
 		 * Close the lightbox overlay.
 		 *
-		 * Prevents closing when clicking the image itself (only the
-		 * overlay background or close button should close it).
+		 * Clicks on the image itself or on the prev/next nav buttons must
+		 * not close the overlay — only clicks on the overlay background
+		 * or the explicit close button should. We use closest() to detect
+		 * the controls regardless of which element the click bubbled up
+		 * through.
 		 *
 		 * @param {Event} event The click event.
 		 */
 		closeLightbox(event) {
-			// Only close when clicking the overlay or close button,
-			// not when clicking the image.
-			if (event.target.tagName === 'IMG' && !event.target.classList.contains('pixfete-lightbox-close')) {
+			if (event && event.target.closest('.pixfete-lightbox-image, .pixfete-lightbox-nav')) {
 				return;
 			}
-			state.lightboxOpen = false;
-			state.lightboxPhoto = { full: '', guest_name: '' };
+			state.lightboxIndex = -1;
 		},
 
 		/**
