@@ -4,6 +4,7 @@
 /.wordpress-org
 /tests
 __tests__
+__fixtures__
 /node_modules
 /docs
 /.superpowers
