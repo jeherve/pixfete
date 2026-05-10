@@ -154,6 +154,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * If an upload fails after several attempts, it now waits for you to tap "Retry uploads" before trying again — the same behavior on every browser. Previously some browsers would auto-retry failed uploads silently, masking persistent network or server problems.
 * When two event pages are open in different browser tabs and a photo finishes uploading in the background, it now appears in the right gallery instead of being prepended to whichever event the tab last switched to.
 * Photo upload errors from the server (such as "out of disk space" or MIME-type rejections) no longer expose internal filesystem paths to guests. Guests now see a clear, translatable message and admins can find the full error in the WordPress debug log.
+* If a guest's saved sign-in becomes invalid (for example after the host changes the event password or rotates security keys), the page now bounces them back to the password screen with a clear "your session has expired" message instead of trapping them on a "Failed to load photos" error.
 
 **Developer notes**
 

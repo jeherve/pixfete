@@ -217,7 +217,7 @@ class Cookie {
 	 *
 	 * @return string Trailing-slash-terminated path.
 	 */
-	private static function cookie_path(): string {
+	public static function cookie_path(): string {
 		if ( defined( 'COOKIEPATH' ) && '' !== (string) COOKIEPATH ) {
 			return (string) COOKIEPATH;
 		}

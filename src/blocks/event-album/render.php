@@ -47,6 +47,7 @@ $pixfete_i18n = array(
 	'registrationFailed'     => __( 'Registration failed. Please try again.', 'pixfete' ),
 	'consentFailed'          => __( 'Failed to accept consent. Please try again.', 'pixfete' ),
 	'loadPhotosFailed'       => __( 'Failed to load photos.', 'pixfete' ),
+	'sessionExpired'         => __( 'Your session has expired. Please re-enter the event password to continue.', 'pixfete' ),
 	'uploadFailed'           => __( 'Upload failed. Please try again.', 'pixfete' ),
 	'uploadConnectionFailed' => __( 'Upload failed. Please check your connection and try again.', 'pixfete' ),
 	/* translators: 1: number of failed uploads, 2: total number of files in the batch. */
@@ -84,6 +85,7 @@ $pixfete_context     = array(
 	'restBase'         => rest_url( 'pixfete/v1' ),
 	'swUrl'            => $pixfete_pwa_enabled ? home_url( \Jeherve\Pixfete\PWA::SW_PATH ) : '',
 	'swScope'          => $pixfete_pwa_enabled ? \Jeherve\Pixfete\PWA::sw_scope() : '',
+	'cookiePath'       => \Jeherve\Pixfete\Cookie::cookie_path(),
 	'i18n'             => $pixfete_i18n,
 );
 

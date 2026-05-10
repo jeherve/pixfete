@@ -260,6 +260,23 @@ function restoreLightboxFocus() {
 }
 
 /**
+ * Delete the Pixfête cookie for a given page ID.
+ *
+ * Used when the server reports a stale/invalid cookie (HTTP 403 on the
+ * gallery endpoint). The path must match how the cookie was originally
+ * set so the deletion actually takes effect — on subdirectory installs
+ * the cookie is scoped to the site's URL path rather than `/`. The
+ * server-side path is exposed via context.cookiePath.
+ *
+ * @param {number} pageId     The WordPress page ID.
+ * @param {string} cookiePath Path the cookie was set on (defaults to `/`).
+ */
+function clearCookie(pageId, cookiePath = '/') {
+	const path = cookiePath || '/';
+	document.cookie = `pixfete_${pageId}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Lax`;
+}
+
+/**
  * Read and decode the Pixfête cookie for a given page ID.
  *
  * The cookie format is `{base64url-encoded JSON}.{HMAC}`. We only need
@@ -959,6 +976,39 @@ const { state } = store('pixfete', {
 		},
 
 		/**
+		 * Recover from a server-side cookie rejection.
+		 *
+		 * A 403 from the gallery endpoint means the cookie is no longer
+		 * trusted by the server (signature mismatch from a salt rotation,
+		 * payload expired, or eventVersion bumped). The cookie still looks
+		 * "valid enough" to the client to send init() down the gallery
+		 * path, which then hammers a permanent 403 and strands the guest
+		 * on a "Failed to load photos" screen with a Try Again button
+		 * that can never succeed.
+		 *
+		 * Clearing the cookie and reverting to the password gate gives
+		 * the guest the only recovery path that can actually work — a
+		 * fresh sign-in regenerates a valid cookie. Polling is stopped
+		 * so it doesn't keep firing against the dead session.
+		 */
+		expireSession() {
+			const ctx = getContext();
+			clearCookie(ctx.pageId, ctx.cookiePath);
+			if (state.pollingId) {
+				clearInterval(state.pollingId);
+				state.pollingId = 0;
+			}
+			state.photos = [];
+			state.pendingPhotos = [];
+			state.currentPage = 1;
+			state.latestUploadedAt = 0;
+			state.newPhotoCount = 0;
+			state.hasMore = false;
+			state.currentView = 'password';
+			state.errorMessage = ctx.i18n.sessionExpired;
+		},
+
+		/**
 		 * Load photos from the gallery endpoint.
 		 *
 		 * Fetches the current page of photos and appends them to the
@@ -979,6 +1029,11 @@ const { state } = store('pixfete', {
 				});
 
 				if (!response.ok) {
+					if (response.status === 403) {
+						const { actions } = store('pixfete');
+						actions.expireSession();
+						return;
+					}
 					state.errorMessage = ctx.i18n.loadPhotosFailed;
 					return;
 				}
@@ -1047,6 +1102,10 @@ const { state } = store('pixfete', {
 					});
 
 					if (!response.ok) {
+						if (response.status === 403) {
+							const { actions } = store('pixfete');
+							actions.expireSession();
+						}
 						return;
 					}
 
