@@ -22,7 +22,8 @@
 2. **Run `npm run test:unit`** — all JS tests must pass.
 3. **Run `composer run lint`** — zero PHPCS errors allowed. The ruleset is `Jetpack` (via `automattic/jetpack-codesniffer`), configured in `.phpcs.xml.dist`.
 4. **Run `npm run lint:js` and `npm run lint:css`** — zero lint errors.
-5. **Bug fixes must include a regression test** to prevent the issue from recurring.
+5. **Smoke-test runtime changes in the browser.** For any change that affects the block, editor UI, frontend, REST endpoints, or PHP runtime behavior, verify it against the running local site before claiming the work is done. See "Smoke Testing" below. Pure tooling, docs, or test-only changes are exempt.
+6. **Bug fixes must include a regression test** to prevent the issue from recurring.
 
 ## Architecture
 
@@ -38,6 +39,14 @@
 - Tests use **Brain\Monkey** for WP function mocking — there is no real WordPress install in the test suite.
 - A namespace-level `setcookie()` stub (`tests/stubs/setcookie-stub.php`) intercepts cookie calls during tests.
 - E2E tests use **Playwright** against WP Playground on port 9400.
+
+## Smoke Testing
+
+A local WordPress site with Pixfête already active is running in the workspace. Before claiming a runtime change is ready, exercise it against that site — unit tests verify code correctness, not feature correctness.
+
+Use Chrome DevTools MCP (`mcp__chrome-devtools__navigate_page`, `mcp__chrome-devtools__take_snapshot`, `mcp__chrome-devtools__list_console_messages`) to drive the site: load the affected pages, snapshot the UI, and check the console for errors. Cover the golden path of your change *and* nearby flows that could regress.
+
+If you can't drive the browser, say so in your hand-off — never claim a UI or runtime change works without verifying it.
 
 ## Build & Frontend
 
