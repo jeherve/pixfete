@@ -40,6 +40,39 @@ function formatString(template, value) {
 }
 
 /**
+ * Decorate a single raw queue record with view-only fields.
+ *
+ * The Interactivity API directives only resolve dotted reference paths
+ * — they cannot evaluate expressions like `=== 'failed'` or ternaries.
+ * Templates therefore bind to `context.item.isFailed` and
+ * `context.item.statusLabel`, and we precompute both here so the
+ * server-rendered i18n strings reach the placeholder UI.
+ *
+ * @param {Object} item Raw record from the upload queue.
+ * @param {Object} i18n Server-rendered translations (needs `queuedLabel` and `failedLabel`).
+ * @return {Object} The record extended with `isFailed` and `statusLabel`.
+ */
+function decoratePendingItem(item, i18n) {
+	const isFailed = item.status === 'failed';
+	return {
+		...item,
+		isFailed,
+		statusLabel: isFailed ? i18n.failedLabel : i18n.queuedLabel,
+	};
+}
+
+/**
+ * Decorate every item in a list — see {@link decoratePendingItem}.
+ *
+ * @param {Array<Object>} items Raw queue records.
+ * @param {Object}        i18n  Server-rendered translations.
+ * @return {Array<Object>} Decorated records.
+ */
+function decoratePending(items, i18n) {
+	return items.map((item) => decoratePendingItem(item, i18n));
+}
+
+/**
  * Register the Pixfête Service Worker if the platform supports it.
  *
  * Failures are non-fatal: without an SW we still have the in-page
@@ -63,11 +96,14 @@ async function registerServiceWorker(url) {
  * Wire up the message listener that lets the SW push upload results back.
  *
  * Mutates store state directly so the UI updates without a poll round-trip.
+ * Captures i18n at setup time because the listener fires outside any
+ * directive event, where `getContext()` no longer resolves.
  *
  * @param {Object} state The Interactivity state object to mutate.
+ * @param {Object} i18n  Server-rendered translations used to relabel decorated items.
  * @return {void}
  */
-function listenForSwMessages(state) {
+function listenForSwMessages(state, i18n) {
 	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
 		return;
 	}
@@ -86,7 +122,7 @@ function listenForSwMessages(state) {
 			}
 		} else if (data.type === 'pixfete:upload-failed') {
 			state.pendingUploads = state.pendingUploads.map((i) =>
-				i.id === data.queueId ? { ...i, status: 'failed' } : i
+				i.id === data.queueId ? decoratePendingItem({ ...i, status: 'failed' }, i18n) : i
 			);
 		}
 	});
@@ -437,24 +473,6 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Localized "uploading" label for queued placeholder thumbnails.
-		 *
-		 * @return {string} Translated text from server-rendered i18n context.
-		 */
-		get queuedLabelText() {
-			return getContext().i18n.queuedLabel;
-		},
-
-		/**
-		 * Localized "failed" label for permanent-failure placeholder thumbnails.
-		 *
-		 * @return {string} Translated text from server-rendered i18n context.
-		 */
-		get failedLabelText() {
-			return getContext().i18n.failedLabel;
-		},
-
-		/**
 		 * Localized label for the manual retry button.
 		 *
 		 * @return {string} Translated text from server-rendered i18n context.
@@ -506,7 +524,8 @@ const { state } = store('pixfete', {
 			// Restore any uploads queued on a previous visit so the user
 			// can see (and we can resume) their pending work.
 			try {
-				state.pendingUploads = yield listPending(getContext().pageId);
+				const restored = yield listPending(getContext().pageId);
+				state.pendingUploads = decoratePending(restored, getContext().i18n);
 			} catch {
 				state.pendingUploads = [];
 			}
@@ -541,7 +560,7 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			registerServiceWorker(ctx.swUrl);
-			listenForSwMessages(state);
+			listenForSwMessages(state, ctx.i18n);
 
 			// Sync moderator status from server-rendered context into
 			// global state so data-wp-bind directives can read it.
@@ -990,7 +1009,8 @@ const { state } = store('pixfete', {
 				yield enqueue({ pageId: ctx.pageId, blob: file, name: file.name });
 			}
 
-			state.pendingUploads = yield listPending(ctx.pageId);
+			const queued = yield listPending(ctx.pageId);
+			state.pendingUploads = decoratePending(queued, ctx.i18n);
 
 			// Reset the input so the same file can be selected again later.
 			event.target.value = '';
@@ -1020,7 +1040,8 @@ const { state } = store('pixfete', {
 		async retryUploads() {
 			const ctx = getContext();
 			await requeueFailed(ctx.pageId);
-			state.pendingUploads = await listPending(ctx.pageId);
+			const pending = await listPending(ctx.pageId);
+			state.pendingUploads = decoratePending(pending, ctx.i18n);
 			const { actions } = store('pixfete');
 			await actions.drainQueue();
 		},
@@ -1053,7 +1074,7 @@ const { state } = store('pixfete', {
 
 					if (!response.ok) {
 						await markFailed(item.id, 'http');
-						state.pendingUploads = await listPending(ctx.pageId);
+						state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
 						return;
 					}
 
@@ -1065,12 +1086,12 @@ const { state } = store('pixfete', {
 					}
 				} catch {
 					await markFailed(item.id, 'network');
-					state.pendingUploads = await listPending(ctx.pageId);
+					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
 					return;
 				}
 
 				pending = await listPending(ctx.pageId);
-				state.pendingUploads = pending;
+				state.pendingUploads = decoratePending(pending, ctx.i18n);
 			}
 		},
 

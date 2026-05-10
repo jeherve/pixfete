@@ -358,12 +358,12 @@ if ( $pixfete_is_moderator ) {
 				<template data-wp-each="state.pendingUploads">
 					<div
 						class="pixfete-photo pixfete-photo--queued"
-						data-wp-class--pixfete-photo--failed="context.item.status === 'failed'"
+						data-wp-class--pixfete-photo--failed="context.item.isFailed"
 					>
 						<div class="pixfete-photo-placeholder" aria-hidden="true"></div>
 						<span
 							class="pixfete-photo-status"
-							data-wp-text="context.item.status === 'failed' ? state.failedLabelText : state.queuedLabelText"
+							data-wp-text="context.item.statusLabel"
 						></span>
 					</div>
 				</template>
