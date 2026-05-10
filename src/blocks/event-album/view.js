@@ -318,11 +318,19 @@ const { state } = store('pixfete', {
 		/**
 		 * Initialize the app state on mount.
 		 *
-		 * Reads the cookie, checks URL parameters, and determines
-		 * which view to show first.
+		 * Reads the cookie, checks URL parameters, fetches a fresh CSRF
+		 * token, and determines which view to show first. Doubles as the
+		 * retry handler for the loading-view "Try again" button: clearing
+		 * `errorMessage` at the top resets prior failure state, and
+		 * `currentView` stays on 'loading' until we know where to send
+		 * the user.
 		 */
-		init() {
-			// Read URL parameters before cleaning.
+		*init() {
+			state.errorMessage = '';
+
+			// Read URL parameters before cleaning. Stash on state so a
+			// retry (which runs after URL params have been cleaned) still
+			// behaves correctly.
 			const url = new URL(window.location.href);
 			const keyParam = url.searchParams.get('key');
 			const tableParam = url.searchParams.get('table');
@@ -347,9 +355,6 @@ const { state } = store('pixfete', {
 				return;
 			}
 
-			// Read the cookie to determine initial state.
-			// ctx is retrieved here (after the early return) to satisfy the
-			// no-unused-vars-before-return lint rule.
 			const ctx = getContext();
 
 			// Sync moderator status from server-rendered context into
@@ -358,17 +363,39 @@ const { state } = store('pixfete', {
 			state.restNonce = ctx.restNonce ?? '';
 			const cookie = readCookie(ctx.pageId);
 
+			// Authenticated and consented — skip the token round-trip and
+			// go straight to the gallery. Saves a request on the path most
+			// returning visitors take.
 			if (cookie && cookie.consent === true) {
-				// Valid cookie with consent — go to gallery.
 				state.currentView = 'gallery';
-				// Start loading photos and polling.
 				const { actions } = store('pixfete');
 				actions.loadPhotos();
 				actions.startPolling();
-			} else if (cookie && cookie.consent === false) {
+				return;
+			}
+
+			// Every remaining path needs a CSRF-protected POST, so fetch a
+			// fresh token before transitioning. The HTML may be cached, so
+			// we don't trust any token that came in via the context.
+			try {
+				const response = yield fetch(`${ctx.restBase}/token/${ctx.pageId}`, {
+					credentials: 'same-origin',
+				});
+				if (!response.ok) {
+					state.errorMessage = ctx.i18n.initFailed;
+					return;
+				}
+				const data = yield response.json();
+				ctx.nonce = data.nonce;
+			} catch {
+				state.errorMessage = ctx.i18n.initConnectionFailed;
+				return;
+			}
+
+			if (cookie && cookie.consent === false) {
 				// Valid cookie without consent — show consent screen.
-				// Use the page-level CSRF token as the consent nonce, since
-				// the normal registration flow (which sets consentNonce) was skipped.
+				// Use the freshly fetched CSRF token as the consent nonce,
+				// since the normal registration flow (which sets consentNonce) was skipped.
 				state.consentNonce = ctx.nonce;
 				state.currentView = 'consent';
 			} else if (keyParam) {
@@ -440,41 +467,47 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			try {
-				const body = {
-					action: 'validate_password',
-					password: state.passwordInput,
-				};
+				// Two attempts: if the first fails with an invalid-nonce error
+				// and the server hands us a fresh one, retry transparently
+				// rather than surfacing a confusing CSRF error to the user.
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const body = {
+						action: 'validate_password',
+						password: state.passwordInput,
+					};
 
-				// Include honeypot field (should be empty for real users).
-				body[ctx.honeypotField] = '';
+					// Include honeypot field (should be empty for real users).
+					body[ctx.honeypotField] = '';
 
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': ctx.nonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify(body),
-				});
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': ctx.nonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify(body),
+					});
 
-				if (!response.ok) {
-					const errorData = yield response.json();
-					state.errorMessage = errorData.message || ctx.i18n.passwordIncorrect;
-
-					// Update the nonce from the error response so retries work.
-					// The original nonce was consumed during CSRF verification.
-					if (errorData.data?.nonce) {
-						ctx.nonce = errorData.data.nonce;
+					if (!response.ok) {
+						const errorData = yield response.json();
+						if (errorData.data?.nonce) {
+							ctx.nonce = errorData.data.nonce;
+						}
+						if (attempt === 1 && errorData.code === 'pixfete_invalid_nonce' && errorData.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = errorData.message || ctx.i18n.passwordIncorrect;
+						return;
 					}
+
+					const data = yield response.json();
+
+					// Store the fresh nonce for the registration step.
+					ctx.nonce = data.nonce;
+					state.currentView = 'registration';
 					return;
 				}
-
-				const data = yield response.json();
-
-				// Store the fresh nonce for the registration step.
-				ctx.nonce = data.nonce;
-				state.currentView = 'registration';
 			} catch {
 				state.errorMessage = ctx.i18n.networkError;
 			} finally {
@@ -504,40 +537,44 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			try {
-				const body = {
-					action: 'register',
-					password: state.passwordInput,
-					guest_name: state.guestName.trim(),
-					table_name: state.tableName.trim(),
-				};
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const body = {
+						action: 'register',
+						password: state.passwordInput,
+						guest_name: state.guestName.trim(),
+						table_name: state.tableName.trim(),
+					};
 
-				// Include honeypot field (should be empty for real users).
-				body[ctx.honeypotField] = '';
+					// Include honeypot field (should be empty for real users).
+					body[ctx.honeypotField] = '';
 
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': ctx.nonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify(body),
-				});
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': ctx.nonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify(body),
+					});
 
-				if (!response.ok) {
-					const errorData = yield response.json();
-					state.errorMessage = errorData.message || ctx.i18n.registrationFailed;
-
-					// Update the nonce from the error response so retries work.
-					if (errorData.data?.nonce) {
-						ctx.nonce = errorData.data.nonce;
+					if (!response.ok) {
+						const errorData = yield response.json();
+						if (errorData.data?.nonce) {
+							ctx.nonce = errorData.data.nonce;
+						}
+						if (attempt === 1 && errorData.code === 'pixfete_invalid_nonce' && errorData.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = errorData.message || ctx.i18n.registrationFailed;
+						return;
 					}
+
+					const data = yield response.json();
+					state.consentNonce = data.consent_nonce || '';
+					state.currentView = 'consent';
 					return;
 				}
-
-				const data = yield response.json();
-				state.consentNonce = data.consent_nonce || '';
-				state.currentView = 'consent';
 			} catch {
 				state.errorMessage = ctx.i18n.networkError;
 			} finally {
@@ -558,27 +595,36 @@ const { state } = store('pixfete', {
 			const ctx = getContext();
 
 			try {
-				const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-Pixfete-Nonce': state.consentNonce,
-					},
-					credentials: 'same-origin',
-					body: JSON.stringify({ action: 'consent' }),
-				});
+				for (let attempt = 1; attempt <= 2; attempt++) {
+					const response = yield fetch(`${ctx.restBase}/auth/${ctx.pageId}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-Pixfete-Nonce': state.consentNonce,
+						},
+						credentials: 'same-origin',
+						body: JSON.stringify({ action: 'consent' }),
+					});
 
-				if (!response.ok) {
-					const errorData = yield response.json();
-					state.errorMessage = errorData.message || ctx.i18n.consentFailed;
+					if (!response.ok) {
+						const errorData = yield response.json();
+						if (errorData.data?.nonce) {
+							state.consentNonce = errorData.data.nonce;
+						}
+						if (attempt === 1 && errorData.code === 'pixfete_invalid_nonce' && errorData.data?.nonce) {
+							continue;
+						}
+						state.errorMessage = errorData.message || ctx.i18n.consentFailed;
+						return;
+					}
+
+					state.currentView = 'gallery';
+
+					const { actions } = store('pixfete');
+					actions.loadPhotos();
+					actions.startPolling();
 					return;
 				}
-
-				state.currentView = 'gallery';
-
-				const { actions } = store('pixfete');
-				actions.loadPhotos();
-				actions.startPolling();
 			} catch {
 				state.errorMessage = ctx.i18n.networkError;
 			} finally {

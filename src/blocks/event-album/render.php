@@ -16,9 +16,10 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
-// Generate a one-time CSRF token and store it in a transient.
-$pixfete_csrf_token = wp_generate_password( 32, false );
-set_transient( 'pixfete_csrf_' . $pixfete_csrf_token, get_the_ID(), HOUR_IN_SECONDS );
+// The CSRF token is fetched at runtime from the REST /token endpoint
+// rather than baked into this HTML, so caching this output (page cache,
+// CDN, browser bfcache, link unfurlers) can't trap visitors with a stale
+// or already-consumed token. The frontend populates `nonce` on init.
 
 $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
@@ -39,6 +40,8 @@ $pixfete_enable_table_names = ! empty( $attributes['enableTableNames'] );
 $pixfete_i18n = array(
 	'passwordRequired'       => __( 'Please enter the event password.', 'pixfete' ),
 	'passwordIncorrect'      => __( 'The password is incorrect.', 'pixfete' ),
+	'initFailed'             => __( 'Could not initialize. Please try again.', 'pixfete' ),
+	'initConnectionFailed'   => __( 'Could not initialize. Please check your connection and try again.', 'pixfete' ),
 	'nameRequired'           => __( 'Please enter your name.', 'pixfete' ),
 	'networkError'           => __( 'A network error occurred. Please try again.', 'pixfete' ),
 	'registrationFailed'     => __( 'Registration failed. Please try again.', 'pixfete' ),
@@ -63,7 +66,7 @@ $pixfete_i18n = array(
 // Build the Interactivity API context.
 $pixfete_context = array(
 	'pageId'           => get_the_ID(),
-	'nonce'            => $pixfete_csrf_token,
+	'nonce'            => '',
 	'honeypotField'    => $pixfete_honeypot_field,
 	'enableTableNames' => $pixfete_enable_table_names,
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
@@ -101,9 +104,19 @@ if ( $pixfete_is_moderator ) {
 			<p><?php esc_html_e( "You\u{2019}re a little early! This event hasn\u{2019}t started yet \u{2014} check back soon.", 'pixfete' ); ?></p>
 		</div>
 
-		<?php // Loading view. ?>
+		<?php
+		// Loading view. Doubles as the surface for an init failure
+		// (e.g. token fetch could not reach the server), with a retry
+		// button so the user isn't permanently stuck.
+		?>
 		<div data-wp-bind--hidden="!state.isLoadingView" class="pixfete-loading">
-			<p><?php esc_html_e( 'Loading…', 'pixfete' ); ?></p>
+			<p data-wp-bind--hidden="state.errorMessage"><?php esc_html_e( 'Loading…', 'pixfete' ); ?></p>
+			<div data-wp-bind--hidden="!state.errorMessage" class="pixfete-error" data-wp-text="state.errorMessage"></div>
+			<button
+				data-wp-bind--hidden="!state.errorMessage"
+				data-wp-on--click="actions.init"
+				type="button"
+			><?php esc_html_e( 'Try again', 'pixfete' ); ?></button>
 		</div>
 
 		<?php // Password view. ?>

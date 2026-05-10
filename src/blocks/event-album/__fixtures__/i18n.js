@@ -7,6 +7,8 @@
 module.exports = {
 	passwordRequired: 'Please enter the event password.',
 	passwordIncorrect: 'The password is incorrect.',
+	initFailed: 'Could not initialize. Please try again.',
+	initConnectionFailed: 'Could not initialize. Please check your connection and try again.',
 	nameRequired: 'Please enter your name.',
 	networkError: 'A network error occurred. Please try again.',
 	registrationFailed: 'Registration failed. Please try again.',
