@@ -86,10 +86,14 @@ class PWA {
 	 * string before comparing because clients (and `?ver=` cache
 	 * busters) sometimes append one.
 	 *
+	 * The expected path is derived from `home_url( SW_PATH )` rather
+	 * than the bare constant so subdirectory installs (where the home
+	 * URL carries a path prefix like `/blog/`) still match.
+	 *
 	 * @param string $request_uri Raw value of `$_SERVER['REQUEST_URI']`,
 	 *                            already unslashed and sanitized by the
 	 *                            caller (or empty when unavailable).
-	 * @return bool True when the path component equals SW_PATH.
+	 * @return bool True when the path component equals the SW URL path.
 	 */
 	public static function matches_sw_path( string $request_uri ): bool {
 		if ( '' === $request_uri ) {
@@ -99,6 +103,11 @@ class PWA {
 		$parts = wp_parse_url( $request_uri );
 		$path  = is_array( $parts ) && isset( $parts['path'] ) ? (string) $parts['path'] : '';
 
-		return self::SW_PATH === $path;
+		$expected_parts = wp_parse_url( home_url( self::SW_PATH ) );
+		$expected_path  = is_array( $expected_parts ) && isset( $expected_parts['path'] )
+			? (string) $expected_parts['path']
+			: self::SW_PATH;
+
+		return $expected_path === $path;
 	}
 }

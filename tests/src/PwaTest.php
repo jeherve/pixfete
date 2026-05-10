@@ -36,10 +36,25 @@ final class PwaTest extends TestCase {
 	}
 
 	/**
-	 * The canonical SW path matches.
+	 * Stub the WP helpers the matcher needs so each test stays focused
+	 * on path comparison rather than on Brain\Monkey ceremony.
+	 *
+	 * @param string $home_url The full home URL to return from `home_url()`.
+	 */
+	private function stub_url_helpers( string $home_url ): void {
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		Functions\when( 'home_url' )->alias(
+			static function ( string $path = '' ) use ( $home_url ): string {
+				return rtrim( $home_url, '/' ) . $path;
+			}
+		);
+	}
+
+	/**
+	 * The canonical SW path matches on a root install.
 	 */
 	public function test_matches_sw_path_accepts_canonical_path(): void {
-		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		$this->stub_url_helpers( 'https://example.test' );
 
 		$this->assertTrue( PWA::matches_sw_path( '/pixfete-sw.js' ) );
 	}
@@ -49,16 +64,28 @@ final class PwaTest extends TestCase {
 	 * sometimes append `?ver=...` cache busters or build hashes.
 	 */
 	public function test_matches_sw_path_strips_query_string(): void {
-		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		$this->stub_url_helpers( 'https://example.test' );
 
 		$this->assertTrue( PWA::matches_sw_path( '/pixfete-sw.js?ver=123' ) );
+	}
+
+	/**
+	 * Subdirectory installs (e.g. WordPress at `/blog/`) must match the
+	 * prefixed path that `home_url()` produces — otherwise the SW URL
+	 * 404s and Background Sync recovery is silently disabled.
+	 */
+	public function test_matches_sw_path_matches_subdirectory_install(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+
+		$this->assertTrue( PWA::matches_sw_path( '/blog/pixfete-sw.js' ) );
+		$this->assertFalse( PWA::matches_sw_path( '/pixfete-sw.js' ) );
 	}
 
 	/**
 	 * Unrelated paths do not match.
 	 */
 	public function test_matches_sw_path_rejects_other_paths(): void {
-		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		$this->stub_url_helpers( 'https://example.test' );
 
 		$this->assertFalse( PWA::matches_sw_path( '/wp-admin/' ) );
 		$this->assertFalse( PWA::matches_sw_path( '/' ) );
@@ -81,7 +108,7 @@ final class PwaTest extends TestCase {
 		$_SERVER['REQUEST_URI'] = '/wp-admin/';
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		$this->stub_url_helpers( 'https://example.test' );
 		Functions\expect( 'status_header' )->never();
 
 		PWA::maybe_serve();
