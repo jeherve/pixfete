@@ -143,6 +143,17 @@ async function tryRegisterBackgroundSync() {
 		return false;
 	}
 	try {
+		// `navigator.serviceWorker.ready` never resolves until a SW with a
+		// matching scope is active — and never rejects. On sites where
+		// Pixfête's SW is filtered off (`pixfete_serve_service_worker` →
+		// false) and no other plugin owns the scope, awaiting it would
+		// hang `handleFileSelect` and the consent-restore branch of
+		// `init()` indefinitely. Probe `getRegistration()` first so we
+		// can return false promptly and let the in-page drain take over.
+		const existing = await navigator.serviceWorker.getRegistration();
+		if (!existing) {
+			return false;
+		}
 		const reg = await navigator.serviceWorker.ready;
 		if (!reg || !('sync' in reg)) {
 			return false;
@@ -602,24 +613,31 @@ const { state } = store('pixfete', {
 		 *
 		 * Used by the progress banner. Derived from the queue rather than a
 		 * separate counter so the banner cannot drift out of sync with the
-		 * actual work pending.
+		 * actual work pending. Failed items are excluded because they only
+		 * retry on the manual "Retry uploads" affordance — leaving them in
+		 * the count would keep the banner visible after every upload had
+		 * permanently failed, contradicting its meaning.
 		 *
-		 * @return {boolean} True when at least one queued upload exists.
+		 * @return {boolean} True when at least one non-failed queued upload exists.
 		 */
 		get isUploading() {
-			return state.pendingUploads.length > 0;
+			return state.pendingUploads.some((item) => item.status !== 'failed');
 		},
 
 		/**
 		 * Short status text for the upload progress banner.
 		 *
+		 * Counts only items still in flight or waiting to be tried —
+		 * failed items are surfaced by the "Retry uploads" button instead.
+		 *
 		 * @return {string} Something like "📷 Uploading 3…".
 		 */
 		get uploadBannerText() {
-			if (!state.pendingUploads.length) {
+			const inFlight = state.pendingUploads.filter((item) => item.status !== 'failed').length;
+			if (!inFlight) {
 				return '';
 			}
-			return `\u{1f4f7} ${state.pendingUploads.length}\u2026`;
+			return `\u{1f4f7} ${inFlight}\u2026`;
 		},
 	},
 

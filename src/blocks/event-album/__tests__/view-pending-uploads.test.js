@@ -59,4 +59,29 @@ describe('pending uploads state', () => {
 		];
 		expect(def.state.hasFailedUploads).toBe(true);
 	});
+
+	test('isUploading is false when only failed items remain', () => {
+		// Regression: the banner used to count failed records too, so it
+		// kept showing "📷 N…" alongside the "Retry uploads" button after
+		// every upload had permanently failed. Failed items only retry on
+		// the manual button, so they aren't "in flight".
+		const def = loadStore();
+		def.state.pendingUploads = [
+			{ id: 1, status: 'failed' },
+			{ id: 2, status: 'failed' },
+		];
+		expect(def.state.isUploading).toBe(false);
+		expect(def.state.uploadBannerText).toBe('');
+	});
+
+	test('isUploading is true when at least one pending item remains', () => {
+		const def = loadStore();
+		def.state.pendingUploads = [
+			{ id: 1, status: 'pending' },
+			{ id: 2, status: 'failed' },
+		];
+		expect(def.state.isUploading).toBe(true);
+		// Banner counts only the in-flight item, not the failed one.
+		expect(def.state.uploadBannerText).toBe('\u{1f4f7} 1…');
+	});
 });
