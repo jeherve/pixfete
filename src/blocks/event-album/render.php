@@ -75,6 +75,7 @@ $pixfete_context = array(
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'pixfete/v1' ),
+	'swUrl'            => home_url( '/pixfete-sw.js' ),
 	'i18n'             => $pixfete_i18n,
 );
 

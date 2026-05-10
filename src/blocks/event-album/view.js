@@ -40,6 +40,59 @@ function formatString(template, value) {
 }
 
 /**
+ * Register the Pixfête Service Worker if the platform supports it.
+ *
+ * Failures are non-fatal: without an SW we still have the in-page
+ * drain loop, so the queue still works — just less magically.
+ *
+ * @param {string} url SW URL passed in from the server-rendered context.
+ * @return {Promise<ServiceWorkerRegistration|null>} Resolved registration or null.
+ */
+async function registerServiceWorker(url) {
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+		return null;
+	}
+	try {
+		return await navigator.serviceWorker.register(url, { scope: '/' });
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Wire up the message listener that lets the SW push upload results back.
+ *
+ * Mutates store state directly so the UI updates without a poll round-trip.
+ *
+ * @param {Object} state The Interactivity state object to mutate.
+ * @return {void}
+ */
+function listenForSwMessages(state) {
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+		return;
+	}
+	navigator.serviceWorker.addEventListener('message', (event) => {
+		const data = event.data;
+		if (!data || typeof data !== 'object') {
+			return;
+		}
+		if (data.type === 'pixfete:upload-success') {
+			state.pendingUploads = state.pendingUploads.filter((i) => i.id !== data.queueId);
+			if (data.photo) {
+				state.photos = [data.photo, ...state.photos];
+				if (data.photo.uploaded_at && data.photo.uploaded_at > state.latestUploadedAt) {
+					state.latestUploadedAt = data.photo.uploaded_at;
+				}
+			}
+		} else if (data.type === 'pixfete:upload-failed') {
+			state.pendingUploads = state.pendingUploads.map((i) =>
+				i.id === data.queueId ? { ...i, status: 'failed' } : i
+			);
+		}
+	});
+}
+
+/**
  * Number of photos to load per page.
  *
  * @type {number}
@@ -486,6 +539,9 @@ const { state } = store('pixfete', {
 			}
 
 			const ctx = getContext();
+
+			registerServiceWorker(ctx.swUrl);
+			listenForSwMessages(state);
 
 			// Sync moderator status from server-rendered context into
 			// global state so data-wp-bind directives can read it.
@@ -938,6 +994,15 @@ const { state } = store('pixfete', {
 
 			// Reset the input so the same file can be selected again later.
 			event.target.value = '';
+
+			try {
+				const reg = navigator.serviceWorker?.ready ? yield navigator.serviceWorker.ready : null;
+				if (reg && 'sync' in reg) {
+					yield reg.sync.register('pixfete-upload-queue');
+				}
+			} catch {
+				// Fall through to in-page drain — no SW or no Background Sync.
+			}
 
 			const { actions } = store('pixfete');
 			yield actions.drainQueue();
