@@ -42,7 +42,14 @@ export function openQueue() {
 			}
 		};
 		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => reject(req.error);
+		req.onerror = () => {
+			// Clear the cached promise so callers can retry. Otherwise a
+			// transient failure (private-browsing quota, storage corruption)
+			// would pin a rejected promise forever and every subsequent call
+			// would resurface the same error — even after resetForTests.
+			dbPromise = null;
+			reject(req.error);
+		};
 	});
 	return dbPromise;
 }
@@ -150,22 +157,6 @@ export async function markFailed(id, lastError) {
 	item.lastError = lastError;
 	item.status = 'failed';
 	await promisify(store.put(item));
-}
-
-/**
- * Delete a record outright (e.g. user dismissed a permanent failure).
- *
- * Aliased to markDone because both operations have the same effect on
- * storage — the difference is purely intent at the call site, which
- * the consumer can express through naming. Kept as a separate export
- * so future divergence (e.g. emitting a 'cancelled' analytics event)
- * doesn't require touching every caller.
- *
- * @param {number} id Queue record id.
- * @return {Promise<void>}
- */
-export async function deleteItem(id) {
-	return markDone(id);
 }
 
 /**

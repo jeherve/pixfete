@@ -4,33 +4,9 @@
  */
 /* eslint-enable jsdoc/check-tag-names */
 
-// jsdom doesn't expose `structuredClone` on its window/global, but
-// fake-indexeddb relies on it to snapshot stored values (including Blobs).
-// Provide a shallow-but-typed clone that preserves Blob identity for the
-// payloads this queue stores — sufficient for these tests, and only
-// installed when the runtime is missing the real implementation.
-if (typeof globalThis.structuredClone !== 'function') {
-	globalThis.structuredClone = (value) => {
-		if (value instanceof Blob) {
-			return value.slice(0, value.size, value.type);
-		}
-		if (Array.isArray(value)) {
-			return value.map((v) => globalThis.structuredClone(v));
-		}
-		if (value && typeof value === 'object') {
-			const out = {};
-			for (const key of Object.keys(value)) {
-				out[key] = globalThis.structuredClone(value[key]);
-			}
-			return out;
-		}
-		return value;
-	};
-}
-
 import 'fake-indexeddb/auto';
 
-import { openQueue, enqueue, listPending, markDone, markFailed, deleteItem, resetForTests } from '../upload-queue';
+import { openQueue, enqueue, listPending, markDone, markFailed, resetForTests } from '../upload-queue';
 
 beforeEach(async () => {
 	await resetForTests();
@@ -91,11 +67,38 @@ describe('upload-queue', () => {
 		expect(items[0].status).toBe('failed');
 	});
 
-	test('deleteItem removes the record entirely', async () => {
-		const id = await enqueue({ pageId: 1, blob: blob(), name: 'a.jpg' });
-		await deleteItem(id);
+	test('openQueue is retryable after an open failure', async () => {
+		// Without clearing the cached promise on failure, a transient
+		// IDB open error would pin `dbPromise` to a rejected promise and
+		// every subsequent call would resurface the same rejection — even
+		// across resetForTests. Force one failure, restore the real
+		// implementation, and assert that the next call succeeds.
+		const openSpy = jest.spyOn(globalThis.indexedDB, 'open').mockImplementationOnce(() => {
+			const req = {
+				onsuccess: null,
+				onerror: null,
+				onupgradeneeded: null,
+				error: new Error('forced failure'),
+				result: null,
+			};
+			// Fire onerror asynchronously to mimic the real IDBRequest contract.
+			queueMicrotask(() => {
+				if (typeof req.onerror === 'function') {
+					req.onerror({ target: req });
+				}
+			});
+			return req;
+		});
 
-		const items = await listPending(1);
-		expect(items).toHaveLength(0);
+		await expect(openQueue()).rejects.toThrow('forced failure');
+
+		// Restore the real implementation. The next call must rebuild the
+		// promise from scratch — which only happens if the failure path
+		// nulled the cached promise.
+		openSpy.mockRestore();
+
+		const db = await openQueue();
+		expect(db.name).toBe('pixfete-uploads');
+		expect(db.objectStoreNames.contains('queue')).toBe(true);
 	});
 });
