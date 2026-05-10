@@ -35,6 +35,11 @@ beforeEach(() => {
 			id: 101,
 			guest_name: 'Alice',
 			thumbnail: 'thumb.jpg',
+			src: 'src.jpg',
+			srcset: 'src-300.jpg 300w, src-768.jpg 768w',
+			sizes: '(min-width: 601px) 33vw, 100vw',
+			width: 768,
+			height: 512,
 			full: 'full.jpg',
 		},
 	};

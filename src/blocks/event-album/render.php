@@ -345,7 +345,11 @@ if ( $pixfete_is_moderator ) {
 				<template data-wp-each="state.photos">
 					<div class="pixfete-photo" data-wp-on--click="actions.openLightbox">
 						<img
-							data-wp-bind--src="context.item.thumbnail"
+							data-wp-bind--src="context.item.src"
+							data-wp-bind--srcset="context.item.srcset"
+							data-wp-bind--sizes="context.item.sizes"
+							data-wp-bind--width="context.item.width"
+							data-wp-bind--height="context.item.height"
 							data-wp-bind--alt="context.item.guest_name"
 							loading="lazy"
 						/>
