@@ -13,7 +13,7 @@ module.exports = defineConfig({
 		timeout: 10000,
 	},
 	use: {
-		baseURL: `http://127.0.0.1:${ playgroundPort }`,
+		baseURL: `http://127.0.0.1:${playgroundPort}`,
 		screenshot: 'only-on-failure',
 		trace: 'retain-on-failure',
 	},
