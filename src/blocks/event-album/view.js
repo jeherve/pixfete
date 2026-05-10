@@ -847,9 +847,12 @@ const { state } = store('pixfete', {
 				return;
 			}
 			const idx = state.photos.findIndex((p) => p.id === ctx.item.id);
-			if (idx >= 0) {
-				state.lightboxIndex = idx;
+			if (idx < 0) {
+				// The clicked photo is no longer in state.photos — it was likely
+				// removed by a concurrent moderator deletion. Nothing to open.
+				return;
 			}
+			state.lightboxIndex = idx;
 		},
 
 		/**
@@ -864,6 +867,8 @@ const { state } = store('pixfete', {
 		 * @param {Event} event The click event.
 		 */
 		closeLightbox(event) {
+			// '.pixfete-lightbox-close' is intentionally absent — clicks on the
+			// close button should propagate through to close the lightbox.
 			if (event && event.target.closest('.pixfete-lightbox-image, .pixfete-lightbox-nav')) {
 				return;
 			}
