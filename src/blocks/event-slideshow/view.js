@@ -175,7 +175,7 @@ const { state } = store('pixfete/slideshow', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'X-EGPS-Nonce': ctx.nonce,
+						'X-Pixfete-Nonce': ctx.nonce,
 					},
 					credentials: 'same-origin',
 					body: JSON.stringify({

@@ -386,7 +386,7 @@ const { state } = store('pixfete', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'X-EGPS-Nonce': ctx.nonce,
+						'X-Pixfete-Nonce': ctx.nonce,
 					},
 					credentials: 'same-origin',
 					body: JSON.stringify(body),
@@ -452,7 +452,7 @@ const { state } = store('pixfete', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'X-EGPS-Nonce': ctx.nonce,
+						'X-Pixfete-Nonce': ctx.nonce,
 					},
 					credentials: 'same-origin',
 					body: JSON.stringify(body),
@@ -496,7 +496,7 @@ const { state } = store('pixfete', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'X-EGPS-Nonce': state.consentNonce,
+						'X-Pixfete-Nonce': state.consentNonce,
 					},
 					credentials: 'same-origin',
 					body: JSON.stringify({ action: 'consent' }),

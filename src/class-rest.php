@@ -558,7 +558,7 @@ class REST extends WP_REST_Controller {
 	}
 
 	/**
-	 * Verify the CSRF nonce from the X-EGPS-Nonce header.
+	 * Verify the CSRF nonce from the X-Pixfete-Nonce header.
 	 *
 	 * Checks that the transient exists and matches the page ID,
 	 * then deletes it (one-time use).
@@ -568,7 +568,7 @@ class REST extends WP_REST_Controller {
 	 * @return WP_Error|null Error if invalid, null if valid.
 	 */
 	private static function verify_csrf_nonce( WP_REST_Request $request, int $page_id ): ?WP_Error {
-		$token = $request->get_header( 'X-EGPS-Nonce' );
+		$token = $request->get_header( 'X-Pixfete-Nonce' );
 
 		if ( empty( $token ) ) {
 			return new WP_Error(

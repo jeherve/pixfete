@@ -203,7 +203,7 @@ class RestAuthTest extends TestCase {
 				'guest_name' => 'Alice',
 				'table_name' => 'Table 5',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -241,7 +241,7 @@ class RestAuthTest extends TestCase {
 				'guest_name' => 'Alice',
 				'table_name' => 'Table 5',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		REST::handle_auth( $request );
@@ -269,7 +269,7 @@ class RestAuthTest extends TestCase {
 				'password'   => 'wrong-password',
 				'guest_name' => 'Alice',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -305,7 +305,7 @@ class RestAuthTest extends TestCase {
 				'guest_name' => 'Alice',
 				'email'      => 'bot@spam.com', // honeypot filled!
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -358,7 +358,7 @@ class RestAuthTest extends TestCase {
 				'password'   => 'correct-password',
 				'guest_name' => 'Alice',
 			),
-			array( 'X-EGPS-Nonce' => 'bogus-token' )
+			array( 'X-Pixfete-Nonce' => 'bogus-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -392,7 +392,7 @@ class RestAuthTest extends TestCase {
 				'password'   => 'correct-password',
 				'guest_name' => 'Alice',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -419,7 +419,7 @@ class RestAuthTest extends TestCase {
 				'password' => 'correct-password',
 				// guest_name missing!
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -447,7 +447,7 @@ class RestAuthTest extends TestCase {
 				'password'   => 'correct-password',
 				'guest_name' => '',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -471,7 +471,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'unknown',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -495,7 +495,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 999,
 				'action'  => 'register',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -519,7 +519,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'register',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -543,7 +543,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'register',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -567,7 +567,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'register',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -603,7 +603,7 @@ class RestAuthTest extends TestCase {
 				'password'   => 'short',
 				'guest_name' => 'Alice',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -648,7 +648,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'consent',
 			),
-			array( 'X-EGPS-Nonce' => 'consent-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'consent-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -691,7 +691,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'consent',
 			),
-			array( 'X-EGPS-Nonce' => 'consent-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'consent-nonce-token' )
 		);
 
 		REST::handle_auth( $request );
@@ -727,7 +727,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'consent',
 			),
-			array( 'X-EGPS-Nonce' => 'consent-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'consent-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -757,7 +757,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'consent',
 			),
-			array( 'X-EGPS-Nonce' => 'consent-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'consent-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -793,7 +793,7 @@ class RestAuthTest extends TestCase {
 				'page_id' => 42,
 				'action'  => 'consent',
 			),
-			array( 'X-EGPS-Nonce' => 'consent-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'consent-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -864,7 +864,7 @@ class RestAuthTest extends TestCase {
 				'action'   => 'slideshow_auth',
 				'password' => 'correct-password',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -910,7 +910,7 @@ class RestAuthTest extends TestCase {
 				'action'   => 'slideshow_auth',
 				'password' => 'wrong-password',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -943,7 +943,7 @@ class RestAuthTest extends TestCase {
 				'action'   => 'slideshow_auth',
 				'password' => '',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1119,7 +1119,7 @@ class RestAuthTest extends TestCase {
 				'action'   => 'validate_password',
 				'password' => 'correct-password',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1149,7 +1149,7 @@ class RestAuthTest extends TestCase {
 				'action'   => 'validate_password',
 				'password' => 'wrong-password',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1176,7 +1176,7 @@ class RestAuthTest extends TestCase {
 				'action'  => 'validate_password',
 				// password missing!
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1211,7 +1211,7 @@ class RestAuthTest extends TestCase {
 				'password' => 'correct-password',
 				'email'    => 'bot@spam.com',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1268,7 +1268,7 @@ class RestAuthTest extends TestCase {
 				'action'   => 'validate_password',
 				'password' => 'wrong-password',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1308,7 +1308,7 @@ class RestAuthTest extends TestCase {
 				'password' => 'correct-password',
 				'email'    => 'bot@spam.com',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1336,7 +1336,7 @@ class RestAuthTest extends TestCase {
 				'action'  => 'validate_password',
 				// password missing!
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1369,7 +1369,7 @@ class RestAuthTest extends TestCase {
 				'password'   => 'wrong-password',
 				'guest_name' => 'Alice',
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
@@ -1399,7 +1399,7 @@ class RestAuthTest extends TestCase {
 				'guest_name' => 'Alice',
 				// password missing!
 			),
-			array( 'X-EGPS-Nonce' => 'valid-nonce-token' )
+			array( 'X-Pixfete-Nonce' => 'valid-nonce-token' )
 		);
 
 		$response = REST::handle_auth( $request );
