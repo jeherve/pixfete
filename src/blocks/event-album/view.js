@@ -384,6 +384,24 @@ const { state } = store('pixfete', {
 		},
 
 		/**
+		 * Localized "uploading" label for queued placeholder thumbnails.
+		 *
+		 * @return {string} Translated text from server-rendered i18n context.
+		 */
+		get queuedLabelText() {
+			return getContext().i18n.queuedLabel;
+		},
+
+		/**
+		 * Localized "failed" label for permanent-failure placeholder thumbnails.
+		 *
+		 * @return {string} Translated text from server-rendered i18n context.
+		 */
+		get failedLabelText() {
+			return getContext().i18n.failedLabel;
+		},
+
+		/**
 		 * Whether any upload is currently in flight or waiting to be tried.
 		 *
 		 * Used by the progress banner. Derived from the queue rather than a
@@ -422,6 +440,14 @@ const { state } = store('pixfete', {
 		 */
 		*init() {
 			state.errorMessage = '';
+
+			// Restore any uploads queued on a previous visit so the user
+			// can see (and we can resume) their pending work.
+			try {
+				state.pendingUploads = yield listPending(getContext().pageId);
+			} catch {
+				state.pendingUploads = [];
+			}
 
 			// Read URL parameters before cleaning. Stash on state so a
 			// retry (which runs after URL params have been cleaned) still
@@ -464,6 +490,9 @@ const { state } = store('pixfete', {
 			if (cookie && cookie.consent === true) {
 				state.currentView = 'gallery';
 				const { actions } = store('pixfete');
+				if (state.pendingUploads.length) {
+					actions.drainQueue();
+				}
 				actions.loadPhotos();
 				actions.startPolling();
 				return;
@@ -717,6 +746,9 @@ const { state } = store('pixfete', {
 
 					const { actions } = store('pixfete');
 					actions.loadPhotos();
+					if (state.pendingUploads.length) {
+						actions.drainQueue();
+					}
 					actions.startPolling();
 					return;
 				}

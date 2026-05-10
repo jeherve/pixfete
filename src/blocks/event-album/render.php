@@ -61,6 +61,8 @@ $pixfete_i18n = array(
 	'newPhotoBannerPlural'   => __( '%d new photos — tap to see', 'pixfete' ),
 	'showPasswordLabel'      => __( 'Show password', 'pixfete' ),
 	'hidePasswordLabel'      => __( 'Hide password', 'pixfete' ),
+	'queuedLabel'            => __( 'Uploading…', 'pixfete' ),
+	'failedLabel'            => __( 'Failed — tap retry', 'pixfete' ),
 );
 
 // Build the Interactivity API context.
@@ -340,8 +342,21 @@ if ( $pixfete_is_moderator ) {
 			<?php // Error message. ?>
 			<div data-wp-bind--hidden="!state.errorMessage" class="pixfete-error" data-wp-text="state.errorMessage"></div>
 
-			<?php // Photo grid. ?>
+			<?php // Photo grid. Queued placeholders render above server photos. ?>
 			<div class="pixfete-grid">
+				<template data-wp-each="state.pendingUploads">
+					<div
+						class="pixfete-photo pixfete-photo--queued"
+						data-wp-class--pixfete-photo--failed="context.item.status === 'failed'"
+					>
+						<div class="pixfete-photo-placeholder" aria-hidden="true"></div>
+						<span
+							class="pixfete-photo-status"
+							data-wp-text="context.item.status === 'failed' ? state.failedLabelText : state.queuedLabelText"
+						></span>
+					</div>
+				</template>
+				<?php // The existing state.photos template stays exactly as-is below this comment. ?>
 				<template data-wp-each="state.photos">
 					<div class="pixfete-photo" data-wp-on--click="actions.openLightbox">
 						<img

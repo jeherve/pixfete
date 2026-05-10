@@ -659,3 +659,41 @@
 	}
 }
 
+.pixfete-photo--queued {
+	position: relative;
+	opacity: 0.5;
+	pointer-events: none;
+
+	.pixfete-photo-placeholder {
+		width: 100%;
+		aspect-ratio: 1;
+		background: var(--wp--preset--color--tertiary, #e5e5e5);
+	}
+
+	.pixfete-photo-status {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		font-size: 0.85rem;
+		color: var(--wp--preset--color--contrast, #1a1a1a);
+		text-align: center;
+		padding: 0.25em 0.5em;
+		background: rgba(255, 255, 255, 0.85);
+		border-radius: 0.25em;
+	}
+}
+
+.pixfete-photo--queued.pixfete-photo--failed {
+	opacity: 0.85;
+
+	.pixfete-photo-placeholder {
+		background: var(--wp--preset--color--primary, #c00);
+	}
+
+	.pixfete-photo-status {
+		color: #fff;
+		background: rgba(0, 0, 0, 0.7);
+	}
+}
+
