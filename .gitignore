@@ -15,6 +15,9 @@ wordpress/
 .superpowers/
 .worktrees/
 
+# Conductor — local cache from setup/run scripts (the scripts themselves are tracked)
+.conductor/.cache/
+
 # Playwright
 test-results/
 playwright-report/

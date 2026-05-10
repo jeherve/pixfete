@@ -10,6 +10,7 @@ __tests__
 /.claude
 /.worktrees
 /.phpunit.cache
+/.conductor
 /vendor
 /wordpress
 /playwright-report
@@ -42,5 +43,6 @@ package-lock.json
 blueprint.json
 blueprint-trunk.json
 playwright.config.js
+conductor.json
 README.md
 CLAUDE.md
