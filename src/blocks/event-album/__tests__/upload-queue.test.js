@@ -101,4 +101,21 @@ describe('upload-queue', () => {
 		expect(db.name).toBe('pixfete-uploads');
 		expect(db.objectStoreNames.contains('queue')).toBe(true);
 	});
+
+	test('requeueFailed resets attempts and status for failed items only', async () => {
+		const { requeueFailed } = require('../upload-queue');
+		const id1 = await enqueue({ pageId: 1, blob: blob(), name: 'a.jpg' });
+		const id2 = await enqueue({ pageId: 1, blob: blob(), name: 'b.jpg' });
+		await markFailed(id1, 'network');
+		// id2 stays pending
+
+		await requeueFailed(1);
+
+		const items = await listPending(1);
+		const map = Object.fromEntries(items.map((i) => [i.id, i]));
+		expect(map[id1].status).toBe('pending');
+		expect(map[id1].attempts).toBe(0);
+		expect(map[id1].lastError).toBeNull();
+		expect(map[id2].status).toBe('pending');
+	});
 });

@@ -10,7 +10,7 @@
 import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
-import { enqueue, listPending, markDone, markFailed } from './upload-queue';
+import { enqueue, listPending, markDone, markFailed, requeueFailed } from './upload-queue';
 
 /**
  * Interpolate the `%d` placeholder in a translation template.
@@ -399,6 +399,15 @@ const { state } = store('pixfete', {
 		 */
 		get failedLabelText() {
 			return getContext().i18n.failedLabel;
+		},
+
+		/**
+		 * Localized label for the manual retry button.
+		 *
+		 * @return {string} Translated text from server-rendered i18n context.
+		 */
+		get retryUploadsLabelText() {
+			return getContext().i18n.retryUploadsLabel;
 		},
 
 		/**
@@ -932,6 +941,23 @@ const { state } = store('pixfete', {
 
 			const { actions } = store('pixfete');
 			yield actions.drainQueue();
+		},
+
+		/**
+		 * Manually retry uploads that have hit a permanent failure.
+		 *
+		 * Clears the 'failed' status on every queued item and triggers a
+		 * drain. We don't auto-retry on every drain because we want
+		 * permanent failures to surface a deliberate user action.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async retryUploads() {
+			const ctx = getContext();
+			await requeueFailed(ctx.pageId);
+			state.pendingUploads = await listPending(ctx.pageId);
+			const { actions } = store('pixfete');
+			await actions.drainQueue();
 		},
 
 		/**

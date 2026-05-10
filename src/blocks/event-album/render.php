@@ -63,6 +63,7 @@ $pixfete_i18n = array(
 	'hidePasswordLabel'      => __( 'Hide password', 'pixfete' ),
 	'queuedLabel'            => __( 'Uploading…', 'pixfete' ),
 	'failedLabel'            => __( 'Failed — tap retry', 'pixfete' ),
+	'retryUploadsLabel'      => __( 'Retry uploads', 'pixfete' ),
 );
 
 // Build the Interactivity API context.
@@ -319,6 +320,15 @@ if ( $pixfete_is_moderator ) {
 					class="pixfete-hp"
 				/>
 			</div>
+
+			<?php // Retry button surfaces only when at least one upload has permanently failed. ?>
+			<button
+				data-wp-bind--hidden="!state.hasFailedUploads"
+				class="pixfete-retry-uploads"
+				type="button"
+				data-wp-on--click="actions.retryUploads"
+				data-wp-text="state.retryUploadsLabelText"
+			></button>
 
 			<?php // Upload progress banner — visible while files are uploading. ?>
 			<div

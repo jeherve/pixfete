@@ -160,6 +160,31 @@ export async function markFailed(id, lastError) {
 }
 
 /**
+ * Reset every 'failed' record on a page back to 'pending'.
+ *
+ * Used when the guest taps "Retry uploads" — we want a clean slate
+ * for the in-page drain (and Background Sync) to try again.
+ *
+ * @param {number} pageId Page whose failures should be requeued.
+ * @return {Promise<void>}
+ */
+export async function requeueFailed(pageId) {
+	const db = await openQueue();
+	const tx = db.transaction(STORE, 'readwrite');
+	const idx = tx.objectStore(STORE).index('pageId');
+	const items = await promisify(idx.getAll(pageId));
+	for (const item of items) {
+		if (item.status !== 'failed') {
+			continue;
+		}
+		item.status = 'pending';
+		item.attempts = 0;
+		item.lastError = null;
+		await promisify(tx.objectStore(STORE).put(item));
+	}
+}
+
+/**
  * Test helper — drop the cached DB handle and clear the store.
  *
  * Each test starts from an empty store; without this, fake-indexeddb's
