@@ -1,8 +1,8 @@
 <?php
 /**
- * PWA wiring: register a rewrite rule that serves the Service Worker
- * from the site origin root with `Service-Worker-Allowed: /`, so the
- * SW can claim event-album pages that live outside the plugin path.
+ * PWA wiring: serve the Service Worker from the site origin root with
+ * `Service-Worker-Allowed: /`, so the SW can claim event-album pages
+ * that live outside the plugin path.
  *
  * @package Jeherve\Pixfete
  */
@@ -18,46 +18,47 @@ defined( 'ABSPATH' ) || exit;
  *
  * Why origin-root: a Service Worker registered from
  * `/wp-content/plugins/pixfete/build/sw.js` would only control pages
- * under that path. Album pages live anywhere on the site, so we route
- * `/pixfete-sw.js` through PHP and add `Service-Worker-Allowed: /`.
+ * under that path. Album pages live anywhere on the site, so we
+ * intercept `GET /pixfete-sw.js` directly in `template_redirect` and
+ * stream the built file with `Service-Worker-Allowed: /`.
+ *
+ * The earlier rewrite-rule approach has been replaced with a
+ * REQUEST_URI check because rewrite rules only flush on plugin
+ * activation — users upgrading from an earlier version would never
+ * see the rule until they manually deactivated and reactivated.
  */
 class PWA {
 
 	/**
-	 * Register the rewrite rule for the SW URL.
+	 * Path that triggers the SW handler.
 	 *
-	 * Hooked on `init`. Rewrite rules need flushing the first time —
-	 * the activation hook in pixfete.php takes care of that.
+	 * Stored as a constant so the test suite can assert on the exact
+	 * path without duplicating string literals.
 	 *
-	 * @return void
+	 * @var string
 	 */
-	public static function register_rewrite(): void {
-		add_rewrite_rule( '^pixfete-sw\.js$', 'index.php?pixfete_sw=1', 'top' );
-	}
+	public const SW_PATH = '/pixfete-sw.js';
 
 	/**
-	 * Allow the `pixfete_sw` query var so WP keeps it on the request.
-	 *
-	 * @param array<int, string> $vars Existing public query vars.
-	 * @return array<int, string> Vars including pixfete_sw.
-	 */
-	public static function register_query_var( array $vars ): array {
-		$vars[] = 'pixfete_sw';
-		return $vars;
-	}
-
-	/**
-	 * If the current request matches `/pixfete-sw.js`, stream the JS file.
+	 * If the current request is for the SW URL, stream the built JS file.
 	 *
 	 * Sends `Service-Worker-Allowed: /` so the registration call in the
-	 * page can claim any path on the origin. Adds a short cache to keep
-	 * the network tab quiet during navigation but not so long that fixes
-	 * stay stuck.
+	 * page can claim any path on the origin. The Cache-Control header
+	 * keeps the network tab quiet during navigation but expires fast
+	 * enough that bug-fix releases reach guests within minutes.
+	 *
+	 * The matcher logic is delegated to {@see self::matches_sw_path()}
+	 * so tests can exercise it directly without tripping the `exit()`
+	 * call that ends the response.
 	 *
 	 * @return void
 	 */
 	public static function maybe_serve(): void {
-		if ( ! get_query_var( 'pixfete_sw' ) ) {
+		$request_uri = isset( $_SERVER['REQUEST_URI'] )
+			? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
+			: '';
+
+		if ( ! self::matches_sw_path( $request_uri ) ) {
 			return;
 		}
 
@@ -77,21 +78,27 @@ class PWA {
 	}
 
 	/**
-	 * Flush rewrite rules. Called from the plugin activation hook.
+	 * Decide whether a request URI targets the Service Worker path.
 	 *
-	 * @return void
+	 * Exposed as a public testing seam: `maybe_serve()` calls `exit()`
+	 * which can't be cleanly intercepted in PHPUnit, so unit tests
+	 * cover the matcher in isolation. The matcher strips the query
+	 * string before comparing because clients (and `?ver=` cache
+	 * busters) sometimes append one.
+	 *
+	 * @param string $request_uri Raw value of `$_SERVER['REQUEST_URI']`,
+	 *                            already unslashed and sanitized by the
+	 *                            caller (or empty when unavailable).
+	 * @return bool True when the path component equals SW_PATH.
 	 */
-	public static function on_activate(): void {
-		self::register_rewrite();
-		flush_rewrite_rules();
-	}
+	public static function matches_sw_path( string $request_uri ): bool {
+		if ( '' === $request_uri ) {
+			return false;
+		}
 
-	/**
-	 * Restore default rewrite state on deactivation.
-	 *
-	 * @return void
-	 */
-	public static function on_deactivate(): void {
-		flush_rewrite_rules();
+		$parts = wp_parse_url( $request_uri );
+		$path  = is_array( $parts ) && isset( $parts['path'] ) ? (string) $parts['path'] : '';
+
+		return self::SW_PATH === $path;
 	}
 }

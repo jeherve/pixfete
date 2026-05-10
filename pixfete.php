@@ -41,8 +41,6 @@ add_action( 'admin_enqueue_scripts', array( \Jeherve\Pixfete\Admin::class, 'enqu
 add_action( \Jeherve\Pixfete\Archive::DAILY_HOOK, array( \Jeherve\Pixfete\Archive::class, 'check_events' ) );
 add_action( \Jeherve\Pixfete\Archive::BATCH_HOOK, array( \Jeherve\Pixfete\Archive::class, 'process_batch' ) );
 
-add_action( 'init', array( \Jeherve\Pixfete\PWA::class, 'register_rewrite' ) );
-add_filter( 'query_vars', array( \Jeherve\Pixfete\PWA::class, 'register_query_var' ) );
 add_action( 'template_redirect', array( \Jeherve\Pixfete\PWA::class, 'maybe_serve' ) );
 
 register_activation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'schedule_cron' ) );
@@ -50,8 +48,5 @@ register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'u
 
 register_activation_hook( __FILE__, array( \Jeherve\Pixfete\Moderator::class, 'register_role' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\Moderator::class, 'unregister_role' ) );
-
-register_activation_hook( __FILE__, array( \Jeherve\Pixfete\PWA::class, 'on_activate' ) );
-register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\PWA::class, 'on_deactivate' ) );
 
 \Jeherve\Pixfete\Moderator::init();
