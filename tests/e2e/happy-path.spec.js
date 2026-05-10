@@ -17,6 +17,36 @@ const path = require('path');
 let pageUrl = '';
 let eventPassword = '';
 
+/**
+ * Log in as the admin user. Retries the navigation because Playground's
+ * first PHP request after server start can be slow enough that the login
+ * form has not rendered before Playwright tries to fill it.
+ *
+ * @param {import('@playwright/test').Page} page Playwright page object.
+ */
+async function loginAsAdmin(page) {
+	let loaded = false;
+	for (let attempt = 0; attempt < 3; attempt++) {
+		await page.goto('/wp-login.php', { waitUntil: 'domcontentloaded' });
+		if (
+			await page
+				.locator('#user_login')
+				.isVisible({ timeout: 10000 })
+				.catch(() => false)
+		) {
+			loaded = true;
+			break;
+		}
+		await page.waitForTimeout(2000);
+	}
+	expect(loaded, 'wp-login.php failed to render').toBeTruthy();
+
+	await page.fill('#user_login', 'admin');
+	await page.fill('#user_pass', 'password');
+	await page.click('#wp-submit');
+	await page.waitForURL('**/wp-admin/**');
+}
+
 test.describe('Pixfête - Happy Path', () => {
 	test.describe.configure({ mode: 'serial' });
 
@@ -26,12 +56,9 @@ test.describe('Pixfête - Happy Path', () => {
 		const password = 'TestEventPass1';
 		eventPassword = password;
 
-		// Log in to get auth cookies.
-		await page.goto('/wp-login.php');
-		await page.fill('#user_login', 'admin');
-		await page.fill('#user_pass', 'password');
-		await page.click('#wp-submit');
-		await page.waitForURL('**/wp-admin/**');
+		// Log in to get auth cookies. Playground's first PHP request can be
+		// slow as the runtime warms up, so retry until wp-login renders.
+		await loginAsAdmin(page);
 
 		// Get a REST nonce.
 		const nonce = await page.evaluate(async () => {
@@ -181,11 +208,7 @@ test.describe('Pixfête - Happy Path', () => {
 test.describe('Pixfête - Future Event', () => {
 	test('Guest sees "not yet" message for a future event', async ({ page }) => {
 		// Log in as admin to create the page.
-		await page.goto('/wp-login.php');
-		await page.fill('#user_login', 'admin');
-		await page.fill('#user_pass', 'password');
-		await page.click('#wp-submit');
-		await page.waitForURL('**/wp-admin/**');
+		await loginAsAdmin(page);
 
 		// Get a REST nonce.
 		const nonce = await page.evaluate(async () => {
