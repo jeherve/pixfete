@@ -31,6 +31,7 @@ require_once PIXFETE_PLUGIN_DIR . 'src/class-archive.php';
 require_once PIXFETE_PLUGIN_DIR . 'src/class-cleanup.php';
 require_once PIXFETE_PLUGIN_DIR . 'src/class-slideshow.php';
 require_once PIXFETE_PLUGIN_DIR . 'src/class-moderator.php';
+require_once PIXFETE_PLUGIN_DIR . 'src/class-pwa.php';
 
 add_action( 'init', array( \Jeherve\Pixfete\Block::class, 'register' ) );
 add_action( 'init', array( \Jeherve\Pixfete\Slideshow::class, 'register' ) );
@@ -40,10 +41,17 @@ add_action( 'admin_enqueue_scripts', array( \Jeherve\Pixfete\Admin::class, 'enqu
 add_action( \Jeherve\Pixfete\Archive::DAILY_HOOK, array( \Jeherve\Pixfete\Archive::class, 'check_events' ) );
 add_action( \Jeherve\Pixfete\Archive::BATCH_HOOK, array( \Jeherve\Pixfete\Archive::class, 'process_batch' ) );
 
+add_action( 'init', array( \Jeherve\Pixfete\PWA::class, 'register_rewrite' ) );
+add_filter( 'query_vars', array( \Jeherve\Pixfete\PWA::class, 'register_query_var' ) );
+add_action( 'template_redirect', array( \Jeherve\Pixfete\PWA::class, 'maybe_serve' ) );
+
 register_activation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'schedule_cron' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'unschedule_cron' ) );
 
 register_activation_hook( __FILE__, array( \Jeherve\Pixfete\Moderator::class, 'register_role' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\Moderator::class, 'unregister_role' ) );
+
+register_activation_hook( __FILE__, array( \Jeherve\Pixfete\PWA::class, 'on_activate' ) );
+register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\PWA::class, 'on_deactivate' ) );
 
 \Jeherve\Pixfete\Moderator::init();
