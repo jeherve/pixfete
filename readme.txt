@@ -128,6 +128,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 **Changed**
 
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
+* The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
 
 **Fixed**
 
