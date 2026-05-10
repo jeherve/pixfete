@@ -138,6 +138,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * The moderation banner and photo delete buttons no longer appear to all visitors — they are now correctly shown only to assigned moderators.
 * The "event not started yet" and loading messages now use the theme's text color, so they remain readable on themes with tinted backgrounds.
 * A PHP warning that could appear on the login screen after a failed login attempt has been silenced.
+* Some guests were getting "CSRF token" errors when first opening an event page (especially on mobile, or when the event link had been shared via messaging apps), and the error persisted even after refreshing or re-entering the password. Event pages can now be cached safely by hosting providers and CDNs without breaking the sign-in flow, and guests are no longer stuck if they happen to land on a stale page.
 
 = 1.2.0 - 2026-03-26 =
 

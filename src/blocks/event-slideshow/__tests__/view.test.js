@@ -200,6 +200,26 @@ describe('photo getters', () => {
 	});
 });
 
+/**
+ * Drive a generator returned by an Interactivity action to completion,
+ * resolving each yielded promise as the runtime would.
+ *
+ * @param {Object} gen The generator to drive.
+ * @return {Promise} Resolves when the generator returns.
+ */
+async function runGenerator(gen) {
+	let result = gen.next();
+	while (!result.done) {
+		try {
+			const value = await result.value;
+			result = gen.next(value);
+		} catch (error) {
+			result = gen.throw(error);
+		}
+	}
+	return result.value;
+}
+
 describe('init() with future event', () => {
 	beforeEach(() => {
 		delete global.document.cookie;
@@ -208,13 +228,25 @@ describe('init() with future event', () => {
 			writable: true,
 			configurable: true,
 		});
+		global.fetch = jest.fn(() =>
+			Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve({ nonce: 'fresh-token' }),
+			})
+		);
 	});
 
-	test('sets currentView to not-started when event is in the future', () => {
+	afterEach(() => {
+		delete global.fetch;
+	});
+
+	test('sets currentView to not-started when event is in the future', async () => {
 		mockContext.dateStart = '2099-12-31';
 		const store = loadStore();
-		store.actions.init();
+		await runGenerator(store.actions.init());
 		expect(store.state.currentView).toBe('not-started');
+		// Future events short-circuit before the token fetch.
+		expect(global.fetch).not.toHaveBeenCalled();
 	});
 });
 
@@ -226,19 +258,58 @@ describe('init() with past event and no cookie', () => {
 			writable: true,
 			configurable: true,
 		});
+		global.fetch = jest.fn(() =>
+			Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve({ nonce: 'fresh-token' }),
+			})
+		);
 	});
 
-	test('sets currentView to password when no cookie exists', () => {
+	afterEach(() => {
+		delete global.fetch;
+	});
+
+	test('sets currentView to password when no cookie exists', async () => {
 		mockContext.dateStart = '2020-01-01';
 		const store = loadStore();
-		store.actions.init();
+		await runGenerator(store.actions.init());
 		expect(store.state.currentView).toBe('password');
 	});
 
-	test('sets currentView to password when dateStart is empty', () => {
+	test('sets currentView to password when dateStart is empty', async () => {
 		const store = loadStore();
-		store.actions.init();
+		await runGenerator(store.actions.init());
 		expect(store.state.currentView).toBe('password');
+	});
+
+	test('populates ctx.nonce from the /token endpoint before showing password view', async () => {
+		global.fetch = jest.fn(() =>
+			Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve({ nonce: 'server-issued-token' }),
+			})
+		);
+
+		const store = loadStore();
+		await runGenerator(store.actions.init());
+
+		expect(global.fetch).toHaveBeenCalledWith(
+			'/wp-json/pixfete/v1/token/1',
+			expect.objectContaining({ credentials: 'same-origin' })
+		);
+		expect(mockContext.nonce).toBe('server-issued-token');
+		expect(store.state.currentView).toBe('password');
+	});
+
+	test('stays on loading view with an error message when token fetch fails', async () => {
+		global.fetch = jest.fn(() => Promise.resolve({ ok: false }));
+
+		const store = loadStore();
+		await runGenerator(store.actions.init());
+
+		expect(store.state.currentView).toBe('loading');
+		expect(store.state.errorMessage).toBeTruthy();
 	});
 });
 

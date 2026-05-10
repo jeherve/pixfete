@@ -211,7 +211,8 @@ All endpoints are under the `pixfete/v1` namespace.
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), consent (`action=consent`), and slideshow auth (`action=slideshow_auth`) |
+| GET | `/token/{page_id}` | Issue a fresh CSRF token bound to the page. The frontend calls this on init instead of reading a token baked into the rendered HTML, so the page response can be cached safely by page caches, CDNs, and bfcache without trapping visitors with a stale or already-consumed token. |
+| POST | `/auth/{page_id}` | Password validation (`action=validate_password`), guest registration (`action=register`), consent (`action=consent`), and slideshow auth (`action=slideshow_auth`). On a `pixfete_invalid_nonce` failure, the response includes a fresh recovery nonce in `data.nonce` so the frontend can retry without a page reload. |
 | POST | `/photos/{page_id}` | Photo upload (requires authenticated guest with consent) |
 | GET | `/photos/{page_id}` | Gallery retrieval with pagination and polling support |
 | DELETE | `/photos/{page_id}/{attachment_id}` | Delete a single photo (assigned moderators only) |

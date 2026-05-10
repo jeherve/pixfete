@@ -64,6 +64,16 @@ class REST extends WP_REST_Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/token/(?P<page_id>\d+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( static::class, 'handle_token' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/photos/(?P<page_id>\d+)',
 			array(
 				'methods'             => 'POST',
@@ -198,8 +208,7 @@ class REST extends WP_REST_Controller {
 		// This is needed regardless of whether the request succeeds or fails,
 		// because the original nonce was already deleted in step 1. Without a
 		// fresh nonce, any subsequent retry would fail with "CSRF token invalid".
-		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'pixfete_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+		$fresh_token = self::mint_csrf_token( $page_id );
 
 		// 3. Check honeypot field.
 		$honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
@@ -287,8 +296,7 @@ class REST extends WP_REST_Controller {
 		// 2. Issue a fresh CSRF nonce immediately after consuming the old one.
 		// This ensures retries are possible even if validation fails below,
 		// because the original nonce was already deleted in step 1.
-		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'pixfete_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+		$fresh_token = self::mint_csrf_token( $page_id );
 
 		// 3. Check honeypot field.
 		// @var string $honeypot_field
@@ -382,8 +390,7 @@ class REST extends WP_REST_Controller {
 		Cookie::set_for_page( $payload );
 
 		// 9. Generate consent nonce.
-		$consent_token = wp_generate_password( 32, false );
-		set_transient( 'pixfete_csrf_' . $consent_token, $page_id, HOUR_IN_SECONDS );
+		$consent_token = self::mint_csrf_token( $page_id );
 
 		// 10. Return success response.
 		return rest_ensure_response(
@@ -469,8 +476,7 @@ class REST extends WP_REST_Controller {
 		}
 
 		// 2. Issue a fresh CSRF nonce immediately after consuming the old one.
-		$fresh_token = wp_generate_password( 32, false );
-		set_transient( 'pixfete_csrf_' . $fresh_token, $page_id, HOUR_IN_SECONDS );
+		$fresh_token = self::mint_csrf_token( $page_id );
 
 		// 3. Check honeypot field.
 		$honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
@@ -558,10 +564,62 @@ class REST extends WP_REST_Controller {
 	}
 
 	/**
+	 * Mint a fresh CSRF token bound to a page.
+	 *
+	 * Generates a 32-character random token, stores it as a transient
+	 * keyed to the page ID with a one-hour TTL, and returns the token.
+	 * Used both by the public /token endpoint and by error paths that
+	 * need to hand the client a usable nonce for the next attempt.
+	 *
+	 * @param int $page_id The page ID the token will be bound to.
+	 * @return string The fresh token.
+	 */
+	private static function mint_csrf_token( int $page_id ): string {
+		$token = wp_generate_password( 32, false );
+		set_transient( 'pixfete_csrf_' . $token, $page_id, HOUR_IN_SECONDS );
+		return $token;
+	}
+
+	/**
+	 * Handle the GET /token/{page_id} endpoint.
+	 *
+	 * Issues a fresh CSRF token for the given event page. Replaces the
+	 * older approach of embedding a token in the rendered page HTML,
+	 * which broke whenever the page was served from a cache (page-cache
+	 * plugins, CDNs, browser bfcache, link unfurlers): every visitor
+	 * shared the same cached token and the first submission burned it
+	 * for everyone else.
+	 *
+	 * Validates the page exists and contains our block before issuing
+	 * a token, so the endpoint can't be used to spam the transient
+	 * store with tokens for unrelated pages.
+	 *
+	 * @param WP_REST_Request $request The REST request.
+	 * @return WP_REST_Response|WP_Error Response carrying the token, or error.
+	 */
+	public static function handle_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$page_id = (int) $request->get_param( 'page_id' );
+
+		$page_result = self::validate_page( $page_id );
+		if ( is_wp_error( $page_result ) ) {
+			return $page_result;
+		}
+
+		return rest_ensure_response(
+			array(
+				'nonce' => self::mint_csrf_token( $page_id ),
+			)
+		);
+	}
+
+	/**
 	 * Verify the CSRF nonce from the X-Pixfete-Nonce header.
 	 *
 	 * Checks that the transient exists and matches the page ID,
-	 * then deletes it (one-time use).
+	 * then deletes it (one-time use). On failure, mints a fresh token
+	 * and attaches it to the WP_Error data so the client can recover
+	 * without forcing the user to reload the page — important because
+	 * a reload may not actually escape an upstream HTML cache.
 	 *
 	 * @param WP_REST_Request $request The REST request.
 	 * @param int             $page_id The expected page ID.
@@ -574,7 +632,10 @@ class REST extends WP_REST_Controller {
 			return new WP_Error(
 				'pixfete_invalid_nonce',
 				'A valid CSRF token is required.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => self::mint_csrf_token( $page_id ),
+				)
 			);
 		}
 
@@ -584,7 +645,10 @@ class REST extends WP_REST_Controller {
 			return new WP_Error(
 				'pixfete_invalid_nonce',
 				'The CSRF token is invalid or has expired.',
-				array( 'status' => 403 )
+				array(
+					'status' => 403,
+					'nonce'  => self::mint_csrf_token( $page_id ),
+				)
 			);
 		}
 

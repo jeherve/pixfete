@@ -22,16 +22,19 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable -- $attributes, $content, and $block are provided by the WordPress block renderer.
 
+// The CSRF token is fetched at runtime from the REST /token endpoint
+// rather than baked into this HTML, so caching this output (page cache,
+// CDN, browser bfcache, link unfurlers) can't trap visitors with a stale
+// or already-consumed token. The frontend populates `nonce` on init.
+
 $pixfete_event_page_id = (int) ( $attributes['eventPageId'] ?? 0 );
-$pixfete_csrf_token    = wp_generate_password( 32, false );
-set_transient( 'pixfete_csrf_' . $pixfete_csrf_token, $pixfete_event_page_id, HOUR_IN_SECONDS );
 
 /** This filter is documented in src/blocks/event-album/render.php. */
 $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' );
 
 $pixfete_context = array(
 	'eventPageId'   => $pixfete_event_page_id,
-	'nonce'         => $pixfete_csrf_token,
+	'nonce'         => '',
 	'honeypotField' => $pixfete_honeypot_field,
 	'eventVersion'  => (int) ( $attributes['eventVersion'] ?? 1 ),
 	'interval'      => (int) ( $attributes['interval'] ?? 5 ),
@@ -46,12 +49,26 @@ $pixfete_context = array(
 	data-wp-init="actions.init"
 	data-wp-context='<?php echo esc_attr( wp_json_encode( $pixfete_context, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE ) ); ?>'
 >
-	<?php // Loading view — shown briefly during initialization. ?>
+	<?php
+	// Loading view — shown briefly during initialization. Also
+			// surfaces an init error (e.g. token fetch failed) with a
+			// retry button so the slideshow isn't stuck on first load.
+	?>
 	<div
 		class="pixfete-slideshow-loading"
 		data-wp-bind--hidden="!state.isLoadingView"
 	>
-		<p><?php echo esc_html__( 'Loading…', 'pixfete' ); ?></p>
+		<p data-wp-bind--hidden="state.errorMessage"><?php echo esc_html__( 'Loading…', 'pixfete' ); ?></p>
+		<p
+			class="pixfete-slideshow-error"
+			data-wp-bind--hidden="!state.errorMessage"
+			data-wp-text="state.errorMessage"
+		></p>
+		<button
+			data-wp-bind--hidden="!state.errorMessage"
+			data-wp-on--click="actions.init"
+			type="button"
+		><?php echo esc_html__( 'Try again', 'pixfete' ); ?></button>
 	</div>
 
 	<?php // Not-started view — event hasn't begun yet. ?>
