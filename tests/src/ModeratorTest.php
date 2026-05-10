@@ -216,6 +216,22 @@ class ModeratorTest extends TestCase {
 	}
 
 	/**
+	 * Test that redirect_after_login handles a WP_Error from a failed login.
+	 *
+	 * The login_redirect filter passes a WP_Error (rather than a user object)
+	 * when authentication fails. Accessing $user->roles on a WP_Error used to
+	 * emit "Undefined property: WP_Error::$roles". The helper must accept it
+	 * and return the default redirect untouched.
+	 */
+	public function testRedirectAfterLoginHandlesWpError(): void {
+		$error = new \WP_Error( 'invalid_username', 'Unknown username.' );
+
+		$result = Moderator::redirect_after_login( '/wp-admin/', '', $error );
+
+		$this->assertSame( '/wp-admin/', $result );
+	}
+
+	/**
 	 * Test that hide_admin_bar returns false for moderator-only users.
 	 *
 	 * The admin bar is irrelevant for moderator-only users since they
