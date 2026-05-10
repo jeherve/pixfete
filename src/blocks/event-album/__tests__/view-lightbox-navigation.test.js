@@ -19,6 +19,7 @@ jest.mock(
 );
 
 beforeEach(() => {
+	jest.resetModules();
 	registeredStore = {};
 	mockContext = {
 		pageId: 42,
@@ -27,7 +28,6 @@ beforeEach(() => {
 		dateStart: '',
 		dateEnd: '',
 	};
-	jest.resetModules();
 });
 
 function loadStore() {
@@ -133,5 +133,25 @@ describe('lightbox navigation actions', () => {
 
 		expect(stopPropagation).toHaveBeenCalledTimes(1);
 		expect(store.state.lightboxIndex).toBe(0);
+	});
+
+	test('nextPhoto does nothing when the lightbox is closed', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = -1;
+
+		store.actions.nextPhoto();
+
+		expect(store.state.lightboxIndex).toBe(-1);
+	});
+
+	test('prevPhoto does nothing when the lightbox is closed', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = -1;
+
+		store.actions.prevPhoto();
+
+		expect(store.state.lightboxIndex).toBe(-1);
 	});
 });
