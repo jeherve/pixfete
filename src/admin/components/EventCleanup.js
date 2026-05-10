@@ -19,8 +19,8 @@ import { isEventEnded } from '../utils/is-event-ended';
  * @param {Function} props.onEventDeleted Callback fired after a successful
  *                                        deletion, receiving the deleted pageId
  *                                        as its only argument.
- * @return {JSX.Element|null} The cleanup section UI, or null when the event is
- *                            still active.
+ * @return {Element|null} The cleanup section UI, or null when the event is
+ *                         still active.
  */
 export function EventCleanup({ pageId, dateRangeEnd, onEventDeleted }) {
 	const [isDeleting, setIsDeleting] = useState(false);

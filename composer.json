@@ -12,10 +12,10 @@
   },
   "require-dev": {
     "brain/monkey": "^2.6.1",
-    "automattic/jetpack-codesniffer": "7.0.0",
+    "automattic/jetpack-codesniffer": "8.0.0",
     "dealerdirect/phpcodesniffer-composer-installer": "*",
     "php-parallel-lint/php-parallel-lint": "1.4.0",
-    "phpunit/phpunit": "^12.0"
+    "phpunit/phpunit": "^13.0"
   },
   "scripts": {
     "phpunit": [
