@@ -154,6 +154,8 @@ const { state } = store('pixfete', {
 		lightboxIndex: -1,
 		fabOpen: false,
 		latestUploadedAt: 0,
+		/** Mirror of the IndexedDB upload queue for this page, freshest first. */
+		pendingUploads: [],
 		pollingId: 0,
 		uploadTotal: 0,
 		uploadCurrent: 0,
@@ -368,6 +370,19 @@ const { state } = store('pixfete', {
 			const count = state.newPhotoCount;
 			const template = count === 1 ? ctx.i18n.newPhotoBannerSingle : ctx.i18n.newPhotoBannerPlural;
 			return formatCount(template, count);
+		},
+
+		/**
+		 * Whether any queued upload has hit a permanent failure.
+		 *
+		 * Drives visibility of the "Retry uploads" affordance — we only
+		 * surface the manual retry button when the in-page loop has given
+		 * up so guests aren't tempted to spam-tap during normal retries.
+		 *
+		 * @return {boolean} True if any queued item is in 'failed' state.
+		 */
+		get hasFailedUploads() {
+			return state.pendingUploads.some((item) => item.status === 'failed');
 		},
 
 		/**
