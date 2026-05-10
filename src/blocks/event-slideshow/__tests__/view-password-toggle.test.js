@@ -13,8 +13,10 @@ let mockContext = {
 	interval: 5,
 	honeypotField: 'website',
 	nonce: 'test-nonce',
-	showPasswordLabel: 'Show password',
-	hidePasswordLabel: 'Hide password',
+	i18n: {
+		showPasswordLabel: 'Show password',
+		hidePasswordLabel: 'Hide password',
+	},
 };
 jest.mock(
 	'@wordpress/interactivity',
@@ -40,8 +42,10 @@ beforeEach(() => {
 		interval: 5,
 		honeypotField: 'website',
 		nonce: 'test-nonce',
-		showPasswordLabel: 'Show password',
-		hidePasswordLabel: 'Hide password',
+		i18n: {
+			showPasswordLabel: 'Show password',
+			hidePasswordLabel: 'Hide password',
+		},
 	};
 	jest.resetModules();
 });

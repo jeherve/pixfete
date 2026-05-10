@@ -10,8 +10,10 @@ let mockContext = {
 	restBase: '/wp-json/pixfete/v1',
 	dateStart: '',
 	dateEnd: '',
-	showPasswordLabel: 'Show password',
-	hidePasswordLabel: 'Hide password',
+	i18n: {
+		showPasswordLabel: 'Show password',
+		hidePasswordLabel: 'Hide password',
+	},
 };
 jest.mock(
 	'@wordpress/interactivity',
@@ -32,8 +34,10 @@ beforeEach(() => {
 		restBase: '/wp-json/pixfete/v1',
 		dateStart: '',
 		dateEnd: '',
-		showPasswordLabel: 'Show password',
-		hidePasswordLabel: 'Hide password',
+		i18n: {
+			showPasswordLabel: 'Show password',
+			hidePasswordLabel: 'Hide password',
+		},
 	};
 	jest.resetModules();
 });

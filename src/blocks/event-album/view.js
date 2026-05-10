@@ -12,6 +12,33 @@ import './view.scss';
 import { store, getContext } from '@wordpress/interactivity';
 
 /**
+ * Interpolate the `%d` placeholder in a translation template.
+ *
+ * View modules can't import `@wordpress/i18n` yet (script modules don't
+ * support it), so translations are pre-rendered server-side in render.php
+ * and passed via the `i18n` context. This helper handles the count
+ * substitution that would otherwise be done by `sprintf()`.
+ *
+ * @param {string} template Translation template containing a `%d` token.
+ * @param {number} count    Value to substitute for `%d`.
+ * @return {string} Interpolated string.
+ */
+function formatCount(template, count) {
+	return template.replace('%d', String(count));
+}
+
+/**
+ * Substitute a single `%s` token in a translation template.
+ *
+ * @param {string} template Translation template containing a `%s` token.
+ * @param {string} value    Value to substitute for `%s`.
+ * @return {string} Interpolated string.
+ */
+function formatString(template, value) {
+	return template.replace('%s', value);
+}
+
+/**
  * Number of photos to load per page.
  *
  * @type {number}
@@ -130,7 +157,7 @@ const { state } = store('pixfete', {
 		 */
 		get passwordToggleLabel() {
 			const ctx = getContext();
-			return state.passwordVisible ? ctx.hidePasswordLabel : ctx.showPasswordLabel;
+			return state.passwordVisible ? ctx.i18n.hidePasswordLabel : ctx.i18n.showPasswordLabel;
 		},
 
 		/**
@@ -256,11 +283,10 @@ const { state } = store('pixfete', {
 		 * @return {string} Banner text, e.g. "3 new photos — tap to see".
 		 */
 		get newPhotoBannerText() {
+			const ctx = getContext();
 			const count = state.newPhotoCount;
-			if (count === 1) {
-				return '1 new photo \u2014 tap to see';
-			}
-			return `${count} new photos \u2014 tap to see`;
+			const template = count === 1 ? ctx.i18n.newPhotoBannerSingle : ctx.i18n.newPhotoBannerPlural;
+			return formatCount(template, count);
 		},
 
 		/**
@@ -406,7 +432,7 @@ const { state } = store('pixfete', {
 			state.errorMessage = '';
 
 			if (!state.passwordInput.trim()) {
-				state.errorMessage = 'Please enter the event password.';
+				state.errorMessage = getContext().i18n.passwordRequired;
 				return;
 			}
 
@@ -434,7 +460,7 @@ const { state } = store('pixfete', {
 
 				if (!response.ok) {
 					const errorData = yield response.json();
-					state.errorMessage = errorData.message || 'The password is incorrect.';
+					state.errorMessage = errorData.message || ctx.i18n.passwordIncorrect;
 
 					// Update the nonce from the error response so retries work.
 					// The original nonce was consumed during CSRF verification.
@@ -450,7 +476,7 @@ const { state } = store('pixfete', {
 				ctx.nonce = data.nonce;
 				state.currentView = 'registration';
 			} catch {
-				state.errorMessage = 'A network error occurred. Please try again.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -470,7 +496,7 @@ const { state } = store('pixfete', {
 			state.errorMessage = '';
 
 			if (!state.guestName.trim()) {
-				state.errorMessage = 'Please enter your name.';
+				state.errorMessage = getContext().i18n.nameRequired;
 				return;
 			}
 
@@ -500,7 +526,7 @@ const { state } = store('pixfete', {
 
 				if (!response.ok) {
 					const errorData = yield response.json();
-					state.errorMessage = errorData.message || 'Registration failed. Please try again.';
+					state.errorMessage = errorData.message || ctx.i18n.registrationFailed;
 
 					// Update the nonce from the error response so retries work.
 					if (errorData.data?.nonce) {
@@ -513,7 +539,7 @@ const { state } = store('pixfete', {
 				state.consentNonce = data.consent_nonce || '';
 				state.currentView = 'consent';
 			} catch {
-				state.errorMessage = 'A network error occurred. Please try again.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -544,7 +570,7 @@ const { state } = store('pixfete', {
 
 				if (!response.ok) {
 					const errorData = yield response.json();
-					state.errorMessage = errorData.message || 'Failed to accept consent. Please try again.';
+					state.errorMessage = errorData.message || ctx.i18n.consentFailed;
 					return;
 				}
 
@@ -554,7 +580,7 @@ const { state } = store('pixfete', {
 				actions.loadPhotos();
 				actions.startPolling();
 			} catch {
-				state.errorMessage = 'A network error occurred. Please try again.';
+				state.errorMessage = ctx.i18n.networkError;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -581,7 +607,7 @@ const { state } = store('pixfete', {
 				});
 
 				if (!response.ok) {
-					state.errorMessage = 'Failed to load photos.';
+					state.errorMessage = ctx.i18n.loadPhotosFailed;
 					return;
 				}
 
@@ -600,7 +626,7 @@ const { state } = store('pixfete', {
 					}
 				}
 			} catch {
-				state.errorMessage = 'Failed to load photos.';
+				state.errorMessage = ctx.i18n.loadPhotosFailed;
 			} finally {
 				state.isSubmitting = false;
 			}
@@ -738,10 +764,7 @@ const { state } = store('pixfete', {
 
 					if (!response.ok) {
 						const errorData = yield response.json();
-						state.uploadErrors = [
-							...state.uploadErrors,
-							errorData.message || 'Upload failed. Please try again.',
-						];
+						state.uploadErrors = [...state.uploadErrors, errorData.message || ctx.i18n.uploadFailed];
 						continue;
 					}
 
@@ -755,10 +778,7 @@ const { state } = store('pixfete', {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
 				} catch {
-					state.uploadErrors = [
-						...state.uploadErrors,
-						'Upload failed. Please check your connection and try again.',
-					];
+					state.uploadErrors = [...state.uploadErrors, ctx.i18n.uploadConnectionFailed];
 				}
 			}
 
@@ -770,7 +790,9 @@ const { state } = store('pixfete', {
 			if (state.uploadErrors.length === 1) {
 				state.errorMessage = state.uploadErrors[0];
 			} else if (state.uploadErrors.length > 1) {
-				state.errorMessage = `${state.uploadErrors.length} of ${totalFiles} photos failed to upload.`;
+				state.errorMessage = ctx.i18n.uploadBulkFailed
+					.replace('%1$d', String(state.uploadErrors.length))
+					.replace('%2$d', String(totalFiles));
 			}
 
 			// Reset the file input so the same file can be selected again.
@@ -799,8 +821,9 @@ const { state } = store('pixfete', {
 			const guestName = ctx.item.guest_name;
 
 			// Native confirmation dialog.
+			const confirmMessage = formatString(ctx.i18n.confirmDeletePhoto, guestName);
 			// eslint-disable-next-line no-alert -- Intentional use of confirm for destructive action.
-			const confirmed = window.confirm(`${guestName} — delete this photo? This cannot be undone.`);
+			const confirmed = window.confirm(confirmMessage);
 
 			if (!confirmed) {
 				return;
@@ -821,10 +844,10 @@ const { state } = store('pixfete', {
 					// Remove the photo from local state.
 					state.photos = state.photos.filter((photo) => photo.id !== photoId);
 				} else {
-					state.errorMessage = 'Failed to delete photo. Please try again.';
+					state.errorMessage = ctx.i18n.deletePhotoFailed;
 				}
 			} catch {
-				state.errorMessage = 'Network error. Please try again.';
+				state.errorMessage = ctx.i18n.deleteNetworkError;
 			} finally {
 				state.deletingPhotoId = null;
 			}
