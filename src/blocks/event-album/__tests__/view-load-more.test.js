@@ -57,6 +57,7 @@ jest.mock(
 			restBase: 'http://localhost/wp-json/pixfete/v1',
 			dateStart: '',
 			dateEnd: '',
+			i18n: require('../__fixtures__/i18n'),
 		}),
 	}),
 	{ virtual: true }

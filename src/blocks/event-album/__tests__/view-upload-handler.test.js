@@ -4,9 +4,12 @@
  */
 /* eslint-enable jsdoc/check-tag-names */
 
+const i18nFixture = require('../__fixtures__/i18n');
+
 // Mock @wordpress/interactivity with a store stub that captures the definition
 // so we can test the handleFileSelect generator directly.
 let registeredStore = {};
+let mockContext = {};
 jest.mock(
 	'@wordpress/interactivity',
 	() => ({
@@ -14,18 +17,20 @@ jest.mock(
 			registeredStore = definition;
 			return definition;
 		},
-		getContext: () => ({
-			pageId: 42,
-			restBase: '/wp-json/pixfete/v1',
-			dateStart: '',
-			dateEnd: '',
-		}),
+		getContext: () => mockContext,
 	}),
 	{ virtual: true }
 );
 
 beforeEach(() => {
 	registeredStore = {};
+	mockContext = {
+		pageId: 42,
+		restBase: '/wp-json/pixfete/v1',
+		dateStart: '',
+		dateEnd: '',
+		i18n: { ...i18nFixture },
+	};
 	jest.resetModules();
 	global.fetch = jest.fn();
 });
