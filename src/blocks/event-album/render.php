@@ -273,6 +273,9 @@ if ( $pixfete_is_moderator ) {
 
 		<?php // Lightbox overlay. ?>
 		<div
+			role="dialog"
+			aria-modal="true"
+			aria-label="<?php esc_attr_e( 'Photo lightbox', 'pixfete' ); ?>"
 			data-wp-bind--hidden="!state.lightboxOpen"
 			class="pixfete-lightbox"
 			data-wp-on--click="actions.closeLightbox"
