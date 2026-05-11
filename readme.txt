@@ -125,45 +125,32 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 **Added**
 
-* New Live Photo Wall block for projecting submitted photos onto a big screen during your event. The photo wall displays photos one at a time with smooth crossfade transitions, automatically cycling through submissions as guests upload them.
-* When visiting an event page before the event has started, guests now see a friendly message instead of a blank page.
-* Event hosts can now assign moderators who can remove inappropriate photos from the live gallery on their phone, without needing access to the WordPress dashboard.
-* Swipe between photos in the album lightbox, or use the left/right arrow keys on desktop.
-* The event password field now has a show/hide toggle, so guests can verify what they typed before submitting — especially helpful on mobile keyboards.
-* Photos selected for upload are now saved on the device first, so they are no longer lost if the network drops or the page is closed mid-upload. Uploads automatically resume when connectivity returns.
-* A "Retry uploads" button appears when an upload has permanently failed, so guests can try again without re-picking the same files.
+* New Live Photo Wall block for projecting photos onto a big screen during your event, with smooth crossfade transitions as new submissions come in.
+* Assign moderators who can remove inappropriate photos from their phone, without needing access to the WordPress dashboard.
+* Resilient uploads: photos are saved on the guest's device the moment they're picked, so nothing is lost if the network drops or the page is closed mid-upload. Uploads resume automatically, with a "Retry uploads" button for the rare cases that need a nudge.
+* Swipe or use the left/right arrow keys to move between photos in the lightbox.
+* Show/hide toggle on the event password field, so guests can check what they typed before submitting.
+* Friendly message when guests visit an event page before the event has started.
 
 **Changed**
 
-* Photos in the event album now display at their full aspect ratio instead of being cropped to squares, and load at a sharper resolution suited to the device. On mobile they appear in a single edge-to-edge column; on desktop in a packed three-column layout.
-* The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
-* Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
-* The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
-* The upload progress display now reflects the live queue rather than a one-shot batch counter.
-* Pixfête now works correctly on WordPress installations in a subdirectory (like `example.com/blog/`) and on multisite networks: the offline upload helper, the upload session cookie, and the resume-uploads feature all stay scoped to your own site instead of leaking across sibling sites on the same domain.
-* On sites that already run another Service Worker plugin (Super PWA, OneSignal, Jetpack Boost, hosting-provider offline plugins, and similar), Pixfête now steps aside automatically rather than competing for control. Uploads still queue locally and resume — only the post-tab-close recovery is handed back to the other plugin.
-* When an upload's server response is intercepted by a caching plugin or CDN and arrives as something other than JSON, Pixfête now treats the upload as successful (since the server already accepted it) instead of retrying and creating a duplicate photo.
+* Photos now display at their full aspect ratio instead of being cropped to squares, and load at a resolution suited to the device.
+* The plugin has been renamed to Pixfête.
+* Guests are now asked for their first name instead of just "name".
+* The full "Take Photo" and "Choose from Gallery" rows in the upload menu are tappable, not just the icons.
+* Better compatibility with subdirectory installs, multisite networks, other Service Worker plugins (Super PWA, Jetpack Boost, etc.), and aggressive caching plugins or CDNs.
 
 **Fixed**
 
-* Event passwords shorter than 8 characters are now flagged in the editor with a clear warning, preventing a confusing "incorrect password" error for guests.
-* Event names with special characters (like "John & Jane's Wedding") now display correctly in the Live Photo Wall block sidebar instead of showing raw HTML codes.
-* The Live Photo Wall block now appears in the block editor as expected.
-* The Live Photo Wall now loads photos correctly on sites using plain permalink structures.
-* The Live Photo Wall password form and other views now display correctly instead of being hidden behind the loading screen.
-* The moderation banner and photo delete buttons no longer appear to all visitors — they are now correctly shown only to assigned moderators.
-* The "event not started yet" and loading messages now use the theme's text color, so they remain readable on themes with tinted backgrounds.
-* A PHP warning that could appear on the login screen after a failed login attempt has been silenced.
-* Status messages shown to guests in the photo album and Live Photo Wall (such as "1 new photo — tap to see", "The password is incorrect.", and upload errors) are now translatable, so they can appear in the site's language alongside the rest of the plugin.
-* Some guests were getting sign-in errors when first opening an event page (especially on mobile, or when the event link had been shared via messaging apps), and the error persisted even after refreshing or re-entering the password. Event pages can now be cached safely by hosting providers and CDNs without breaking the sign-in flow, and guests are no longer stuck if they happen to land on a stale page.
-* If an upload fails after several attempts, it now waits for you to tap "Retry uploads" before trying again — the same behavior on every browser. Previously some browsers would auto-retry failed uploads silently, masking persistent network or server problems.
-* When two event pages are open in different browser tabs and a photo finishes uploading in the background, it now appears in the right gallery instead of being prepended to whichever event the tab last switched to.
-* Photo upload errors from the server (such as "out of disk space" or MIME-type rejections) no longer expose internal filesystem paths to guests. Guests now see a clear, translatable message and admins can find the full error in the WordPress debug log.
-* If a guest's saved sign-in becomes invalid (for example after the host changes the event password or rotates security keys), the page now bounces them back to the password screen with a clear "your session has expired" message instead of trapping them on a "Failed to load photos" error.
-
-**Developer notes**
-
-* New filter `pixfete_serve_service_worker` (default `true`) lets site owners disable Pixfête's Service Worker entirely when another PWA plugin owns the origin scope.
+* Event passwords shorter than 8 characters are now flagged in the editor, preventing a confusing "incorrect password" error for guests.
+* Various Live Photo Wall fixes: the block now appears in the editor, loads photos on plain permalink sites, displays correctly instead of being hidden behind the loading screen, and renders event names with special characters properly.
+* The moderation banner and delete buttons no longer appear to regular guests — only to assigned moderators.
+* Status messages shown to guests (new-photo notifications, password errors, upload errors) are now translatable.
+* Sign-in errors caused by cached event pages are resolved — guests are no longer stuck on stale pages, and expired sessions now bounce back to the password screen with a clear message.
+* When two event pages are open in different tabs, photos now appear in the right gallery.
+* Server-side upload errors no longer expose internal filesystem paths to guests.
+* Messages now use the theme's text color so they stay readable on themes with tinted backgrounds.
+* Silenced a PHP warning that could appear on the login screen after a failed login attempt.
 
 = 1.2.0 - 2026-03-26 =
 
