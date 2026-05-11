@@ -14,6 +14,7 @@ module.exports = {
 	registrationFailed: 'Registration failed. Please try again.',
 	consentFailed: 'Failed to accept consent. Please try again.',
 	loadPhotosFailed: 'Failed to load photos.',
+	sessionExpired: 'Your session has expired. Please re-enter the event password to continue.',
 	uploadFailed: 'Upload failed. Please try again.',
 	uploadConnectionFailed: 'Upload failed. Please check your connection and try again.',
 	uploadBulkFailed: '%1$d of %2$d photos failed to upload.',

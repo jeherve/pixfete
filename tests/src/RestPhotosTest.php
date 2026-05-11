@@ -578,6 +578,10 @@ class RestPhotosTest extends TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
+		// REST::handle_photo_upload now returns a generic translated
+		// string rather than wp_handle_upload's verbatim error, so __()
+		// must be stubbed.
+		Functions\when( '__' )->returnArg();
 
 		// Create a real 1x1 pixel JPEG via GD so getimagesize() passes.
 		$tmp_file = tempnam( sys_get_temp_dir(), 'pixfete_test_' ) . '.jpg';

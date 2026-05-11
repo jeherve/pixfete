@@ -47,6 +47,7 @@ $pixfete_i18n = array(
 	'registrationFailed'     => __( 'Registration failed. Please try again.', 'pixfete' ),
 	'consentFailed'          => __( 'Failed to accept consent. Please try again.', 'pixfete' ),
 	'loadPhotosFailed'       => __( 'Failed to load photos.', 'pixfete' ),
+	'sessionExpired'         => __( 'Your session has expired. Please re-enter the event password to continue.', 'pixfete' ),
 	'uploadFailed'           => __( 'Upload failed. Please try again.', 'pixfete' ),
 	'uploadConnectionFailed' => __( 'Upload failed. Please check your connection and try again.', 'pixfete' ),
 	/* translators: 1: number of failed uploads, 2: total number of files in the batch. */
@@ -61,10 +62,20 @@ $pixfete_i18n = array(
 	'newPhotoBannerPlural'   => __( '%d new photos — tap to see', 'pixfete' ),
 	'showPasswordLabel'      => __( 'Show password', 'pixfete' ),
 	'hidePasswordLabel'      => __( 'Hide password', 'pixfete' ),
+	'queuedLabel'            => __( 'Uploading…', 'pixfete' ),
+	'failedLabel'            => __( 'Failed — tap retry', 'pixfete' ),
+	'retryUploadsLabel'      => __( 'Retry uploads', 'pixfete' ),
 );
 
-// Build the Interactivity API context.
-$pixfete_context = array(
+// Build the Interactivity API context. swUrl is only populated when
+// Pixfête's PWA is enabled (see the `pixfete_serve_service_worker`
+// filter). An empty swUrl tells the frontend to skip SW registration
+// entirely, which is how Pixfête steps aside on sites that already run
+// a competing PWA/SW plugin. The scope mirrors the site's home URL path
+// so subdirectory and subdirectory-multisite installs get a tight scope
+// instead of one SW trying to claim the whole origin.
+$pixfete_pwa_enabled = \Jeherve\Pixfete\PWA::is_enabled();
+$pixfete_context     = array(
 	'pageId'           => get_the_ID(),
 	'nonce'            => '',
 	'honeypotField'    => $pixfete_honeypot_field,
@@ -72,6 +83,9 @@ $pixfete_context = array(
 	'dateEnd'          => $attributes['dateRangeEnd'] ?? '',
 	'dateStart'        => $attributes['dateRangeStart'] ?? '',
 	'restBase'         => rest_url( 'pixfete/v1' ),
+	'swUrl'            => $pixfete_pwa_enabled ? home_url( \Jeherve\Pixfete\PWA::SW_PATH ) : '',
+	'swScope'          => $pixfete_pwa_enabled ? \Jeherve\Pixfete\PWA::sw_scope() : '',
+	'cookiePath'       => \Jeherve\Pixfete\Cookie::cookie_path(),
 	'i18n'             => $pixfete_i18n,
 );
 
@@ -318,6 +332,15 @@ if ( $pixfete_is_moderator ) {
 				/>
 			</div>
 
+			<?php // Retry button surfaces only when at least one upload has permanently failed. ?>
+			<button
+				data-wp-bind--hidden="!state.hasFailedUploads"
+				class="pixfete-retry-uploads"
+				type="button"
+				data-wp-on--click="actions.retryUploads"
+				data-wp-text="state.retryUploadsLabelText"
+			></button>
+
 			<?php // Upload progress banner — visible while files are uploading. ?>
 			<div
 				data-wp-bind--hidden="!state.isUploading"
@@ -340,8 +363,21 @@ if ( $pixfete_is_moderator ) {
 			<?php // Error message. ?>
 			<div data-wp-bind--hidden="!state.errorMessage" class="pixfete-error" data-wp-text="state.errorMessage"></div>
 
-			<?php // Photo grid. ?>
+			<?php // Photo grid. Queued placeholders render above server photos. ?>
 			<div class="pixfete-grid">
+				<template data-wp-each="state.pendingUploads">
+					<div
+						class="pixfete-photo pixfete-photo--queued"
+						data-wp-class--pixfete-photo--failed="context.item.isFailed"
+					>
+						<div class="pixfete-photo-placeholder" aria-hidden="true"></div>
+						<span
+							class="pixfete-photo-status"
+							data-wp-text="context.item.statusLabel"
+						></span>
+					</div>
+				</template>
+				<?php // The existing state.photos template stays exactly as-is below this comment. ?>
 				<template data-wp-each="state.photos">
 					<div class="pixfete-photo" data-wp-on--click="actions.openLightbox">
 						<img

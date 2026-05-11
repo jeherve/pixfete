@@ -10,6 +10,7 @@
 import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
+import { enqueue, listPending, markDone, markFailed, requeueFailed } from './upload-queue';
 
 /**
  * Interpolate the `%d` placeholder in a translation template.
@@ -36,6 +37,185 @@ function formatCount(template, count) {
  */
 function formatString(template, value) {
 	return template.replace('%s', value);
+}
+
+/**
+ * Decorate a single raw queue record with view-only fields.
+ *
+ * The Interactivity API directives only resolve dotted reference paths
+ * — they cannot evaluate expressions like `=== 'failed'` or ternaries.
+ * Templates therefore bind to `context.item.isFailed` and
+ * `context.item.statusLabel`, and we precompute both here so the
+ * server-rendered i18n strings reach the placeholder UI.
+ *
+ * Falls back to empty strings if i18n keys are missing — translation
+ * plugins (Loco, WPML, MultilingualPress) occasionally trim or rename
+ * keys, and rendering `undefined` in the placeholder is worse than
+ * rendering nothing.
+ *
+ * @param {Object} item Raw record from the upload queue.
+ * @param {Object} i18n Server-rendered translations (expects `queuedLabel` and `failedLabel`).
+ * @return {Object} The record extended with `isFailed` and `statusLabel`.
+ */
+function decoratePendingItem(item, i18n) {
+	const isFailed = item.status === 'failed';
+	const labels = i18n || {};
+	return {
+		...item,
+		isFailed,
+		statusLabel: (isFailed ? labels.failedLabel : labels.queuedLabel) || '',
+	};
+}
+
+/**
+ * Decorate every item in a list — see {@link decoratePendingItem}.
+ *
+ * @param {Array<Object>} items Raw queue records.
+ * @param {Object}        i18n  Server-rendered translations.
+ * @return {Array<Object>} Decorated records.
+ */
+function decoratePending(items, i18n) {
+	return items.map((item) => decoratePendingItem(item, i18n));
+}
+
+/**
+ * Register the Pixfête Service Worker if the platform supports it.
+ *
+ * Steps aside cleanly when another SW already owns our scope (Super
+ * PWA, OneSignal, Jetpack Boost, host offline plugins): trying to
+ * register on top of them would either fail with `SecurityError` or
+ * succeed but leave the other SW as the controller. Either way the
+ * page falls back to the in-page drain — uploads still work, just
+ * without Background Sync recovery.
+ *
+ * Failures are otherwise non-fatal but logged so site owners debugging
+ * "why doesn't Background Sync work" can see what happened.
+ *
+ * @param {string} url   SW URL passed in from the server-rendered context.
+ *                       Empty string means PHP disabled the SW via the
+ *                       `pixfete_serve_service_worker` filter.
+ * @param {string} scope Scope to register the SW with — matches the site's
+ *                       home URL path so subdirectory and subdir-multisite
+ *                       installs don't collide on the same origin.
+ * @return {Promise<ServiceWorkerRegistration|null>} Resolved registration or null.
+ */
+async function registerServiceWorker(url, scope) {
+	if (!url) {
+		return null;
+	}
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+		return null;
+	}
+	try {
+		const existing = await navigator.serviceWorker.getRegistration(scope || '/');
+		if (existing && existing.active && existing.active.scriptURL !== url) {
+			// eslint-disable-next-line no-console -- visibility for site owners running another SW plugin.
+			console.warn(
+				'Pixfête: another Service Worker owns this scope (' +
+					existing.active.scriptURL +
+					'); skipping Pixfête SW registration. Set the `pixfete_serve_service_worker` filter to false to silence this.'
+			);
+			return null;
+		}
+		const options = scope ? { scope } : undefined;
+		return await navigator.serviceWorker.register(url, options);
+	} catch (err) {
+		// eslint-disable-next-line no-console -- visibility for HTTPS/proxy/scope failures.
+		console.warn('Pixfête: Service Worker registration failed', err);
+		return null;
+	}
+}
+
+/**
+ * Ask the Service Worker to drain via the Background Sync API.
+ *
+ * Returning `true` means the SW will own the drain, so the caller MUST
+ * skip its in-page drain to avoid both paths racing on the same queue
+ * record and double-POSTing the blob. Returning `false` means the
+ * platform didn't accept the registration (no SW, no Background Sync,
+ * permission denied, etc.) and the caller should fall back to the
+ * in-page drain.
+ *
+ * @return {Promise<boolean>} True when the SW will handle the drain.
+ */
+async function tryRegisterBackgroundSync() {
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+		return false;
+	}
+	try {
+		// `navigator.serviceWorker.ready` never resolves until a SW with a
+		// matching scope is active — and never rejects. On sites where
+		// Pixfête's SW is filtered off (`pixfete_serve_service_worker` →
+		// false) and no other plugin owns the scope, awaiting it would
+		// hang `handleFileSelect` and the consent-restore branch of
+		// `init()` indefinitely. Probe `getRegistration()` first so we
+		// can return false promptly and let the in-page drain take over.
+		const existing = await navigator.serviceWorker.getRegistration();
+		if (!existing) {
+			return false;
+		}
+		const reg = await navigator.serviceWorker.ready;
+		if (!reg || !('sync' in reg)) {
+			return false;
+		}
+		await reg.sync.register('pixfete-upload-queue');
+		return true;
+	} catch (err) {
+		// eslint-disable-next-line no-console -- visibility for Permissions-Policy / quota / no-SyncManager failures.
+		console.warn('Pixfête: Background Sync registration failed; falling back to in-page drain.', err);
+		return false;
+	}
+}
+
+/**
+ * Wire up the message listener that lets the SW push upload results back.
+ *
+ * Mutates store state directly so the UI updates without a poll round-trip.
+ * Captures pageId and i18n at setup time because the listener fires
+ * outside any directive event, where `getContext()` no longer resolves.
+ *
+ * Messages from other pageIds are ignored — guests can have multiple
+ * event-album pages open in different tabs, and the SW broadcasts to
+ * every controlled client. Without the filter an upload for event A
+ * would unconditionally prepend a photo to event B's gallery.
+ *
+ * The opaque-done event (sent when the upload succeeded but the JSON
+ * body couldn't be parsed) clears the queue placeholder without
+ * inserting a fabricated photo — polling will surface the real photo
+ * on its next tick.
+ *
+ * @param {number} pageId Event-album page this listener belongs to.
+ * @param {Object} i18n   Server-rendered translations used to relabel decorated items.
+ * @return {void}
+ */
+function listenForSwMessages(pageId, i18n) {
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+		return;
+	}
+	navigator.serviceWorker.addEventListener('message', (event) => {
+		const data = event.data;
+		if (!data || typeof data !== 'object') {
+			return;
+		}
+		if (data.pageId !== pageId) {
+			return;
+		}
+		if (data.type === 'pixfete:upload-success') {
+			state.pendingUploads = state.pendingUploads.filter((i) => i.id !== data.queueId);
+			if (data.photo) {
+				state.photos = [data.photo, ...state.photos];
+				if (data.photo.uploaded_at && data.photo.uploaded_at > state.latestUploadedAt) {
+					state.latestUploadedAt = data.photo.uploaded_at;
+				}
+			}
+		} else if (data.type === 'pixfete:upload-done-opaque') {
+			state.pendingUploads = state.pendingUploads.filter((i) => i.id !== data.queueId);
+		} else if (data.type === 'pixfete:upload-failed') {
+			state.pendingUploads = state.pendingUploads.map((i) =>
+				i.id === data.queueId ? decoratePendingItem({ ...i, status: 'failed' }, i18n) : i
+			);
+		}
+	});
 }
 
 /**
@@ -91,10 +271,32 @@ function restoreLightboxFocus() {
 }
 
 /**
+ * Delete the Pixfête cookie for a given page ID.
+ *
+ * Used when the server reports a stale/invalid cookie (HTTP 403 on the
+ * gallery endpoint). The path must match how the cookie was originally
+ * set so the deletion actually takes effect — on subdirectory installs
+ * the cookie is scoped to the site's URL path rather than `/`. The
+ * server-side path is exposed via context.cookiePath.
+ *
+ * @param {number} pageId     The WordPress page ID.
+ * @param {string} cookiePath Path the cookie was set on (defaults to `/`).
+ */
+function clearCookie(pageId, cookiePath = '/') {
+	const path = cookiePath || '/';
+	document.cookie = `pixfete_${pageId}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Lax`;
+}
+
+/**
  * Read and decode the Pixfête cookie for a given page ID.
  *
  * The cookie format is `{base64url-encoded JSON}.{HMAC}`. We only need
  * the payload portion (HMAC verification happens server-side).
+ *
+ * When the cookie is present but malformed (parse failure), we log a
+ * warning so site owners can spot security plugins or CDN rules that
+ * sanitize/strip cookie payloads — that case is otherwise visually
+ * identical to "no cookie" and traps guests on the password screen.
  *
  * @param {number} pageId The WordPress page ID.
  * @return {Object|null} Decoded cookie payload, or null if not found/invalid.
@@ -108,6 +310,8 @@ function readCookie(pageId) {
 			const value = cookie.substring(name.length);
 			const dotIndex = value.indexOf('.');
 			if (dotIndex === -1) {
+				// eslint-disable-next-line no-console -- aids debugging cookie-stripping plugins/CDNs.
+				console.warn('Pixfête: cookie present but malformed (missing HMAC delimiter).');
 				return null;
 			}
 
@@ -118,7 +322,9 @@ function readCookie(pageId) {
 				const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
 				const json = atob(base64);
 				return JSON.parse(json);
-			} catch {
+			} catch (err) {
+				// eslint-disable-next-line no-console -- aids debugging cookie-stripping plugins/CDNs.
+				console.warn('Pixfête: cookie payload could not be decoded.', err);
 				return null;
 			}
 		}
@@ -129,12 +335,23 @@ function readCookie(pageId) {
 /**
  * Remove the `key` and `table` query parameters from the URL
  * without triggering a page reload.
+ *
+ * `history.replaceState` can throw `SecurityError` inside heavily
+ * sandboxed iframes (CSP `sandbox` without `allow-same-origin`); we
+ * swallow that case with a warning rather than letting it bubble up
+ * into init() and showing guests a generic "init failed" error for a
+ * trivial URL-cleanup side effect.
  */
 function cleanUrlParams() {
-	const url = new URL(window.location.href);
-	url.searchParams.delete('key');
-	url.searchParams.delete('table');
-	window.history.replaceState({}, '', url.toString());
+	try {
+		const url = new URL(window.location.href);
+		url.searchParams.delete('key');
+		url.searchParams.delete('table');
+		window.history.replaceState({}, '', url.toString());
+	} catch (err) {
+		// eslint-disable-next-line no-console -- visibility for sandboxed-iframe debugging.
+		console.warn('Pixfête: could not clean URL parameters.', err);
+	}
 }
 
 const { state } = store('pixfete', {
@@ -154,10 +371,9 @@ const { state } = store('pixfete', {
 		lightboxIndex: -1,
 		fabOpen: false,
 		latestUploadedAt: 0,
+		/** Mirror of the IndexedDB upload queue for this page, freshest first. */
+		pendingUploads: [],
 		pollingId: 0,
-		uploadTotal: 0,
-		uploadCurrent: 0,
-		uploadErrors: [],
 
 		/** Whether the current user is an assigned moderator for this event. */
 		isModerator: false,
@@ -371,27 +587,57 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Whether an upload batch is currently in progress.
+		 * Whether any queued upload has hit a permanent failure.
 		 *
-		 * @return {boolean} True if files are being uploaded.
+		 * Drives visibility of the "Retry uploads" affordance — we only
+		 * surface the manual retry button when the in-page loop has given
+		 * up so guests aren't tempted to spam-tap during normal retries.
+		 *
+		 * @return {boolean} True if any queued item is in 'failed' state.
 		 */
-		get isUploading() {
-			return state.uploadTotal > 0;
+		get hasFailedUploads() {
+			return state.pendingUploads.some((item) => item.status === 'failed');
 		},
 
 		/**
-		 * Build the text for the upload progress banner.
+		 * Localized label for the manual retry button.
 		 *
-		 * Shows which file in the batch is currently uploading,
-		 * e.g. "📷 2 / 5…".
+		 * @return {string} Translated text from server-rendered i18n context.
+		 */
+		get retryUploadsLabelText() {
+			return getContext().i18n.retryUploadsLabel;
+		},
+
+		/**
+		 * Whether any upload is currently in flight or waiting to be tried.
 		 *
-		 * @return {string} Banner text with current/total count.
+		 * Used by the progress banner. Derived from the queue rather than a
+		 * separate counter so the banner cannot drift out of sync with the
+		 * actual work pending. Failed items are excluded because they only
+		 * retry on the manual "Retry uploads" affordance — leaving them in
+		 * the count would keep the banner visible after every upload had
+		 * permanently failed, contradicting its meaning.
+		 *
+		 * @return {boolean} True when at least one non-failed queued upload exists.
+		 */
+		get isUploading() {
+			return state.pendingUploads.some((item) => item.status !== 'failed');
+		},
+
+		/**
+		 * Short status text for the upload progress banner.
+		 *
+		 * Counts only items still in flight or waiting to be tried —
+		 * failed items are surfaced by the "Retry uploads" button instead.
+		 *
+		 * @return {string} Something like "📷 Uploading 3…".
 		 */
 		get uploadBannerText() {
-			if (!state.uploadTotal) {
+			const inFlight = state.pendingUploads.filter((item) => item.status !== 'failed').length;
+			if (!inFlight) {
 				return '';
 			}
-			return `\u{1f4f7} ${state.uploadCurrent} / ${state.uploadTotal}\u2026`;
+			return `\u{1f4f7} ${inFlight}\u2026`;
 		},
 	},
 
@@ -408,6 +654,25 @@ const { state } = store('pixfete', {
 		 */
 		*init() {
 			state.errorMessage = '';
+
+			// Restore any uploads queued on a previous visit so the user
+			// can see (and we can resume) their pending work. A failure
+			// here would silently strand previously-queued items: log so
+			// admins can spot private-browsing/quota issues. Skip the
+			// call entirely if IndexedDB isn't available at all — that's
+			// a known fallback, not a failure mode worth warning about.
+			if (typeof globalThis.indexedDB === 'undefined') {
+				state.pendingUploads = [];
+			} else {
+				try {
+					const restored = yield listPending(getContext().pageId);
+					state.pendingUploads = decoratePending(restored, getContext().i18n);
+				} catch (err) {
+					// eslint-disable-next-line no-console -- visibility for IDB open failures (corrupted, quota).
+					console.warn('Pixfête: could not restore pending uploads.', err);
+					state.pendingUploads = [];
+				}
+			}
 
 			// Read URL parameters before cleaning. Stash on state so a
 			// retry (which runs after URL params have been cleaned) still
@@ -438,6 +703,9 @@ const { state } = store('pixfete', {
 
 			const ctx = getContext();
 
+			registerServiceWorker(ctx.swUrl, ctx.swScope);
+			listenForSwMessages(ctx.pageId, ctx.i18n);
+
 			// Sync moderator status from server-rendered context into
 			// global state so data-wp-bind directives can read it.
 			state.isModerator = ctx.isModerator ?? false;
@@ -450,6 +718,12 @@ const { state } = store('pixfete', {
 			if (cookie && cookie.consent === true) {
 				state.currentView = 'gallery';
 				const { actions } = store('pixfete');
+				if (state.pendingUploads.length) {
+					const synced = yield tryRegisterBackgroundSync();
+					if (!synced) {
+						actions.drainQueue();
+					}
+				}
 				actions.loadPhotos();
 				actions.startPolling();
 				return;
@@ -703,6 +977,12 @@ const { state } = store('pixfete', {
 
 					const { actions } = store('pixfete');
 					actions.loadPhotos();
+					if (state.pendingUploads.length) {
+						const synced = yield tryRegisterBackgroundSync();
+						if (!synced) {
+							actions.drainQueue();
+						}
+					}
 					actions.startPolling();
 					return;
 				}
@@ -711,6 +991,39 @@ const { state } = store('pixfete', {
 			} finally {
 				state.isSubmitting = false;
 			}
+		},
+
+		/**
+		 * Recover from a server-side cookie rejection.
+		 *
+		 * A 403 from the gallery endpoint means the cookie is no longer
+		 * trusted by the server (signature mismatch from a salt rotation,
+		 * payload expired, or eventVersion bumped). The cookie still looks
+		 * "valid enough" to the client to send init() down the gallery
+		 * path, which then hammers a permanent 403 and strands the guest
+		 * on a "Failed to load photos" screen with a Try Again button
+		 * that can never succeed.
+		 *
+		 * Clearing the cookie and reverting to the password gate gives
+		 * the guest the only recovery path that can actually work — a
+		 * fresh sign-in regenerates a valid cookie. Polling is stopped
+		 * so it doesn't keep firing against the dead session.
+		 */
+		expireSession() {
+			const ctx = getContext();
+			clearCookie(ctx.pageId, ctx.cookiePath);
+			if (state.pollingId) {
+				clearInterval(state.pollingId);
+				state.pollingId = 0;
+			}
+			state.photos = [];
+			state.pendingPhotos = [];
+			state.currentPage = 1;
+			state.latestUploadedAt = 0;
+			state.newPhotoCount = 0;
+			state.hasMore = false;
+			state.currentView = 'password';
+			state.errorMessage = ctx.i18n.sessionExpired;
 		},
 
 		/**
@@ -734,6 +1047,11 @@ const { state } = store('pixfete', {
 				});
 
 				if (!response.ok) {
+					if (response.status === 403) {
+						const { actions } = store('pixfete');
+						actions.expireSession();
+						return;
+					}
 					state.errorMessage = ctx.i18n.loadPhotosFailed;
 					return;
 				}
@@ -802,6 +1120,10 @@ const { state } = store('pixfete', {
 					});
 
 					if (!response.ok) {
+						if (response.status === 403) {
+							const { actions } = store('pixfete');
+							actions.expireSession();
+						}
 						return;
 					}
 
@@ -827,8 +1149,13 @@ const { state } = store('pixfete', {
 							state.latestUploadedAt = maxTimestamp;
 						}
 					}
-				} catch {
-					// Silently ignore polling errors.
+				} catch (err) {
+					// Polling errors are non-fatal — the next tick will retry
+					// and the user can keep using the gallery. Log so site
+					// owners can spot persistent auth/network problems that
+					// would otherwise be invisible.
+					// eslint-disable-next-line no-console -- non-fatal but worth surfacing.
+					console.warn('Pixfête: polling for new photos failed.', err);
 				}
 			}, POLL_INTERVAL);
 		},
@@ -858,12 +1185,17 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Handle file selection for photo uploads.
+		 * Persist selected files to the IndexedDB queue and kick off the drain.
 		 *
-		 * Uploads each selected file individually via the REST endpoint.
-		 * Tracks progress via uploadTotal/uploadCurrent state for the
-		 * progress banner. Errors are collected and shown as a summary
-		 * after the entire batch completes.
+		 * Selection used to upload inline; if the page closed mid-batch or
+		 * the network blipped, photos were lost. Now we persist first and
+		 * upload from the queue, so recovery is automatic and the
+		 * Background Sync handler in sw.js can also pick up stragglers
+		 * after the tab closes.
+		 *
+		 * `restBase` is stashed on each queue record so the SW (in a
+		 * separate JS realm with no access to `ctx`) can POST to the
+		 * right REST URL on subdirectory and subdir-multisite installs.
 		 *
 		 * @param {Event} event The change event from the file input.
 		 */
@@ -872,70 +1204,142 @@ const { state } = store('pixfete', {
 			if (!files || files.length === 0) {
 				return;
 			}
-
-			// Guard against concurrent batches — if an upload is already
-			// in progress, ignore this file selection entirely.
-			if (state.isUploading) {
-				return;
-			}
-
-			const totalFiles = files.length;
-			state.uploadTotal = totalFiles;
-			state.uploadCurrent = 1;
-			state.uploadErrors = [];
-			state.errorMessage = '';
 			const ctx = getContext();
 
-			let index = 0;
 			for (const file of files) {
-				index++;
-				state.uploadCurrent = index;
+				try {
+					yield enqueue({
+						pageId: ctx.pageId,
+						blob: file,
+						name: file.name,
+						restBase: ctx.restBase,
+					});
+				} catch (err) {
+					// QuotaExceeded / private browsing / corrupted store — surface
+					// a user-visible error rather than silently dropping the file.
+					// eslint-disable-next-line no-console -- IDB-level detail belongs in console.
+					console.warn('Pixfête: could not queue upload.', err);
+					state.errorMessage = ctx.i18n.uploadFailed;
+				}
+			}
 
+			const queued = yield listPending(ctx.pageId);
+			state.pendingUploads = decoratePending(queued, ctx.i18n);
+
+			// Reset the input so the same file can be selected again later.
+			event.target.value = '';
+
+			// Prefer Background Sync when the platform offers it: the SW
+			// owns the drain end-to-end and won't race the in-page loop.
+			// Otherwise fall back to the in-page drain.
+			const synced = yield tryRegisterBackgroundSync();
+			if (!synced) {
+				const { actions } = store('pixfete');
+				yield actions.drainQueue();
+			}
+		},
+
+		/**
+		 * Manually retry uploads that have hit a permanent failure.
+		 *
+		 * Clears the 'failed' status on every queued item via
+		 * `requeueFailed` and triggers a drain. The drain itself skips
+		 * `failed` records, so permanent failures only get re-attempted
+		 * after this deliberate user action — guests aren't trapped in a
+		 * silent retry loop, and the UI's "Retry uploads" affordance has
+		 * the same meaning on Chrome (where the SW owns the drain) and
+		 * on Safari/Firefox (where the in-page loop owns it).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async retryUploads() {
+			const ctx = getContext();
+			await requeueFailed(ctx.pageId);
+			const pending = await listPending(ctx.pageId);
+			state.pendingUploads = decoratePending(pending, ctx.i18n);
+
+			// Same dual-path rule as handleFileSelect: BG Sync owns the
+			// drain when available, in-page loop only runs as fallback.
+			const synced = await tryRegisterBackgroundSync();
+			if (!synced) {
+				const { actions } = store('pixfete');
+				await actions.drainQueue();
+			}
+		},
+
+		/**
+		 * Sequentially upload pending queue items to the REST endpoint.
+		 *
+		 * Skips records already in `failed` state so the manual "Retry
+		 * uploads" button is the single user-visible affordance for
+		 * re-attempting permanent failures — mirroring the SW's drain
+		 * loop (sw.js) so behavior is identical across browsers.
+		 *
+		 * Stops on the first failure rather than draining-around it: if
+		 * one upload is failing we'd rather surface that quickly than
+		 * burn the remaining files into the same failure mode. The SW
+		 * retry path picks up where this one left off when available.
+		 *
+		 * Network errors (fetch rejection) mark the item failed and
+		 * retry later; post-success bookkeeping errors (e.g. a CDN
+		 * returning HTML instead of JSON for a 200 response) clear the
+		 * record without re-attempting, since the server accepted the
+		 * upload and a retry would duplicate the photo.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async drainQueue() {
+			const ctx = getContext();
+			let pending = (await listPending(ctx.pageId)).filter((item) => item.status !== 'failed');
+
+			while (pending.length > 0) {
+				const item = pending[0];
+				let response;
 				try {
 					const formData = new FormData();
-					formData.append('photo', file);
+					formData.append('photo', item.blob, item.name);
 
-					const response = yield fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
+					response = await fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
 						method: 'POST',
 						credentials: 'same-origin',
 						body: formData,
 					});
+				} catch {
+					await markFailed(item.id, 'network');
+					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
+					return;
+				}
 
-					if (!response.ok) {
-						const errorData = yield response.json();
-						state.uploadErrors = [...state.uploadErrors, errorData.message || ctx.i18n.uploadFailed];
-						continue;
-					}
+				if (!response.ok) {
+					await markFailed(item.id, 'http');
+					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
+					return;
+				}
 
-					const photo = yield response.json();
+				let photo = null;
+				try {
+					photo = await response.json();
+				} catch (err) {
+					// 200 OK but the body wasn't JSON — most often a caching
+					// plugin or CDN intercepting the response. The upload
+					// itself succeeded, so we delete the queue record
+					// (avoids duplicate-upload on retry) and let polling
+					// pick up the real photo on its next tick.
+					// eslint-disable-next-line no-console -- aids debugging cache/CDN interference.
+					console.warn('Pixfête: upload succeeded but response was not JSON.', err);
+				}
 
-					// Prepend the new photo to the gallery.
+				await markDone(item.id);
+				if (photo) {
 					state.photos = [photo, ...state.photos];
-
-					// Update latest timestamp.
 					if (photo.uploaded_at && photo.uploaded_at > state.latestUploadedAt) {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
-				} catch {
-					state.uploadErrors = [...state.uploadErrors, ctx.i18n.uploadConnectionFailed];
 				}
+
+				pending = (await listPending(ctx.pageId)).filter((p) => p.status !== 'failed');
+				state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
 			}
-
-			// Reset upload progress state.
-			state.uploadTotal = 0;
-			state.uploadCurrent = 0;
-
-			// Show error summary if any uploads failed.
-			if (state.uploadErrors.length === 1) {
-				state.errorMessage = state.uploadErrors[0];
-			} else if (state.uploadErrors.length > 1) {
-				state.errorMessage = ctx.i18n.uploadBulkFailed
-					.replace('%1$d', String(state.uploadErrors.length))
-					.replace('%2$d', String(totalFiles));
-			}
-
-			// Reset the file input so the same file can be selected again.
-			event.target.value = '';
 		},
 
 		/**

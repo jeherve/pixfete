@@ -270,3 +270,4 @@ require_once dirname( __DIR__ ) . '/src/class-archive.php';
 require_once dirname( __DIR__ ) . '/src/class-cleanup.php';
 require_once dirname( __DIR__ ) . '/src/class-slideshow.php';
 require_once dirname( __DIR__ ) . '/src/class-moderator.php';
+require_once dirname( __DIR__ ) . '/src/class-pwa.php';

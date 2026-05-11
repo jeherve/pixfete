@@ -35,6 +35,11 @@ class CookieTest extends TestCase {
 				return trim( strip_tags( $str ) );
 			}
 		);
+		// set_for_page now derives the cookie path from home_url() so
+		// subdirectory/multisite installs scope cookies tightly. Tests
+		// assert on the root-install behavior unless they say otherwise.
+		Functions\when( 'home_url' )->returnArg();
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 	}
 
 	/**
@@ -373,6 +378,32 @@ class CookieTest extends TestCase {
 		$call = $GLOBALS['pixfete_setcookie_last_call'];
 		$this->assertNotNull( $call, 'setcookie must have been called.' );
 		$this->assertTrue( $call['options']['secure'] );
+	}
+
+	/**
+	 * Test that set_for_page() scopes the cookie path to the home URL.
+	 *
+	 * On subdirectory installs (e.g. WordPress at `https://example.test/blog/`)
+	 * the cookie must be scoped to `/blog/` so it isn't leaked across
+	 * sibling subsites on subdirectory multisite installations.
+	 */
+	public function test_set_for_page_scopes_path_to_home_url_subdirectory(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'home_url' )->alias(
+			static function ( string $path = '' ): string {
+				return 'https://example.test/blog' . $path;
+			}
+		);
+
+		$payload = $this->make_payload();
+
+		$GLOBALS['pixfete_setcookie_last_call'] = null;
+		Cookie::set_for_page( $payload );
+
+		$call = $GLOBALS['pixfete_setcookie_last_call'];
+		$this->assertNotNull( $call );
+		$this->assertSame( '/blog/', $call['options']['path'] );
 	}
 
 	/**

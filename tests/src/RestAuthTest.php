@@ -51,6 +51,11 @@ class RestAuthTest extends TestCase {
 				return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
 			}
 		);
+		// Cookie::set_for_page resolves the cookie path via home_url() so
+		// subdirectory/multisite installs scope cookies tightly. Tests
+		// don't exercise multisite behavior, so stub a root install.
+		Functions\when( 'home_url' )->returnArg();
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
 	}
 
 	/**

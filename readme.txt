@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -35,6 +35,7 @@ Your guests don't need to create an account or download an app. They scan a QR c
 * A floating upload button stays visible as you scroll, so it's always easy to share another photo.
 * Upload progress banner shows which photo is being uploaded and how many are left.
 * Camera capture and gallery picker for uploads, with support for selecting multiple files at once.
+* Resilient uploads. Photos are saved on the guest's device the moment they pick them, so if the network drops or they close the page mid-upload, nothing is lost. Uploads resume automatically when connectivity returns, and a "Retry uploads" button is there for the rare cases that need a nudge.
 * A full-screen page template removes the header, footer, and sidebar for distraction-free browsing.
 * Customizable consent message via the block editor.
 * Optional table name tracking for seating assignments.
@@ -104,6 +105,10 @@ After your event ends (based on the end date you set in the block settings), the
 
 Yes! Add the Live Photo Wall block to a separate page and link it to your event page. The photo wall displays photos full-screen with crossfade transitions, automatically cycling through submissions. Set it up on a laptop connected to a projector and it runs hands-free — new photos appear as guests upload them. You can adjust how long each photo stays on screen in the block settings.
 
+= What happens if a guest loses connectivity while uploading? =
+
+Photos guests select are saved on their device before they upload, so if the Wi-Fi drops, they walk out of range, or they close the tab mid-upload, nothing is lost. Pixfête resumes the uploads automatically as soon as the connection comes back — even if the tab is no longer open. If an upload still fails after several attempts, a "Retry uploads" button appears so guests can try again without re-picking the same files.
+
 = Can I limit how many photos each guest uploads? =
 
 Not by default, but developers can use the `pixfete_max_uploads_per_guest` filter to set per-event limits. See the README on GitHub for the full list of available hooks.
@@ -125,6 +130,8 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * Event hosts can now assign moderators who can remove inappropriate photos from the live gallery on their phone, without needing access to the WordPress dashboard.
 * Swipe between photos in the album lightbox, or use the left/right arrow keys on desktop.
 * The event password field now has a show/hide toggle, so guests can verify what they typed before submitting — especially helpful on mobile keyboards.
+* Photos selected for upload are now saved on the device first, so they are no longer lost if the network drops or the page is closed mid-upload. Uploads automatically resume when connectivity returns.
+* A "Retry uploads" button appears when an upload has permanently failed, so guests can try again without re-picking the same files.
 
 **Changed**
 
@@ -132,6 +139,10 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * The plugin has been renamed to Pixfête. You'll see the new name in your plugins list and under the Settings menu.
 * Guests are now asked for their first name instead of just "name", so the photo album feels a bit more personal.
 * The "Take Photo" and "Choose from Gallery" labels in the upload menu are now tappable, not just the round icon next to them.
+* The upload progress display now reflects the live queue rather than a one-shot batch counter.
+* Pixfête now works correctly on WordPress installations in a subdirectory (like `example.com/blog/`) and on multisite networks: the offline upload helper, the upload session cookie, and the resume-uploads feature all stay scoped to your own site instead of leaking across sibling sites on the same domain.
+* On sites that already run another Service Worker plugin (Super PWA, OneSignal, Jetpack Boost, hosting-provider offline plugins, and similar), Pixfête now steps aside automatically rather than competing for control. Uploads still queue locally and resume — only the post-tab-close recovery is handed back to the other plugin.
+* When an upload's server response is intercepted by a caching plugin or CDN and arrives as something other than JSON, Pixfête now treats the upload as successful (since the server already accepted it) instead of retrying and creating a duplicate photo.
 
 **Fixed**
 
@@ -145,6 +156,14 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * A PHP warning that could appear on the login screen after a failed login attempt has been silenced.
 * Status messages shown to guests in the photo album and Live Photo Wall (such as "1 new photo — tap to see", "The password is incorrect.", and upload errors) are now translatable, so they can appear in the site's language alongside the rest of the plugin.
 * Some guests were getting sign-in errors when first opening an event page (especially on mobile, or when the event link had been shared via messaging apps), and the error persisted even after refreshing or re-entering the password. Event pages can now be cached safely by hosting providers and CDNs without breaking the sign-in flow, and guests are no longer stuck if they happen to land on a stale page.
+* If an upload fails after several attempts, it now waits for you to tap "Retry uploads" before trying again — the same behavior on every browser. Previously some browsers would auto-retry failed uploads silently, masking persistent network or server problems.
+* When two event pages are open in different browser tabs and a photo finishes uploading in the background, it now appears in the right gallery instead of being prepended to whichever event the tab last switched to.
+* Photo upload errors from the server (such as "out of disk space" or MIME-type rejections) no longer expose internal filesystem paths to guests. Guests now see a clear, translatable message and admins can find the full error in the WordPress debug log.
+* If a guest's saved sign-in becomes invalid (for example after the host changes the event password or rotates security keys), the page now bounces them back to the password screen with a clear "your session has expired" message instead of trapping them on a "Failed to load photos" error.
+
+**Developer notes**
+
+* New filter `pixfete_serve_service_worker` (default `true`) lets site owners disable Pixfête's Service Worker entirely when another PWA plugin owns the origin scope.
 
 = 1.2.0 - 2026-03-26 =
 
