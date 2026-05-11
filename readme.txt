@@ -35,6 +35,7 @@ Your guests don't need to create an account or download an app. They scan a QR c
 * A floating upload button stays visible as you scroll, so it's always easy to share another photo.
 * Upload progress banner shows which photo is being uploaded and how many are left.
 * Camera capture and gallery picker for uploads, with support for selecting multiple files at once.
+* Resilient uploads. Photos are saved on the guest's device the moment they pick them, so if the network drops or they close the page mid-upload, nothing is lost. Uploads resume automatically when connectivity returns, and a "Retry uploads" button is there for the rare cases that need a nudge.
 * A full-screen page template removes the header, footer, and sidebar for distraction-free browsing.
 * Customizable consent message via the block editor.
 * Optional table name tracking for seating assignments.
@@ -103,6 +104,10 @@ After your event ends (based on the end date you set in the block settings), the
 = Can I show photos on a projector during the event? =
 
 Yes! Add the Live Photo Wall block to a separate page and link it to your event page. The photo wall displays photos full-screen with crossfade transitions, automatically cycling through submissions. Set it up on a laptop connected to a projector and it runs hands-free — new photos appear as guests upload them. You can adjust how long each photo stays on screen in the block settings.
+
+= What happens if a guest loses connectivity while uploading? =
+
+Photos guests select are saved on their device before they upload, so if the Wi-Fi drops, they walk out of range, or they close the tab mid-upload, nothing is lost. Pixfête resumes the uploads automatically as soon as the connection comes back — even if the tab is no longer open. If an upload still fails after several attempts, a "Retry uploads" button appears so guests can try again without re-picking the same files.
 
 = Can I limit how many photos each guest uploads? =
 
