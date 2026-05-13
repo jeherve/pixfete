@@ -409,4 +409,83 @@ final class PwaTest extends TestCase {
 		$this->assertStringContainsString( 'icon-maskable-512.png', $manifest['icons'][2]['src'] );
 		$this->assertSame( 'maskable', $manifest['icons'][2]['purpose'] );
 	}
+
+	/**
+	 * Featured-image happy path: 192 and 512 variants exist, so icons
+	 * point at them and maskable reuses the 512 source.
+	 */
+	public function test_build_manifest_uses_featured_image_when_available(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 99 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_get_attachment_image_src' )->alias(
+			static function ( int $id, string $size ): array {
+				return array(
+					"https://example.test/wp-content/uploads/{$size}.png",
+					'pixfete-pwa-192' === $size ? 192 : 512,
+					'pixfete-pwa-192' === $size ? 192 : 512,
+					true,
+				);
+			}
+		);
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertCount( 3, $manifest['icons'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-192.png', $manifest['icons'][0]['src'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.png', $manifest['icons'][1]['src'] );
+		$this->assertSame( 'maskable', $manifest['icons'][2]['purpose'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.png', $manifest['icons'][2]['src'] );
+	}
+
+	/**
+	 * Featured image present but sized variants don't exist on disk
+	 * (`wp_get_attachment_image_src` returns false). Caller must fall
+	 * back to bundled icons rather than emit broken URLs.
+	 */
+	public function test_build_manifest_falls_back_when_sized_variants_missing(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 99 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( false );
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertStringContainsString( 'assets/pwa/icon-192.png', $manifest['icons'][0]['src'] );
+	}
+
+	/**
+	 * The `pixfete_manifest` filter receives the manifest array and the
+	 * post ID, and its return value is what `build_manifest` returns.
+	 */
+	public function test_build_manifest_applies_pixfete_manifest_filter(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, $value, $post_id = null ) {
+				if ( 'pixfete_manifest' === $hook ) {
+					$value['name']          = 'Filtered Name';
+					$value['_post_id_seen'] = $post_id;
+				}
+				return $value;
+			}
+		);
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertSame( 'Filtered Name', $manifest['name'] );
+		$this->assertSame( 123, $manifest['_post_id_seen'] );
+	}
 }
