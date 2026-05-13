@@ -46,6 +46,17 @@ class PWA {
 	public const SW_PATH = '/pixfete-sw.js';
 
 	/**
+	 * URL path template for per-event Web App Manifests.
+	 *
+	 * `%d` is replaced with the post ID. Stored as a `sprintf` template
+	 * (not just a prefix + extension) so tests and callers share one
+	 * authoritative pattern instead of duplicating string-building logic.
+	 *
+	 * @var string
+	 */
+	public const MANIFEST_PATH_TEMPLATE = '/pixfete-%d.webmanifest';
+
+	/**
 	 * Whether Pixfête should manage a Service Worker on this site.
 	 *
 	 * Wrapped behind the `pixfete_serve_service_worker` filter so site
@@ -205,6 +216,73 @@ class PWA {
 		$path  = is_array( $parts ) && isset( $parts['path'] ) ? (string) $parts['path'] : '/';
 
 		return '' === $path ? '/' : rtrim( $path, '/' ) . '/';
+	}
+
+	/**
+	 * Absolute path component for a given event's manifest URL.
+	 *
+	 * Equal to the path part of `home_url( sprintf( MANIFEST_PATH_TEMPLATE, $post_id ) )`
+	 * so subdirectory installs (`/blog/pixfete-123.webmanifest`) and root installs
+	 * (`/pixfete-123.webmanifest`) both produce the right value with one branch.
+	 *
+	 * @param int $post_id ID of the event-album post.
+	 * @return string Absolute path including the manifest filename.
+	 */
+	public static function manifest_path( int $post_id ): string {
+		$parts = wp_parse_url( home_url( sprintf( self::MANIFEST_PATH_TEMPLATE, $post_id ) ) );
+		return is_array( $parts ) && isset( $parts['path'] )
+			? (string) $parts['path']
+			: sprintf( self::MANIFEST_PATH_TEMPLATE, $post_id );
+	}
+
+	/**
+	 * Decide whether a request URI targets an event's manifest URL.
+	 *
+	 * Returns the parsed post ID on a match so the dispatcher in
+	 * `maybe_serve()` doesn't have to re-parse the URL. Returns null
+	 * when the path doesn't match, when the ID is non-numeric, or when
+	 * the ID is zero/negative — we never want to feed junk into
+	 * `get_post()` downstream.
+	 *
+	 * Exposed as a public testing seam: `maybe_serve()` calls `exit()`,
+	 * so unit tests cover the matcher directly. The query string is
+	 * stripped before comparing (clients may append `?ver=` cache busters).
+	 *
+	 * @param string $request_uri Raw value of `$_SERVER['REQUEST_URI']`,
+	 *                            already unslashed and sanitized by the caller.
+	 * @return int|null Post ID on match, null otherwise.
+	 */
+	public static function matches_manifest_path( string $request_uri ): ?int {
+		if ( '' === $request_uri ) {
+			return null;
+		}
+
+		$parts = wp_parse_url( $request_uri );
+		$path  = is_array( $parts ) && isset( $parts['path'] ) ? (string) $parts['path'] : '';
+		if ( '' === $path ) {
+			return null;
+		}
+
+		$home_parts = wp_parse_url( home_url( '/' ) );
+		$home_path  = is_array( $home_parts ) && isset( $home_parts['path'] ) ? rtrim( (string) $home_parts['path'], '/' ) : '';
+		$expected   = $home_path . '/pixfete-';
+
+		if ( ! str_starts_with( $path, $expected ) ) {
+			return null;
+		}
+
+		$tail = substr( $path, strlen( $expected ) );
+		if ( ! str_ends_with( $tail, '.webmanifest' ) ) {
+			return null;
+		}
+
+		$id_part = substr( $tail, 0, -strlen( '.webmanifest' ) );
+		if ( '' === $id_part || ! ctype_digit( $id_part ) ) {
+			return null;
+		}
+
+		$post_id = (int) $id_part;
+		return $post_id > 0 ? $post_id : null;
 	}
 
 	/**

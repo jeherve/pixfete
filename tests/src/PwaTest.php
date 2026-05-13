@@ -226,6 +226,75 @@ final class PwaTest extends TestCase {
 	}
 
 	/**
+	 * `manifest_path()` returns the canonical path on a root install.
+	 */
+	public function test_manifest_path_root_install(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertSame( '/pixfete-123.webmanifest', PWA::manifest_path( 123 ) );
+	}
+
+	/**
+	 * `manifest_path()` prefixes with the home URL path on subdirectory installs.
+	 */
+	public function test_manifest_path_subdirectory_install(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+		$this->assertSame( '/blog/pixfete-123.webmanifest', PWA::manifest_path( 123 ) );
+	}
+
+	/**
+	 * `matches_manifest_path()` returns the post ID for a canonical match.
+	 */
+	public function test_matches_manifest_path_accepts_canonical_path(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertSame( 123, PWA::matches_manifest_path( '/pixfete-123.webmanifest' ) );
+	}
+
+	/**
+	 * Subdirectory installs match the prefixed path.
+	 */
+	public function test_matches_manifest_path_matches_subdirectory_install(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+		$this->assertSame( 123, PWA::matches_manifest_path( '/blog/pixfete-123.webmanifest' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-123.webmanifest' ) );
+	}
+
+	/**
+	 * Query strings on the manifest URL don't break the match.
+	 */
+	public function test_matches_manifest_path_strips_query_string(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertSame( 123, PWA::matches_manifest_path( '/pixfete-123.webmanifest?ver=1' ) );
+	}
+
+	/**
+	 * Non-numeric IDs (`/pixfete-foo.webmanifest`) are rejected — we
+	 * never want to call `get_post()` with junk input.
+	 */
+	public function test_matches_manifest_path_rejects_non_numeric_id(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-foo.webmanifest' ) );
+	}
+
+	/**
+	 * Zero and negative IDs are also rejected.
+	 */
+	public function test_matches_manifest_path_rejects_zero_and_negative(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-0.webmanifest' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete--5.webmanifest' ) );
+	}
+
+	/**
+	 * Unrelated paths and empty input return null.
+	 */
+	public function test_matches_manifest_path_rejects_other_paths(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertNull( PWA::matches_manifest_path( '/wp-admin/' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-sw.js' ) );
+		$this->assertNull( PWA::matches_manifest_path( '' ) );
+	}
+
+	/**
 	 * `short_name()` returns short titles unchanged.
 	 */
 	public function test_short_name_returns_short_title_unchanged(): void {
