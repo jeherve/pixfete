@@ -108,9 +108,9 @@ function writeDismissal(postId, cookiePath) {
  * Wire up the install-prompt module.
  *
  * Returns a small API the block's view module can drive. The module
- * is gated on mobile detection and a per-event dismissal cookie;
- * `getFirstUploadDone` is wired through the signature now so the
- * upcoming first-upload gate can land as a pure logic addition.
+ * is gated on (1) the deferred prompt + once-per-session flag,
+ * (2) the guest having completed their first upload,
+ * (3) mobile detection, and (4) a per-event dismissal cookie.
  *
  * @param {Object}   options                    Module configuration.
  * @param {Function} options.getFirstUploadDone Callback returning whether the guest has uploaded.
@@ -118,7 +118,6 @@ function writeDismissal(postId, cookiePath) {
  * @param {string}   options.cookiePath         Cookie path matching `Cookie::cookie_path()`.
  * @return {{ maybeShowPrompt: Function }} Public API.
  */
-// eslint-disable-next-line no-unused-vars
 export function initInstallPrompt({ getFirstUploadDone, postId, cookiePath } = {}) {
 	if (typeof window === 'undefined') {
 		return { maybeShowPrompt: async () => undefined };
@@ -130,6 +129,9 @@ export function initInstallPrompt({ getFirstUploadDone, postId, cookiePath } = {
 	return {
 		maybeShowPrompt: async () => {
 			if (!deferredPrompt || promptShown) {
+				return;
+			}
+			if (typeof getFirstUploadDone === 'function' && !getFirstUploadDone()) {
 				return;
 			}
 			if (!isMobile()) {

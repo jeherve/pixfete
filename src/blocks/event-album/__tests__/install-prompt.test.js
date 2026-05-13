@@ -167,3 +167,41 @@ describe('install-prompt — dismissal cookie', () => {
 		expect(cookie).toBeUndefined();
 	});
 });
+
+describe('install-prompt — first-upload gate + session guard', () => {
+	test('does not call prompt() until getFirstUploadDone returns true', async () => {
+		setUserAgentData({ mobile: true });
+		let uploadDone = false;
+		const api = initInstallPrompt({
+			getFirstUploadDone: () => uploadDone,
+			postId: 1,
+			cookiePath: '/',
+		});
+		const promptFn = jest.fn(() => Promise.resolve({ outcome: 'accepted' }));
+		fireBeforeInstallPrompt(promptFn);
+
+		await api.maybeShowPrompt();
+		expect(promptFn).not.toHaveBeenCalled();
+
+		uploadDone = true;
+		await api.maybeShowPrompt();
+		expect(promptFn).toHaveBeenCalledTimes(1);
+	});
+
+	test('calls prompt() at most once even with repeated invocations', async () => {
+		setUserAgentData({ mobile: true });
+		const api = initInstallPrompt({
+			getFirstUploadDone: () => true,
+			postId: 1,
+			cookiePath: '/',
+		});
+		const promptFn = jest.fn(() => Promise.resolve({ outcome: 'accepted' }));
+		fireBeforeInstallPrompt(promptFn);
+
+		await api.maybeShowPrompt();
+		await api.maybeShowPrompt();
+		await api.maybeShowPrompt();
+
+		expect(promptFn).toHaveBeenCalledTimes(1);
+	});
+});
