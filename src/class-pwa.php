@@ -475,6 +475,15 @@ class PWA {
 	 * uploaded before the Pixfête image sizes were registered, or on
 	 * sites that don't regenerate thumbnails after activation.
 	 *
+	 * The `type` field is derived from the attachment's mime type rather
+	 * than hard-coded: Pixfête registers `pixfete-pwa-192`/`pixfete-pwa-512`
+	 * via `add_image_size()`, which preserves the source format, so a
+	 * JPEG/WebP/AVIF featured image yields same-format thumbnails. Sending
+	 * a wrong `type` triggers browser-install-prompt warnings or causes
+	 * the icon to be ignored entirely. We fall back to omitting `type`
+	 * when the attachment doesn't report one — browsers can sniff from
+	 * the URL/response in that case.
+	 *
 	 * @param int $thumbnail_id Featured-image attachment ID.
 	 * @return array<int, array<string, string>> Icon entries, or [].
 	 */
@@ -487,26 +496,32 @@ class PWA {
 		if ( empty( $small[0] ) || empty( $large[0] ) ) {
 			return array();
 		}
-		return array(
-			array(
-				'src'     => (string) $small[0],
-				'sizes'   => '192x192',
-				'type'    => 'image/png',
-				'purpose' => 'any',
-			),
-			array(
-				'src'     => (string) $large[0],
-				'sizes'   => '512x512',
-				'type'    => 'image/png',
-				'purpose' => 'any',
-			),
-			array(
-				'src'     => (string) $large[0],
-				'sizes'   => '512x512',
-				'type'    => 'image/png',
-				'purpose' => 'maskable',
-			),
+
+		$mime_type = (string) get_post_mime_type( $thumbnail_id );
+
+		$small_icon = array(
+			'src'     => (string) $small[0],
+			'sizes'   => '192x192',
+			'purpose' => 'any',
 		);
+		$large_icon = array(
+			'src'     => (string) $large[0],
+			'sizes'   => '512x512',
+			'purpose' => 'any',
+		);
+		$maskable   = array(
+			'src'     => (string) $large[0],
+			'sizes'   => '512x512',
+			'purpose' => 'maskable',
+		);
+
+		if ( '' !== $mime_type ) {
+			$small_icon['type'] = $mime_type;
+			$large_icon['type'] = $mime_type;
+			$maskable['type']   = $mime_type;
+		}
+
+		return array( $small_icon, $large_icon, $maskable );
 	}
 
 	/**

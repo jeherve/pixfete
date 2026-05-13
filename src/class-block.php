@@ -60,7 +60,11 @@ class Block {
 	 * Skipped on:
 	 *   - Non-singular contexts (archives, REST previews, embeds) where
 	 *     "this event" doesn't map to one post.
-	 *   - Pages without an event-album block in their content.
+	 *   - Posts that don't qualify as event-album manifest targets per
+	 *     {@see PWA::is_event_album_post()}. Reusing that check keeps the
+	 *     `<link>` and the endpoint in lockstep: previewing a draft would
+	 *     otherwise emit a manifest URL that the endpoint 404s, which
+	 *     shows up in DevTools as a noisy "manifest fetch failed".
 	 *   - Sites where `pixfete_serve_manifest` returns false.
 	 *
 	 * The static flag prevents duplicate `<link>` tags when a post contains
@@ -87,7 +91,7 @@ class Block {
 			return;
 		}
 
-		if ( ! has_block( 'pixfete/event-album', $post ) ) {
+		if ( ! \Jeherve\Pixfete\PWA::is_event_album_post( $post->ID ) ) {
 			return;
 		}
 

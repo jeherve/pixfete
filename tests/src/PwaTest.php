@@ -355,7 +355,8 @@ final class PwaTest extends TestCase {
 			(object) array( 'post_status' => 'publish' )
 		);
 		Functions\when( 'has_block' )->alias(
-			static function ( string $block_name ): bool {
+			static function ( string $block_name, $post = null ): bool {
+				unset( $post );
 				return 'pixfete/event-album' === $block_name;
 			}
 		);
@@ -541,10 +542,11 @@ final class PwaTest extends TestCase {
 		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
 		Functions\when( 'get_background_color' )->justReturn( '' );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_post_mime_type' )->justReturn( 'image/jpeg' );
 		Functions\when( 'wp_get_attachment_image_src' )->alias(
 			static function ( int $id, string $size ): array {
 				return array(
-					"https://example.test/wp-content/uploads/{$size}.png",
+					"https://example.test/wp-content/uploads/{$size}.jpg",
 					'pixfete-pwa-192' === $size ? 192 : 512,
 					'pixfete-pwa-192' === $size ? 192 : 512,
 					true,
@@ -555,10 +557,47 @@ final class PwaTest extends TestCase {
 		$manifest = PWA::build_manifest( 123 );
 
 		$this->assertCount( 3, $manifest['icons'] );
-		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-192.png', $manifest['icons'][0]['src'] );
-		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.png', $manifest['icons'][1]['src'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-192.jpg', $manifest['icons'][0]['src'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.jpg', $manifest['icons'][1]['src'] );
 		$this->assertSame( 'maskable', $manifest['icons'][2]['purpose'] );
-		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.png', $manifest['icons'][2]['src'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.jpg', $manifest['icons'][2]['src'] );
+		// Mime type is derived from the attachment, not hard-coded — JPEG/WebP/AVIF uploads
+		// would otherwise be advertised as image/png and rejected by some browsers.
+		$this->assertSame( 'image/jpeg', $manifest['icons'][0]['type'] );
+		$this->assertSame( 'image/jpeg', $manifest['icons'][1]['type'] );
+		$this->assertSame( 'image/jpeg', $manifest['icons'][2]['type'] );
+	}
+
+	/**
+	 * When the attachment's mime type is unknown, the icon entries omit
+	 * `type` rather than fabricating one — browsers can sniff from the
+	 * response Content-Type in that case.
+	 */
+	public function test_build_manifest_omits_type_when_mime_unknown(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 99 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_post_mime_type' )->justReturn( '' );
+		Functions\when( 'wp_get_attachment_image_src' )->alias(
+			static function ( int $id, string $size ): array {
+				return array(
+					"https://example.test/wp-content/uploads/{$size}.bin",
+					512,
+					512,
+					true,
+				);
+			}
+		);
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertArrayNotHasKey( 'type', $manifest['icons'][0] );
+		$this->assertArrayNotHasKey( 'type', $manifest['icons'][1] );
+		$this->assertArrayNotHasKey( 'type', $manifest['icons'][2] );
 	}
 
 	/**
