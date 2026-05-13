@@ -295,6 +295,56 @@ final class PwaTest extends TestCase {
 	}
 
 	/**
+	 * Manifest dispatcher steps aside when `pixfete_serve_manifest`
+	 * returns false — even though the URL matches.
+	 */
+	public function test_maybe_serve_skips_manifest_when_filter_disables(): void {
+		$_SERVER['REQUEST_URI'] = '/pixfete-123.webmanifest';
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, $value ) {
+				if ( 'pixfete_serve_manifest' === $hook ) {
+					return false;
+				}
+				return $value;
+			}
+		);
+		Functions\expect( 'status_header' )->never();
+		Functions\expect( 'get_post' )->never();
+
+		PWA::maybe_serve();
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Manifest URL with no matching post returns 404 — `get_post()` null
+	 * is a real "the post was deleted" case and we shouldn't serve a
+	 * broken manifest for it.
+	 *
+	 * `status_header` is stubbed to throw so we can intercept the
+	 * response path before the production `exit` halts PHPUnit.
+	 */
+	public function test_maybe_serve_returns_404_for_unknown_post(): void {
+		$_SERVER['REQUEST_URI'] = '/pixfete-999.webmanifest';
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\expect( 'status_header' )->once()->with( 404 )->andThrow( new \RuntimeException( 'halt' ) );
+		Functions\when( 'header' )->justReturn( null );
+
+		try {
+			PWA::maybe_serve();
+		} catch ( \Throwable $e ) {
+			unset( $e ); // Expected: status_header stub throws so we never hit exit().
+		}
+		$this->assertTrue( true );
+	}
+
+	/**
 	 * Block-theme path: `wp_get_global_styles` returns a background color.
 	 */
 	public function test_resolve_theme_color_uses_block_theme_global_styles(): void {

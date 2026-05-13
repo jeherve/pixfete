@@ -109,11 +109,14 @@ class PWA {
 	}
 
 	/**
-	 * If the current request is for the SW URL, stream the built JS file.
+	 * Dispatch the current request to the SW or manifest streamer.
 	 *
 	 * The matcher logic is delegated to {@see self::matches_sw_path()}
-	 * so tests can exercise it directly without tripping the `exit()`
-	 * call that ends the response.
+	 * and {@see self::matches_manifest_path()} so tests can exercise the
+	 * URL parsing directly without tripping the `exit()` calls that end
+	 * the response. Each route is gated by its own filter (`is_enabled`
+	 * for the Service Worker, `is_manifest_enabled` for the manifest) so
+	 * hosts can independently disable either side.
 	 *
 	 * `Service-Worker-Allowed` is sent with the SW path's directory so
 	 * the registration can claim every page under the WordPress home
@@ -126,30 +129,81 @@ class PWA {
 	 * @return void
 	 */
 	public static function maybe_serve(): void {
-		if ( ! self::is_enabled() ) {
-			return;
-		}
-
 		$request_uri = isset( $_SERVER['REQUEST_URI'] )
 			? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
 			: '';
 
-		if ( ! self::matches_sw_path( $request_uri ) ) {
+		if ( '' === $request_uri ) {
 			return;
 		}
 
+		if ( self::is_enabled() && self::matches_sw_path( $request_uri ) ) {
+			self::serve_sw();
+			return;
+		}
+
+		if ( self::is_manifest_enabled() ) {
+			$manifest_post_id = self::matches_manifest_path( $request_uri );
+			if ( null !== $manifest_post_id ) {
+				self::serve_manifest( $manifest_post_id );
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Stream the built Service Worker file to the client.
+	 *
+	 * Extracted from `maybe_serve()` so the dispatcher reads as a flat
+	 * list of "match these URLs". Behaviour is identical to the previous
+	 * inline path.
+	 *
+	 * @return void
+	 */
+	private static function serve_sw(): void {
 		$path = PIXFETE_PLUGIN_DIR . 'build/sw.js';
 		if ( ! file_exists( $path ) ) {
 			status_header( 404 );
 			exit;
 		}
-
 		status_header( 200 );
 		header( 'Content-Type: application/javascript; charset=utf-8' );
 		header( 'Service-Worker-Allowed: ' . self::sw_scope() );
 		header( 'Cache-Control: no-cache, must-revalidate' );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- streaming a local plugin asset, no remote IO.
 		readfile( $path );
+		exit;
+	}
+
+	/**
+	 * Stream the JSON-encoded manifest for a given event post.
+	 *
+	 * 404s on a missing post so we never emit a manifest pointing at
+	 * `/?p=<deleted>`. Cache-Control matches the SW: browsers revalidate
+	 * on every fetch so a relaunched album (or a host changing icons)
+	 * doesn't get stuck behind a stale manifest.
+	 *
+	 * @param int $post_id Event-album post ID parsed from the URL.
+	 * @return void
+	 */
+	private static function serve_manifest( int $post_id ): void {
+		$post = get_post( $post_id );
+		if ( null === $post ) {
+			status_header( 404 );
+			exit;
+		}
+
+		$manifest = self::build_manifest( $post_id );
+		$body     = wp_json_encode( $manifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		if ( false === $body ) {
+			status_header( 500 );
+			exit;
+		}
+
+		status_header( 200 );
+		header( 'Content-Type: application/manifest+json; charset=utf-8' );
+		header( 'Cache-Control: no-cache, must-revalidate' );
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode returns already-escaped JSON.
 		exit;
 	}
 
