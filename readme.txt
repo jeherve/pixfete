@@ -128,6 +128,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * New Live Photo Wall block for projecting photos onto a big screen during your event, with smooth crossfade transitions as new submissions come in.
 * Assign moderators who can remove inappropriate photos from their phone, without needing access to the WordPress dashboard.
 * Resilient uploads: photos are saved on the guest's device the moment they're picked, so nothing is lost if the network drops or the page is closed mid-upload. Uploads resume automatically, with a "Retry uploads" button for the rare cases that need a nudge.
+* Guests can now install your event album as an app on their phone. After they share their first photo, their browser will offer to add the album to their home screen — perfect for events where guests revisit the album throughout the night.
 * Swipe or use the left/right arrow keys to move between photos in the lightbox.
 * Show/hide toggle on the event password field, so guests can check what they typed before submitting.
 * Friendly message when guests visit an event page before the event has started.
