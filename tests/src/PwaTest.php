@@ -162,6 +162,27 @@ final class PwaTest extends TestCase {
 	}
 
 	/**
+	 * `is_manifest_enabled()` defaults to true so the manifest ships out of the box.
+	 */
+	public function test_is_manifest_enabled_defaults_true(): void {
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		$this->assertTrue( PWA::is_manifest_enabled() );
+	}
+
+	/**
+	 * Hosts can disable the manifest via the `pixfete_serve_manifest` filter
+	 * without disabling the Service Worker — they're independently controlled.
+	 */
+	public function test_is_manifest_enabled_respects_filter(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, bool $value ): bool {
+				return 'pixfete_serve_manifest' === $hook ? false : $value;
+			}
+		);
+		$this->assertFalse( PWA::is_manifest_enabled() );
+	}
+
+	/**
 	 * `sw_scope()` returns `/` on a root install — the default SW scope.
 	 */
 	public function test_sw_scope_root_install(): void {

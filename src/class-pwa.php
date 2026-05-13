@@ -73,6 +73,31 @@ class PWA {
 	}
 
 	/**
+	 * Whether Pixfête should serve a Web App Manifest on this site.
+	 *
+	 * Independent from `is_enabled()` (the Service Worker switch) so a host
+	 * can run, say, Pixfête's SW with a custom-branded manifest from another
+	 * plugin, or vice versa. Default true — the install flow is part of the
+	 * Pixfête experience and ships enabled.
+	 *
+	 * @return bool True when Pixfête should serve `/pixfete-<id>.webmanifest`
+	 *              and emit `<link rel="manifest">` on event pages.
+	 */
+	public static function is_manifest_enabled(): bool {
+		/**
+		 * Filters whether Pixfête manages its own Web App Manifest.
+		 *
+		 * Return false to suppress the manifest URL and the `<link>` tag.
+		 * The Service Worker is unaffected and can still run.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param bool $enabled Whether Pixfête's manifest is active.
+		 */
+		return (bool) apply_filters( 'pixfete_serve_manifest', true );
+	}
+
+	/**
 	 * If the current request is for the SW URL, stream the built JS file.
 	 *
 	 * The matcher logic is delegated to {@see self::matches_sw_path()}
