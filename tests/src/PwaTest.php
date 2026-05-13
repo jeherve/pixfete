@@ -378,4 +378,35 @@ final class PwaTest extends TestCase {
 	public function test_short_name_splits_on_whitespace(): void {
 		$this->assertSame( 'Some', PWA::short_name( 'Some Very Long Title' ) );
 	}
+
+	/**
+	 * `build_manifest()` produces a complete manifest for a post that has
+	 * no featured image — icons fall back to the bundled Pixfête assets.
+	 */
+	public function test_build_manifest_uses_fallback_icons_without_featured_image(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( "Sarah & Tom's Wedding" );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertSame( "Sarah & Tom's Wedding", $manifest['name'] );
+		$this->assertSame( 'Sarah', $manifest['short_name'] );
+		$this->assertSame( 'https://example.test/wedding/', $manifest['start_url'] );
+		$this->assertSame( 'https://example.test/wedding/', $manifest['scope'] );
+		$this->assertSame( 'standalone', $manifest['display'] );
+		$this->assertSame( '#ffffff', $manifest['theme_color'] );
+		$this->assertSame( '#ffffff', $manifest['background_color'] );
+		$this->assertCount( 3, $manifest['icons'] );
+		$this->assertStringContainsString( 'icon-192.png', $manifest['icons'][0]['src'] );
+		$this->assertSame( '192x192', $manifest['icons'][0]['sizes'] );
+		$this->assertSame( 'image/png', $manifest['icons'][0]['type'] );
+		$this->assertSame( 'any', $manifest['icons'][0]['purpose'] );
+		$this->assertStringContainsString( 'icon-maskable-512.png', $manifest['icons'][2]['src'] );
+		$this->assertSame( 'maskable', $manifest['icons'][2]['purpose'] );
+	}
 }

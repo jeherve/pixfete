@@ -286,6 +286,141 @@ class PWA {
 	}
 
 	/**
+	 * Build the manifest array for a given event-album post.
+	 *
+	 * Pure function: takes a post ID, calls WP getters, returns the
+	 * associative array that will be JSON-encoded for the response. Keeps
+	 * the serving path (`maybe_serve`) trivial and lets the manifest shape
+	 * be fully covered by unit tests without exercising the streaming code
+	 * that ends in `exit()`.
+	 *
+	 * Icon resolution:
+	 *   - With a featured image: emit three icon entries pointing at the
+	 *     192/512 sized variants and a maskable variant that reuses the
+	 *     512px source (hosts can ship a properly-padded maskable image
+	 *     via the `pixfete_manifest` filter if they need one).
+	 *   - Without a featured image: fall back to the bundled Pixfête icons
+	 *     under `assets/pwa/`.
+	 *
+	 * The `pixfete_manifest` filter runs last so hosts can rewrite any
+	 * field — name, icons, theme color — without forking the plugin.
+	 *
+	 * @param int $post_id ID of the event-album post.
+	 * @return array<string, mixed> Manifest array ready for JSON encoding.
+	 */
+	public static function build_manifest( int $post_id ): array {
+		$title       = (string) get_the_title( $post_id );
+		$permalink   = (string) get_permalink( $post_id );
+		$theme_color = self::resolve_theme_color();
+
+		$manifest = array(
+			'name'             => $title,
+			'short_name'       => self::short_name( $title ),
+			'start_url'        => $permalink,
+			'scope'            => $permalink,
+			'display'          => 'standalone',
+			'orientation'      => 'portrait',
+			'theme_color'      => $theme_color,
+			'background_color' => $theme_color,
+			'icons'            => self::manifest_icons( $post_id ),
+		);
+
+		/**
+		 * Filters the generated manifest array before JSON encoding.
+		 *
+		 * Hosts can add fields (`shortcuts`, `share_target`, custom icon
+		 * sets), rewrite name/colors, or replace the icons array entirely.
+		 * Pixfête does not validate the result — invalid manifests will
+		 * surface as browser warnings.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param array $manifest Manifest array Pixfête generated.
+		 * @param int   $post_id  ID of the event-album post.
+		 */
+		return (array) apply_filters( 'pixfete_manifest', $manifest, $post_id );
+	}
+
+	/**
+	 * Resolve the `icons` array for a manifest.
+	 *
+	 * @param int $post_id ID of the event-album post.
+	 * @return array<int, array<string, string>> Manifest-shape icon entries.
+	 */
+	private static function manifest_icons( int $post_id ): array {
+		$thumbnail_id = (int) get_post_thumbnail_id( $post_id );
+		if ( $thumbnail_id > 0 ) {
+			$featured = self::featured_image_icons( $thumbnail_id );
+			if ( ! empty( $featured ) ) {
+				return $featured;
+			}
+		}
+
+		return array(
+			array(
+				'src'     => PIXFETE_PLUGIN_URL . 'assets/pwa/icon-192.png',
+				'sizes'   => '192x192',
+				'type'    => 'image/png',
+				'purpose' => 'any',
+			),
+			array(
+				'src'     => PIXFETE_PLUGIN_URL . 'assets/pwa/icon-512.png',
+				'sizes'   => '512x512',
+				'type'    => 'image/png',
+				'purpose' => 'any',
+			),
+			array(
+				'src'     => PIXFETE_PLUGIN_URL . 'assets/pwa/icon-maskable-512.png',
+				'sizes'   => '512x512',
+				'type'    => 'image/png',
+				'purpose' => 'maskable',
+			),
+		);
+	}
+
+	/**
+	 * Resolve featured-image-derived icons or return an empty array.
+	 *
+	 * Returns empty (so caller falls back to bundled icons) when the
+	 * sized variants don't exist on disk. This happens on attachments
+	 * uploaded before the Pixfête image sizes were registered, or on
+	 * sites that don't regenerate thumbnails after activation.
+	 *
+	 * @param int $thumbnail_id Featured-image attachment ID.
+	 * @return array<int, array<string, string>> Icon entries, or [].
+	 */
+	private static function featured_image_icons( int $thumbnail_id ): array {
+		$small = wp_get_attachment_image_src( $thumbnail_id, 'pixfete-pwa-192' );
+		$large = wp_get_attachment_image_src( $thumbnail_id, 'pixfete-pwa-512' );
+		if ( ! is_array( $small ) || ! is_array( $large ) ) {
+			return array();
+		}
+		if ( empty( $small[0] ) || empty( $large[0] ) ) {
+			return array();
+		}
+		return array(
+			array(
+				'src'     => (string) $small[0],
+				'sizes'   => '192x192',
+				'type'    => 'image/png',
+				'purpose' => 'any',
+			),
+			array(
+				'src'     => (string) $large[0],
+				'sizes'   => '512x512',
+				'type'    => 'image/png',
+				'purpose' => 'any',
+			),
+			array(
+				'src'     => (string) $large[0],
+				'sizes'   => '512x512',
+				'type'    => 'image/png',
+				'purpose' => 'maskable',
+			),
+		);
+	}
+
+	/**
 	 * Resolve the theme's background color for use in the manifest.
 	 *
 	 * Both `theme_color` (OS chrome) and `background_color` (splash) live
