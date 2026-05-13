@@ -105,3 +105,65 @@ describe('install-prompt — mobile detection', () => {
 		expect(promptFn).not.toHaveBeenCalled();
 	});
 });
+
+function setCookie(value) {
+	Object.defineProperty(document, 'cookie', {
+		configurable: true,
+		value,
+	});
+}
+
+function readWrittenCookies() {
+	// jsdom's cookie jar isn't writable in the same way as a real browser; we
+	// track Set-Cookie attempts by intercepting `document.cookie =`. To do that
+	// cleanly, replace the descriptor with a setter spy.
+	const calls = [];
+	Object.defineProperty(document, 'cookie', {
+		configurable: true,
+		set(value) {
+			calls.push(value);
+		},
+		get() {
+			return '';
+		},
+	});
+	return calls;
+}
+
+describe('install-prompt — dismissal cookie', () => {
+	test('does not call prompt() when dismissal cookie is set for this post', async () => {
+		setUserAgentData({ mobile: true });
+		setCookie('pixfete_pwa_dismissed_42=1');
+		const api = initInstallPrompt({ getFirstUploadDone: () => true, postId: 42, cookiePath: '/' });
+		const promptFn = jest.fn(() => Promise.resolve({ outcome: 'accepted' }));
+		fireBeforeInstallPrompt(promptFn);
+		await api.maybeShowPrompt();
+		expect(promptFn).not.toHaveBeenCalled();
+	});
+
+	test('writes dismissal cookie on dismissed outcome', async () => {
+		setUserAgentData({ mobile: true });
+		const calls = readWrittenCookies();
+		const api = initInstallPrompt({ getFirstUploadDone: () => true, postId: 42, cookiePath: '/blog/' });
+		const promptFn = jest.fn(() => Promise.resolve({ outcome: 'dismissed' }));
+		fireBeforeInstallPrompt(promptFn);
+		await api.maybeShowPrompt();
+		expect(calls.length).toBeGreaterThanOrEqual(1);
+		const cookie = calls.find((c) => c.startsWith('pixfete_pwa_dismissed_42='));
+		expect(cookie).toBeDefined();
+		expect(cookie).toContain('path=/blog/');
+		expect(cookie).toContain('max-age=');
+		expect(cookie).toContain('SameSite=Lax');
+	});
+
+	test('does not write a dismissal cookie on accepted outcome', async () => {
+		setUserAgentData({ mobile: true });
+		const calls = readWrittenCookies();
+		const api = initInstallPrompt({ getFirstUploadDone: () => true, postId: 42, cookiePath: '/' });
+		const promptFn = jest.fn(() => Promise.resolve({ outcome: 'accepted' }));
+		fireBeforeInstallPrompt(promptFn);
+		await api.maybeShowPrompt();
+		const cookie = calls.find((c) => c.startsWith('pixfete_pwa_dismissed_42='));
+		expect(cookie).toBeUndefined();
+	});
+});

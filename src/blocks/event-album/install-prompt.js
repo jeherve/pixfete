@@ -58,22 +58,68 @@ function isMobile() {
 	return coarse && narrow;
 }
 
+const DISMISSAL_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+/**
+ * Build the dismissal-cookie name for a given event post.
+ *
+ * Scoped by post ID so dismissing the prompt on one event doesn't
+ * silence it on a separate event hosted on the same site.
+ *
+ * @param {number} postId Event-album post ID.
+ * @return {string} Cookie name.
+ */
+function dismissalCookieName(postId) {
+	return `pixfete_pwa_dismissed_${postId}`;
+}
+
+/**
+ * Read the dismissal cookie for the current post.
+ *
+ * @param {number} postId Event-album post ID.
+ * @return {boolean} True when the cookie is present with any value.
+ */
+function isDismissed(postId) {
+	if (typeof document === 'undefined') {
+		return false;
+	}
+	const name = dismissalCookieName(postId);
+	const cookies = (document.cookie || '').split(';').map((c) => c.trim());
+	return cookies.some((c) => c.startsWith(`${name}=`));
+}
+
+/**
+ * Persist the dismissal cookie so we don't re-prompt this guest.
+ *
+ * @param {number} postId     Event-album post ID.
+ * @param {string} cookiePath Cookie path matching `Cookie::cookie_path()`.
+ */
+function writeDismissal(postId, cookiePath) {
+	if (typeof document === 'undefined') {
+		return;
+	}
+	const name = dismissalCookieName(postId);
+	const path = cookiePath || '/';
+	const secure = window.location && window.location.protocol === 'https:' ? '; Secure' : '';
+	document.cookie = `${name}=1; path=${path}; max-age=${DISMISSAL_TTL_SECONDS}; SameSite=Lax${secure}`;
+}
+
 /**
  * Wire up the install-prompt module.
  *
- * The `options` argument is accepted but unused in this skeleton —
- * subsequent commits add the gates (mobile detection, dismissal
- * cookie, first-upload signal) that consume `getFirstUploadDone`,
- * `postId`, and `cookiePath`.
+ * Returns a small API the block's view module can drive. The module
+ * is gated on mobile detection and a per-event dismissal cookie;
+ * `getFirstUploadDone` is wired through the signature now so the
+ * upcoming first-upload gate can land as a pure logic addition.
  *
- * @param {Object}   _options                    Module configuration (reserved for upcoming gates).
- * @param {Function} _options.getFirstUploadDone Callback returning whether the guest has uploaded.
- * @param {number}   _options.postId             Event-album post ID (used for cookie scoping).
- * @param {string}   _options.cookiePath         Cookie path matching `Cookie::cookie_path()`.
+ * @param {Object}   options                    Module configuration.
+ * @param {Function} options.getFirstUploadDone Callback returning whether the guest has uploaded.
+ * @param {number}   options.postId             Event-album post ID (used for cookie scoping).
+ * @param {string}   options.cookiePath         Cookie path matching `Cookie::cookie_path()`.
  * @return {{ maybeShowPrompt: Function }} Public API.
  */
 // eslint-disable-next-line no-unused-vars
-export function initInstallPrompt(_options) {
+export function initInstallPrompt({ getFirstUploadDone, postId, cookiePath } = {}) {
 	if (typeof window === 'undefined') {
 		return { maybeShowPrompt: async () => undefined };
 	}
@@ -89,10 +135,16 @@ export function initInstallPrompt(_options) {
 			if (!isMobile()) {
 				return;
 			}
+			if (typeof postId === 'number' && isDismissed(postId)) {
+				return;
+			}
 			promptShown = true;
 			const event = deferredPrompt;
 			deferredPrompt = null;
-			await event.prompt();
+			const result = await event.prompt();
+			if (result && result.outcome === 'dismissed' && typeof postId === 'number') {
+				writeDismissal(postId, cookiePath);
+			}
 		},
 	};
 }
