@@ -11,6 +11,7 @@ import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
 import { enqueue, listPending, markDone, markFailed, requeueFailed } from './upload-queue';
+import { initInstallPrompt } from './install-prompt';
 
 /**
  * Interpolate the `%d` placeholder in a translation template.
@@ -208,8 +209,20 @@ function listenForSwMessages(pageId, i18n) {
 					state.latestUploadedAt = data.photo.uploaded_at;
 				}
 			}
+			if (!firstUploadDone) {
+				firstUploadDone = true;
+			}
+			if (installPromptApi) {
+				installPromptApi.maybeShowPrompt();
+			}
 		} else if (data.type === 'pixfete:upload-done-opaque') {
 			state.pendingUploads = state.pendingUploads.filter((i) => i.id !== data.queueId);
+			if (!firstUploadDone) {
+				firstUploadDone = true;
+			}
+			if (installPromptApi) {
+				installPromptApi.maybeShowPrompt();
+			}
 		} else if (data.type === 'pixfete:upload-failed') {
 			state.pendingUploads = state.pendingUploads.map((i) =>
 				i.id === data.queueId ? decoratePendingItem({ ...i, status: 'failed' }, i18n) : i
@@ -253,6 +266,26 @@ const SWIPE_THRESHOLD = 50;
  * to the thumbnail they came from instead of being dropped on the body.
  */
 let lightboxOpener = null;
+
+/**
+ * Whether the current guest has completed at least one photo upload
+ * in this page session. Module-scoped because the install-prompt
+ * module reads it via a getter passed at init; we never want this
+ * to be reactive Interactivity-API state.
+ *
+ * @type {boolean}
+ */
+let firstUploadDone = false;
+
+/**
+ * Public API returned by `initInstallPrompt`. Holds the
+ * `maybeShowPrompt` function we call after each successful upload.
+ * Stays `null` when the manifest is disabled (empty `ctx.manifestUrl`),
+ * which is why every success-path call site guards on it.
+ *
+ * @type {{ maybeShowPrompt: () => Promise<void> } | null}
+ */
+let installPromptApi = null;
 
 /**
  * Restore focus to the element that opened the lightbox, if it is still in
@@ -705,6 +738,18 @@ const { state } = store('pixfete', {
 
 			registerServiceWorker(ctx.swUrl, ctx.swScope);
 			listenForSwMessages(ctx.pageId, ctx.i18n);
+
+			// Wire the install-prompt module once per page when the
+			// manifest is enabled. The module captures
+			// `beforeinstallprompt` immediately so we can trigger
+			// `prompt()` later, after the guest's first upload.
+			if (ctx.manifestUrl && !installPromptApi) {
+				installPromptApi = initInstallPrompt({
+					getFirstUploadDone: () => firstUploadDone,
+					postId: ctx.pageId,
+					cookiePath: ctx.cookiePath || '/',
+				});
+			}
 
 			// Sync moderator status from server-rendered context into
 			// global state so data-wp-bind directives can read it.
@@ -1335,6 +1380,13 @@ const { state } = store('pixfete', {
 					if (photo.uploaded_at && photo.uploaded_at > state.latestUploadedAt) {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
+				}
+
+				if (!firstUploadDone) {
+					firstUploadDone = true;
+				}
+				if (installPromptApi) {
+					installPromptApi.maybeShowPrompt();
 				}
 
 				pending = (await listPending(ctx.pageId)).filter((p) => p.status !== 'failed');
