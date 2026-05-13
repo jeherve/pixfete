@@ -43,5 +43,58 @@ class Block {
 				'post_types'  => array( 'page' ),
 			)
 		);
+
+		// Hook the manifest <link> emission at wp_head. Block render runs during
+		// the_content (after wp_head has already fired), so we register the callback
+		// here at init time and inspect the post when wp_head fires.
+		add_action( 'wp_head', array( self::class, 'maybe_render_manifest_link' ), 1 );
+	}
+
+	/**
+	 * Emit `<link rel="manifest">` when the current page renders an event-album block.
+	 *
+	 * Registered at `wp_head` (priority 1) so the manifest declaration lands
+	 * in `<head>` before scripts. Cannot live in `render.php` — block render
+	 * happens during `the_content`, after `wp_head` has already fired.
+	 *
+	 * Skipped on:
+	 *   - Non-singular contexts (archives, REST previews, embeds) where
+	 *     "this event" doesn't map to one post.
+	 *   - Pages without an event-album block in their content.
+	 *   - Sites where `pixfete_serve_manifest` returns false.
+	 *
+	 * The static flag prevents duplicate `<link>` tags when a post contains
+	 * multiple event-album blocks (rare, but legal).
+	 *
+	 * @return void
+	 */
+	public static function maybe_render_manifest_link(): void {
+		static $emitted = false;
+		if ( $emitted ) {
+			return;
+		}
+
+		if ( ! \Jeherve\Pixfete\PWA::is_manifest_enabled() ) {
+			return;
+		}
+
+		if ( ! is_singular() ) {
+			return;
+		}
+
+		$post = get_post();
+		if ( null === $post ) {
+			return;
+		}
+
+		if ( ! has_block( 'pixfete/event-album', $post ) ) {
+			return;
+		}
+
+		$manifest_url = home_url( sprintf( \Jeherve\Pixfete\PWA::MANIFEST_PATH_TEMPLATE, $post->ID ) );
+
+		echo '<link rel="manifest" href="' . esc_url( $manifest_url ) . '" />' . "\n";
+
+		$emitted = true;
 	}
 }
