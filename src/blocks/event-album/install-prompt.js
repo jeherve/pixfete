@@ -28,6 +28,37 @@ function onBeforeInstallPrompt(event) {
 }
 
 /**
+ * Whether the current device should be offered the install prompt.
+ *
+ * Pixfête's install moment is mobile-only (event photo uploads are
+ * a mobile workflow), so desktop visitors should never see it.
+ *
+ * Detection order:
+ *   1. `navigator.userAgentData.mobile` — modern Chromium-based
+ *      browsers ship this and it's the most accurate signal.
+ *   2. `matchMedia('(pointer: coarse)').matches && innerWidth < 900` —
+ *      catches mobile Chromium without UA-Data and proxies "phone, not
+ *      tablet" via viewport width. Touch-laptops can still trigger this
+ *      with a wide viewport; the width guard keeps them out.
+ *
+ * @return {boolean} True when we should consider showing the prompt.
+ */
+function isMobile() {
+	if (typeof navigator === 'undefined') {
+		return false;
+	}
+	if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') {
+		return navigator.userAgentData.mobile;
+	}
+	if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+		return false;
+	}
+	const coarse = window.matchMedia('(pointer: coarse)').matches;
+	const narrow = (window.innerWidth || 0) < 900;
+	return coarse && narrow;
+}
+
+/**
  * Wire up the install-prompt module.
  *
  * The `options` argument is accepted but unused in this skeleton —
@@ -52,12 +83,16 @@ export function initInstallPrompt(_options) {
 	}
 	return {
 		maybeShowPrompt: async () => {
-			// Gates added in subsequent tasks. For now: do nothing if no event
-			// was captured or we've already shown the prompt this session.
 			if (!deferredPrompt || promptShown) {
-				// eslint-disable-next-line no-useless-return
 				return;
 			}
+			if (!isMobile()) {
+				return;
+			}
+			promptShown = true;
+			const event = deferredPrompt;
+			deferredPrompt = null;
+			await event.prompt();
 		},
 	};
 }
