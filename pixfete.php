@@ -43,6 +43,14 @@ add_action( \Jeherve\Pixfete\Archive::BATCH_HOOK, array( \Jeherve\Pixfete\Archiv
 
 add_action( 'template_redirect', array( \Jeherve\Pixfete\PWA::class, 'maybe_serve' ) );
 
+add_action(
+	'after_setup_theme',
+	static function (): void {
+		add_image_size( 'pixfete-pwa-192', 192, 192, true );
+		add_image_size( 'pixfete-pwa-512', 512, 512, true );
+	}
+);
+
 register_activation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'schedule_cron' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'unschedule_cron' ) );
 
