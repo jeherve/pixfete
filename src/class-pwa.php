@@ -181,4 +181,36 @@ class PWA {
 
 		return '' === $path ? '/' : rtrim( $path, '/' ) . '/';
 	}
+
+	/**
+	 * Smart-truncate a post title for the manifest's `short_name` field.
+	 *
+	 * The home-screen label only renders ~12 chars before the OS truncates,
+	 * so we pre-truncate intelligently rather than letting Android cut at
+	 * an awkward spot. We split on the joiners hosts most commonly use to
+	 * combine names ("&", em-dash, plain whitespace), keep the first
+	 * non-empty segment, and hard-truncate that segment to 12 chars if it's
+	 * still too long. Empty input passes through untouched.
+	 *
+	 * Why a separate method (not inline): the rule is fiddly enough that
+	 * we want one place to test exhaustively and one place for hosts to
+	 * read if they're wondering why their app label looks the way it does.
+	 *
+	 * @param string $title Post title in any locale.
+	 * @return string A label suitable for the manifest `short_name` field.
+	 */
+	public static function short_name( string $title ): string {
+		if ( '' === $title ) {
+			return '';
+		}
+		$segments = preg_split( '/(\s|&|—)+/u', $title, -1, PREG_SPLIT_NO_EMPTY );
+		if ( ! is_array( $segments ) || empty( $segments ) ) {
+			return mb_substr( $title, 0, 12 );
+		}
+		$first = (string) $segments[0];
+		if ( mb_strlen( $first ) <= 12 ) {
+			return $first;
+		}
+		return mb_substr( $first, 0, 12 );
+	}
 }

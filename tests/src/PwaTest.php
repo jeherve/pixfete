@@ -203,4 +203,47 @@ final class PwaTest extends TestCase {
 		$this->assertTrue( PWA::matches_sw_path( '/site-a/pixfete-sw.js' ) );
 		$this->assertFalse( PWA::matches_sw_path( '/site-b/pixfete-sw.js' ) );
 	}
+
+	/**
+	 * `short_name()` returns short titles unchanged.
+	 */
+	public function test_short_name_returns_short_title_unchanged(): void {
+		$this->assertSame( 'Wedding', PWA::short_name( 'Wedding' ) );
+		$this->assertSame( '', PWA::short_name( '' ) );
+	}
+
+	/**
+	 * `short_name()` splits on `&` so "Sarah & Tom's Wedding" yields "Sarah".
+	 */
+	public function test_short_name_splits_on_ampersand(): void {
+		$this->assertSame( 'Sarah', PWA::short_name( "Sarah & Tom's Wedding" ) );
+	}
+
+	/**
+	 * `short_name()` splits on em-dash so "Sarah — Wedding" yields "Sarah".
+	 */
+	public function test_short_name_splits_on_em_dash(): void {
+		$this->assertSame( 'Sarah', PWA::short_name( 'Sarah — Wedding' ) );
+	}
+
+	/**
+	 * Multiple splitters in the same title pick the first segment.
+	 */
+	public function test_short_name_handles_mixed_splitters(): void {
+		$this->assertSame( 'Sarah', PWA::short_name( 'Sarah & Tom — June 2026' ) );
+	}
+
+	/**
+	 * A single long word is hard-truncated to 12 characters.
+	 */
+	public function test_short_name_hard_truncates_long_single_word(): void {
+		$this->assertSame( 'AVeryLongWed', PWA::short_name( 'AVeryLongWeddingTitle' ) );
+	}
+
+	/**
+	 * Whitespace alone is also a splitter, so "Some Very Long Title" gives "Some".
+	 */
+	public function test_short_name_splits_on_whitespace(): void {
+		$this->assertSame( 'Some', PWA::short_name( 'Some Very Long Title' ) );
+	}
 }
