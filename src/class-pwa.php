@@ -101,7 +101,7 @@ class PWA {
 		 * Return false to suppress the manifest URL and the `<link>` tag.
 		 * The Service Worker is unaffected and can still run.
 		 *
-		 * @since 1.4.0
+		 * @since 1.3.0
 		 *
 		 * @param bool $enabled Whether Pixfête's manifest is active.
 		 */
@@ -387,7 +387,7 @@ class PWA {
 		 * Pixfête does not validate the result — invalid manifests will
 		 * surface as browser warnings.
 		 *
-		 * @since 1.4.0
+		 * @since 1.3.0
 		 *
 		 * @param array $manifest Manifest array Pixfête generated.
 		 * @param int   $post_id  ID of the event-album post.
