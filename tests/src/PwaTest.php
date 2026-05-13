@@ -295,6 +295,48 @@ final class PwaTest extends TestCase {
 	}
 
 	/**
+	 * Block-theme path: `wp_get_global_styles` returns a background color.
+	 */
+	public function test_resolve_theme_color_uses_block_theme_global_styles(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array( 'color' => array( 'background' => '#abcdef' ) ) );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+
+		$this->assertSame( '#abcdef', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * Block-theme path normalizes 3-digit hex shorthand to 6-digit so the
+	 * manifest is always #RRGGBB (some browsers reject the short form).
+	 */
+	public function test_resolve_theme_color_expands_shorthand_hex(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array( 'color' => array( 'background' => '#abc' ) ) );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+
+		$this->assertSame( '#aabbcc', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * Classic theme fallback when block-theme path returns nothing usable.
+	 */
+	public function test_resolve_theme_color_falls_back_to_classic_background(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( 'fafafa' );
+
+		$this->assertSame( '#fafafa', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * Pixfête default kicks in when neither path yields a color.
+	 * Hardcoded default is `#ffffff` (white).
+	 */
+	public function test_resolve_theme_color_defaults_to_white(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+
+		$this->assertSame( '#ffffff', PWA::resolve_theme_color() );
+	}
+
+	/**
 	 * `short_name()` returns short titles unchanged.
 	 */
 	public function test_short_name_returns_short_title_unchanged(): void {

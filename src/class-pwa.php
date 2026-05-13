@@ -286,6 +286,77 @@ class PWA {
 	}
 
 	/**
+	 * Resolve the theme's background color for use in the manifest.
+	 *
+	 * Both `theme_color` (OS chrome) and `background_color` (splash) live
+	 * downstream of this; we use one source so the install dialog and
+	 * launched-app splash visually match the host's own site.
+	 *
+	 * Resolution order:
+	 *   1. Block-theme global styles (`wp_get_global_styles()` →
+	 *      `color.background`). Modern themes set this in `theme.json`.
+	 *   2. Classic-theme `get_background_color()` (returns hex without `#`,
+	 *      empty string when no custom color is set).
+	 *   3. Hardcoded `#ffffff` — neutral default for any theme that
+	 *      doesn't expose a background color anywhere.
+	 *
+	 * Output is always `#RRGGBB`. Shorthand hex from theme.json is expanded
+	 * so manifest validators don't reject it.
+	 *
+	 * @return string Lowercased hex color including the leading `#`.
+	 */
+	public static function resolve_theme_color(): string {
+		if ( function_exists( 'wp_get_global_styles' ) ) {
+			$styles = wp_get_global_styles();
+			if ( is_array( $styles ) && isset( $styles['color']['background'] ) ) {
+				$candidate = self::normalize_hex( (string) $styles['color']['background'] );
+				if ( '' !== $candidate ) {
+					return $candidate;
+				}
+			}
+		}
+
+		if ( function_exists( 'get_background_color' ) ) {
+			$classic = (string) get_background_color();
+			if ( '' !== $classic ) {
+				$candidate = self::normalize_hex( '#' . ltrim( $classic, '#' ) );
+				if ( '' !== $candidate ) {
+					return $candidate;
+				}
+			}
+		}
+
+		return '#ffffff';
+	}
+
+	/**
+	 * Normalize a hex color string to `#RRGGBB` form (lowercase).
+	 *
+	 * Accepts `#abc`, `#abcdef`, `abc`, `abcdef`. Returns an empty string
+	 * when the input isn't a valid hex color so callers can fall through
+	 * to the next resolution layer.
+	 *
+	 * @param string $value Raw color string from a theme source.
+	 * @return string Normalized hex, or empty string when unparseable.
+	 */
+	private static function normalize_hex( string $value ): string {
+		$value = strtolower( trim( $value ) );
+		if ( '' === $value ) {
+			return '';
+		}
+		if ( '#' !== $value[0] ) {
+			$value = '#' . $value;
+		}
+		if ( preg_match( '/^#([0-9a-f])([0-9a-f])([0-9a-f])$/', $value, $m ) ) {
+			return '#' . $m[1] . $m[1] . $m[2] . $m[2] . $m[3] . $m[3];
+		}
+		if ( preg_match( '/^#[0-9a-f]{6}$/', $value ) ) {
+			return $value;
+		}
+		return '';
+	}
+
+	/**
 	 * Smart-truncate a post title for the manifest's `short_name` field.
 	 *
 	 * The home-screen label only renders ~12 chars before the OS truncates,
