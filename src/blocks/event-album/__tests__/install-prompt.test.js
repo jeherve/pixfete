@@ -205,3 +205,22 @@ describe('install-prompt — first-upload gate + session guard', () => {
 		expect(promptFn).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('install-prompt — error handling', () => {
+	// Callers in view.js invoke maybeShowPrompt() fire-and-forget, so a rejected
+	// prompt() must not propagate as an unhandled rejection. The module also
+	// shouldn't write a dismissal cookie when the call fails — the user hasn't
+	// actually said "no".
+	test('swallows prompt() rejection without throwing or writing a cookie', async () => {
+		setUserAgentData({ mobile: true });
+		const calls = readWrittenCookies();
+		const api = initInstallPrompt({ getFirstUploadDone: () => true, postId: 42, cookiePath: '/' });
+		const promptFn = jest.fn(() => Promise.reject(new Error('install machinery failed')));
+		fireBeforeInstallPrompt(promptFn);
+
+		await expect(api.maybeShowPrompt()).resolves.toBeUndefined();
+		expect(promptFn).toHaveBeenCalledTimes(1);
+		const cookie = calls.find((c) => c.startsWith('pixfete_pwa_dismissed_42='));
+		expect(cookie).toBeUndefined();
+	});
+});

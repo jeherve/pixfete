@@ -67,8 +67,12 @@ class Block {
 	 *     shows up in DevTools as a noisy "manifest fetch failed".
 	 *   - Sites where `pixfete_serve_manifest` returns false.
 	 *
-	 * The static flag prevents duplicate `<link>` tags when a post contains
-	 * multiple event-album blocks (rare, but legal).
+	 * The static `$emitted` flag is a belt-and-suspenders guard against
+	 * the callback being invoked more than once per request (e.g. a
+	 * double-registration via `add_action`, or `wp_head` firing twice
+	 * because a theme calls it manually). Multiple event-album blocks in
+	 * the same post already collapse into one `<link>` because the action
+	 * is registered once.
 	 *
 	 * @return void
 	 */

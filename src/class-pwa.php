@@ -322,20 +322,28 @@ class PWA {
 			return null;
 		}
 
+		// Both halves of the matcher derive from MANIFEST_PATH_TEMPLATE so
+		// the template stays the single source of truth — if it ever
+		// changes (e.g. /pwa-%d.webmanifest), the matcher follows along
+		// instead of silently accepting only the old shape.
+		$template_parts = explode( '%d', self::MANIFEST_PATH_TEMPLATE, 2 );
+		$template_head  = $template_parts[0];
+		$template_tail  = $template_parts[1] ?? '';
+
 		$home_parts = wp_parse_url( home_url( '/' ) );
 		$home_path  = is_array( $home_parts ) && isset( $home_parts['path'] ) ? rtrim( (string) $home_parts['path'], '/' ) : '';
-		$expected   = $home_path . '/pixfete-';
+		$expected   = $home_path . $template_head;
 
 		if ( ! str_starts_with( $path, $expected ) ) {
 			return null;
 		}
 
 		$tail = substr( $path, strlen( $expected ) );
-		if ( ! str_ends_with( $tail, '.webmanifest' ) ) {
+		if ( '' !== $template_tail && ! str_ends_with( $tail, $template_tail ) ) {
 			return null;
 		}
 
-		$id_part = substr( $tail, 0, -strlen( '.webmanifest' ) );
+		$id_part = '' === $template_tail ? $tail : substr( $tail, 0, -strlen( $template_tail ) );
 		if ( '' === $id_part || ! ctype_digit( $id_part ) ) {
 			return null;
 		}

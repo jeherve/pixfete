@@ -143,9 +143,21 @@ export function initInstallPrompt({ getFirstUploadDone, postId, cookiePath } = {
 			promptShown = true;
 			const event = deferredPrompt;
 			deferredPrompt = null;
-			const result = await event.prompt();
-			if (result && result.outcome === 'dismissed' && typeof postId === 'number') {
-				writeDismissal(postId, cookiePath);
+			// `prompt()` can reject — e.g. the page navigates away mid-call,
+			// or the browser's install machinery rejects for a reason that
+			// isn't surfaced as an outcome. Callers in view.js invoke this
+			// fire-and-forget, so swallow rejections here to avoid an
+			// unhandled-rejection warning in the console. `promptShown`
+			// stays true so we don't immediately re-prompt; the deferred
+			// event was already consumed by `prompt()`, so a retry attempt
+			// would no-op anyway.
+			try {
+				const result = await event.prompt();
+				if (result && result.outcome === 'dismissed' && typeof postId === 'number') {
+					writeDismissal(postId, cookiePath);
+				}
+			} catch {
+				// Intentionally swallowed — see comment above.
 			}
 		},
 	};
