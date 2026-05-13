@@ -193,9 +193,7 @@ async function walkUploadFlow(page, pageUrl) {
 
 	// Gallery + upload.
 	await expect(page.locator('.pixfete-fab-container')).toBeVisible();
-	await page
-		.locator('#pixfete-file-gallery')
-		.setInputFiles(path.join(__dirname, 'fixtures', 'test-photo.jpg'));
+	await page.locator('#pixfete-file-gallery').setInputFiles(path.join(__dirname, 'fixtures', 'test-photo.jpg'));
 
 	// Wait for the uploaded photo to appear — confirms the upload
 	// completed and the `pixfete:upload-success` postMessage fired,
@@ -203,10 +201,7 @@ async function walkUploadFlow(page, pageUrl) {
 	await page.locator('.pixfete-photo img').first().waitFor({ timeout: 15000 });
 }
 
-test('manifest URL serves application/manifest+json with the expected fields', async ({
-	page,
-	request,
-}) => {
+test('manifest URL serves application/manifest+json with the expected fields', async ({ page, request }) => {
 	const { link: pageUrl } = await createEventPage(page);
 
 	await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
@@ -230,10 +225,7 @@ test('manifest URL serves application/manifest+json with the expected fields', a
 	expect(manifest.theme_color).toMatch(/^#[0-9a-f]{6}$/);
 });
 
-test('install prompt fires after first upload on mobile-emulated viewport', async ({
-	browser,
-	page,
-}) => {
+test('install prompt fires after first upload on mobile-emulated viewport', async ({ browser, page }) => {
 	const { link: pageUrl } = await createEventPage(page);
 
 	// Use a fresh guest context so the admin session cookies don't leak in.
