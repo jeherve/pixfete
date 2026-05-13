@@ -153,6 +153,10 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 * Messages now use the theme's text color so they stay readable on themes with tinted backgrounds.
 * Silenced a PHP warning that could appear on the login screen after a failed login attempt.
 
+**Security**
+
+* The per-event app manifest endpoint now only responds for published event-album pages, so unrelated drafts, private posts, or other content can no longer be probed by guessing manifest URLs.
+
 = 1.2.0 - 2026-03-26 =
 
 **Added**

@@ -333,6 +333,7 @@ final class PwaTest extends TestCase {
 		$this->stub_url_helpers( 'https://example.test' );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'has_block' )->justReturn( false );
 		Functions\expect( 'status_header' )->once()->with( 404 )->andThrow( new \RuntimeException( 'halt' ) );
 		Functions\when( 'header' )->justReturn( null );
 
@@ -342,6 +343,74 @@ final class PwaTest extends TestCase {
 			unset( $e ); // Expected: status_header stub throws so we never hit exit().
 		}
 		$this->assertTrue( true );
+	}
+
+	/**
+	 * `is_event_album_post()` accepts a published post that carries the
+	 * `pixfete/event-album` block — the only shape that can legitimately
+	 * back a manifest URL.
+	 */
+	public function test_is_event_album_post_accepts_published_event_album(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'post_status' => 'publish' )
+		);
+		Functions\when( 'has_block' )->alias(
+			static function ( string $block_name ): bool {
+				return 'pixfete/event-album' === $block_name;
+			}
+		);
+
+		$this->assertTrue( PWA::is_event_album_post( 42 ) );
+	}
+
+	/**
+	 * `is_event_album_post()` rejects drafts/private posts. The manifest
+	 * endpoint is publicly enumerable, so leaking unpublished titles via
+	 * the JSON body would be an information-disclosure bug.
+	 */
+	public function test_is_event_album_post_rejects_non_published_status(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'post_status' => 'draft' )
+		);
+		Functions\when( 'has_block' )->justReturn( true );
+
+		$this->assertFalse( PWA::is_event_album_post( 42 ) );
+	}
+
+	/**
+	 * `is_event_album_post()` rejects published posts that don't actually
+	 * carry the event-album block — `/pixfete-<id>.webmanifest` for a
+	 * regular blog post would otherwise return a nonsensical manifest.
+	 */
+	public function test_is_event_album_post_rejects_post_without_block(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'post_status' => 'publish' )
+		);
+		Functions\when( 'has_block' )->justReturn( false );
+
+		$this->assertFalse( PWA::is_event_album_post( 42 ) );
+	}
+
+	/**
+	 * Missing post (deleted, never existed) yields false without
+	 * dereferencing the null return from `get_post()`.
+	 */
+	public function test_is_event_album_post_rejects_missing_post(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'has_block' )->justReturn( false );
+
+		$this->assertFalse( PWA::is_event_album_post( 999 ) );
+	}
+
+	/**
+	 * Zero or negative IDs short-circuit before any WP call — defends
+	 * against a matcher regression that lets junk IDs reach `get_post()`.
+	 */
+	public function test_is_event_album_post_rejects_non_positive_ids(): void {
+		Functions\expect( 'get_post' )->never();
+
+		$this->assertFalse( PWA::is_event_album_post( 0 ) );
+		$this->assertFalse( PWA::is_event_album_post( -1 ) );
 	}
 
 	/**

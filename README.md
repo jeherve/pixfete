@@ -84,7 +84,7 @@ The plugin registers two blocks and a REST API under the `pixfete/v1` namespace:
 | `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
 | `src/class-moderator.php` | Custom moderator role, dashboard lockout, and per-event moderator assignment checks |
 | `src/class-slideshow.php` | Live Photo Wall block registration and page template |
-| `src/class-pwa.php` | PWA hub: serves the Service Worker (`/pixfete-sw.js`) for upload queue draining and the dynamic per-event Web App Manifest (`/pixfete-manifest.json`) that powers installable event albums |
+| `src/class-pwa.php` | PWA hub: serves the Service Worker (`/pixfete-sw.js`) for upload queue draining and the dynamic per-event Web App Manifest (`/pixfete-<post-id>.webmanifest`) that powers installable event albums |
 | `src/blocks/event-album/` | Event Photo Album block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/blocks/event-album/install-prompt.js` | Captures `beforeinstallprompt`, gates the install offer on mobile + first upload + dismissal cookie, and triggers the browser's native install prompt |
 | `src/blocks/event-slideshow/` | Live Photo Wall block assets (edit.js, view.js, render.php, block.json, styles) |

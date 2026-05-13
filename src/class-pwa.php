@@ -183,12 +183,17 @@ class PWA {
 	 * on every fetch so a relaunched album (or a host changing icons)
 	 * doesn't get stuck behind a stale manifest.
 	 *
+	 * The endpoint is publicly enumerable (`/pixfete-1.webmanifest`,
+	 * `/pixfete-2.webmanifest`, …), so we restrict it to *published* posts
+	 * that actually carry the `pixfete/event-album` block. Otherwise an
+	 * unauthenticated probe could harvest titles/permalinks of drafts,
+	 * private posts, or unrelated content via the manifest body.
+	 *
 	 * @param int $post_id Event-album post ID parsed from the URL.
 	 * @return void
 	 */
 	private static function serve_manifest( int $post_id ): void {
-		$post = get_post( $post_id );
-		if ( null === $post ) {
+		if ( ! self::is_event_album_post( $post_id ) ) {
 			status_header( 404 );
 			exit;
 		}
@@ -337,6 +342,36 @@ class PWA {
 
 		$post_id = (int) $id_part;
 		return $post_id > 0 ? $post_id : null;
+	}
+
+	/**
+	 * Decide whether a given post ID is a valid event-album manifest target.
+	 *
+	 * Two checks: the post must exist with `publish` status (drafts,
+	 * private posts, and trashed posts would leak via the manifest body
+	 * otherwise) and it must contain the `pixfete/event-album` block so a
+	 * probe of `/pixfete-<id>.webmanifest` against an arbitrary post
+	 * returns 404 instead of a nonsensical manifest for non-event content.
+	 *
+	 * Exposed as a public testing seam so the published-status and
+	 * block-presence rules can be covered without exercising the
+	 * `exit()`-terminated streaming path.
+	 *
+	 * @param int $post_id Candidate post ID.
+	 * @return bool True when $post_id is a publicly installable event album.
+	 */
+	public static function is_event_album_post( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+		$post = get_post( $post_id );
+		if ( null === $post ) {
+			return false;
+		}
+		if ( 'publish' !== $post->post_status ) {
+			return false;
+		}
+		return function_exists( 'has_block' ) && has_block( 'pixfete/event-album', $post );
 	}
 
 	/**
@@ -568,12 +603,58 @@ class PWA {
 		}
 		$segments = preg_split( '/(\s|&|—)+/u', $title, -1, PREG_SPLIT_NO_EMPTY );
 		if ( ! is_array( $segments ) || empty( $segments ) ) {
-			return mb_substr( $title, 0, 12 );
+			return self::truncate_chars( $title, 12 );
 		}
 		$first = (string) $segments[0];
-		if ( mb_strlen( $first ) <= 12 ) {
+		if ( self::char_length( $first ) <= 12 ) {
 			return $first;
 		}
-		return mb_substr( $first, 0, 12 );
+		return self::truncate_chars( $first, 12 );
+	}
+
+	/**
+	 * Count characters in a string, preferring mbstring when available.
+	 *
+	 * The mbstring extension is "recommended" by WordPress but not required, and Pixfête
+	 * does not declare `ext-mbstring` in its requirements. On hosts that
+	 * disabled it, calling `mb_strlen()` directly would fatal at runtime
+	 * and take the manifest endpoint (and any other call site) down.
+	 *
+	 * The fallback uses a UTF-8-aware regex so multibyte titles still
+	 * count by character rather than byte — `strlen()` would over-count
+	 * emoji/accented titles and trigger over-aggressive truncation.
+	 *
+	 * @param string $value Input string in any locale.
+	 * @return int Number of characters in $value.
+	 */
+	private static function char_length( string $value ): int {
+		if ( function_exists( 'mb_strlen' ) ) {
+			return (int) mb_strlen( $value );
+		}
+		return (int) preg_match_all( '/./us', $value );
+	}
+
+	/**
+	 * Truncate a string to a character (not byte) length.
+	 *
+	 * The mbstring fallback: see {@see self::char_length()} for why we can't
+	 * assume `mb_substr()` exists. The regex fallback captures the first
+	 * `$length` UTF-8 characters so multibyte titles aren't cut mid-byte.
+	 *
+	 * @param string $value  Input string in any locale.
+	 * @param int    $length Maximum number of characters to keep.
+	 * @return string Truncated string.
+	 */
+	private static function truncate_chars( string $value, int $length ): string {
+		if ( $length <= 0 || '' === $value ) {
+			return '';
+		}
+		if ( function_exists( 'mb_substr' ) ) {
+			return (string) mb_substr( $value, 0, $length );
+		}
+		if ( preg_match( '/^(.{0,' . $length . '})/us', $value, $matches ) ) {
+			return (string) $matches[1];
+		}
+		return $value;
 	}
 }

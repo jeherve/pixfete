@@ -3,10 +3,10 @@
  *
  * Captures the browser's `beforeinstallprompt` event so we can choose
  * the moment to call `prompt()` ourselves — instead of letting Chrome
- * decide. The actual call is gated on (1) mobile detection,
- * (2) the per-event dismissal cookie, and (3) the guest having
- * completed their first upload. Those gates are added in subsequent
- * commits; this skeleton just wires the event capture.
+ * decide. The actual call is gated on (1) the guest having completed
+ * their first upload, (2) mobile detection, and (3) the per-event
+ * dismissal cookie. See `initInstallPrompt()` below for the gating
+ * order; `resetForTests()` exists so Jest can isolate test cases.
  */
 
 let deferredPrompt = null;
