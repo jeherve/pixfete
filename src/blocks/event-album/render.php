@@ -74,8 +74,9 @@ $pixfete_i18n = array(
 // a competing PWA/SW plugin. The scope mirrors the site's home URL path
 // so subdirectory and subdirectory-multisite installs get a tight scope
 // instead of one SW trying to claim the whole origin.
-$pixfete_pwa_enabled = \Jeherve\Pixfete\PWA::is_enabled();
-$pixfete_context     = array(
+$pixfete_pwa_enabled      = \Jeherve\Pixfete\PWA::is_enabled();
+$pixfete_manifest_enabled = \Jeherve\Pixfete\PWA::is_manifest_enabled();
+$pixfete_context          = array(
 	'pageId'           => get_the_ID(),
 	'nonce'            => '',
 	'honeypotField'    => $pixfete_honeypot_field,
@@ -85,6 +86,7 @@ $pixfete_context     = array(
 	'restBase'         => rest_url( 'pixfete/v1' ),
 	'swUrl'            => $pixfete_pwa_enabled ? home_url( \Jeherve\Pixfete\PWA::SW_PATH ) : '',
 	'swScope'          => $pixfete_pwa_enabled ? \Jeherve\Pixfete\PWA::sw_scope() : '',
+	'manifestUrl'      => $pixfete_manifest_enabled ? home_url( sprintf( \Jeherve\Pixfete\PWA::MANIFEST_PATH_TEMPLATE, get_the_ID() ) ) : '',
 	'cookiePath'       => \Jeherve\Pixfete\Cookie::cookie_path(),
 	'i18n'             => $pixfete_i18n,
 );
