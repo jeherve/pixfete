@@ -110,13 +110,29 @@ async function registerServiceWorker(url, scope) {
 	try {
 		const existing = await navigator.serviceWorker.getRegistration(scope || '/');
 		if (existing && existing.active && existing.active.scriptURL !== url) {
-			// eslint-disable-next-line no-console -- visibility for site owners running another SW plugin.
-			console.warn(
-				'Pixfête: another Service Worker owns this scope (' +
-					existing.active.scriptURL +
-					'); skipping Pixfête SW registration. Set the `pixfete_serve_service_worker` filter to false to silence this.'
-			);
-			return null;
+			// 1.3.0 served the SW at `/pixfete-sw.js`; 1.3.1 moved it to
+			// `/pixfete-sw` because nginx-fronted hosts (WordPress.com
+			// Atomic) 404 `*.js` requests before PHP runs. Browsers cache
+			// the prior registration, so without an explicit upgrade
+			// step the guard below would mistake our own stale SW for a
+			// third-party SW and skip — leaving the user stuck on a
+			// dead 1.3.0 worker that can never update (its script URL
+			// 404s now). Detect the legacy `.js` path, unregister it,
+			// and fall through to install the new SW.
+			const isPixfeteLegacySw =
+				existing.active.scriptURL.endsWith('/pixfete-sw.js') ||
+				existing.active.scriptURL.includes('/pixfete-sw.js?');
+			if (isPixfeteLegacySw) {
+				await existing.unregister();
+			} else {
+				// eslint-disable-next-line no-console -- visibility for site owners running another SW plugin.
+				console.warn(
+					'Pixfête: another Service Worker owns this scope (' +
+						existing.active.scriptURL +
+						'); skipping Pixfête SW registration. Set the `pixfete_serve_service_worker` filter to false to silence this.'
+				);
+				return null;
+			}
 		}
 		const options = scope ? { scope } : undefined;
 		return await navigator.serviceWorker.register(url, options);
