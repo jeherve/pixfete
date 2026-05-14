@@ -93,7 +93,7 @@ $pixfete_context = array(
 		class="pixfete-slideshow-not-started"
 		data-wp-bind--hidden="!state.isNotStartedView"
 	>
-		<p><?php echo esc_html__( "You're a little early! This event hasn't started yet — check back soon.", 'pixfete' ); ?></p>
+		<p><?php echo esc_html__( 'You’re a little early! This event hasn’t started yet — check back soon.', 'pixfete' ); ?></p>
 	</div>
 
 	<?php // Password form — simplified auth, no registration or consent. ?>

@@ -127,7 +127,7 @@ if ( $pixfete_is_moderator ) {
 	<div class="pixfete-app">
 		<?php // Not-started view — shown when the event date hasn't arrived yet. ?>
 		<div data-wp-bind--hidden="!state.isNotStartedView" class="pixfete-not-started">
-			<p><?php esc_html_e( "You\u{2019}re a little early! This event hasn\u{2019}t started yet \u{2014} check back soon.", 'pixfete' ); ?></p>
+			<p><?php esc_html_e( 'You’re a little early! This event hasn’t started yet — check back soon.', 'pixfete' ); ?></p>
 		</div>
 
 		<?php
@@ -221,7 +221,7 @@ if ( $pixfete_is_moderator ) {
 		<?php // Registration view. ?>
 		<div data-wp-bind--hidden="!state.isRegistrationView" class="pixfete-form">
 			<form data-wp-on--submit="actions.submitRegistration">
-				<label for="pixfete-guest-name"><?php esc_html_e( 'Your First Name', 'pixfete' ); ?></label>
+				<label for="pixfete-guest-name"><?php esc_html_e( 'Your first name', 'pixfete' ); ?></label>
 				<input
 					id="pixfete-guest-name"
 					type="text"
@@ -231,7 +231,7 @@ if ( $pixfete_is_moderator ) {
 					required
 				/>
 				<div data-wp-bind--hidden="!state.showTableName">
-					<label for="pixfete-table-name"><?php esc_html_e( 'Your Table', 'pixfete' ); ?></label>
+					<label for="pixfete-table-name"><?php esc_html_e( 'Your table', 'pixfete' ); ?></label>
 					<input
 						id="pixfete-table-name"
 						type="text"
