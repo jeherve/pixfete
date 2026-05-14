@@ -121,7 +121,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 == Changelog ==
 
-= 1.3.0 - unreleased =
+= 1.3.0 - 2026-05-14 =
 
 **Added**
 
