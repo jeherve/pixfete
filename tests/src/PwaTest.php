@@ -56,7 +56,7 @@ final class PwaTest extends TestCase {
 	public function test_matches_sw_path_accepts_canonical_path(): void {
 		$this->stub_url_helpers( 'https://example.test' );
 
-		$this->assertTrue( PWA::matches_sw_path( '/pixfete-sw.js' ) );
+		$this->assertTrue( PWA::matches_sw_path( '/pixfete-sw' ) );
 	}
 
 	/**
@@ -66,7 +66,7 @@ final class PwaTest extends TestCase {
 	public function test_matches_sw_path_strips_query_string(): void {
 		$this->stub_url_helpers( 'https://example.test' );
 
-		$this->assertTrue( PWA::matches_sw_path( '/pixfete-sw.js?ver=123' ) );
+		$this->assertTrue( PWA::matches_sw_path( '/pixfete-sw?ver=123' ) );
 	}
 
 	/**
@@ -77,8 +77,8 @@ final class PwaTest extends TestCase {
 	public function test_matches_sw_path_matches_subdirectory_install(): void {
 		$this->stub_url_helpers( 'https://example.test/blog' );
 
-		$this->assertTrue( PWA::matches_sw_path( '/blog/pixfete-sw.js' ) );
-		$this->assertFalse( PWA::matches_sw_path( '/pixfete-sw.js' ) );
+		$this->assertTrue( PWA::matches_sw_path( '/blog/pixfete-sw' ) );
+		$this->assertFalse( PWA::matches_sw_path( '/pixfete-sw' ) );
 	}
 
 	/**
@@ -89,7 +89,7 @@ final class PwaTest extends TestCase {
 
 		$this->assertFalse( PWA::matches_sw_path( '/wp-admin/' ) );
 		$this->assertFalse( PWA::matches_sw_path( '/' ) );
-		$this->assertFalse( PWA::matches_sw_path( '/some/pixfete-sw.js' ) );
+		$this->assertFalse( PWA::matches_sw_path( '/some/pixfete-sw' ) );
 	}
 
 	/**
@@ -135,7 +135,7 @@ final class PwaTest extends TestCase {
 	 * origin scope without forking Pixfête.
 	 */
 	public function test_maybe_serve_steps_aside_when_filter_disables(): void {
-		$_SERVER['REQUEST_URI'] = '/pixfete-sw.js';
+		$_SERVER['REQUEST_URI'] = '/pixfete-sw';
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		$this->stub_url_helpers( 'https://example.test' );
@@ -211,7 +211,7 @@ final class PwaTest extends TestCase {
 	public function test_sw_path_matches_matcher_expectation(): void {
 		$this->stub_url_helpers( 'https://example.test/blog' );
 
-		$this->assertSame( '/blog/pixfete-sw.js', PWA::sw_path() );
+		$this->assertSame( '/blog/pixfete-sw', PWA::sw_path() );
 	}
 
 	/**
@@ -221,8 +221,8 @@ final class PwaTest extends TestCase {
 	public function test_matches_sw_path_rejects_sibling_subsite(): void {
 		$this->stub_url_helpers( 'https://example.test/site-a' );
 
-		$this->assertTrue( PWA::matches_sw_path( '/site-a/pixfete-sw.js' ) );
-		$this->assertFalse( PWA::matches_sw_path( '/site-b/pixfete-sw.js' ) );
+		$this->assertTrue( PWA::matches_sw_path( '/site-a/pixfete-sw' ) );
+		$this->assertFalse( PWA::matches_sw_path( '/site-b/pixfete-sw' ) );
 	}
 
 	/**
@@ -290,7 +290,7 @@ final class PwaTest extends TestCase {
 	public function test_matches_manifest_path_rejects_other_paths(): void {
 		$this->stub_url_helpers( 'https://example.test' );
 		$this->assertNull( PWA::matches_manifest_path( '/wp-admin/' ) );
-		$this->assertNull( PWA::matches_manifest_path( '/pixfete-sw.js' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-sw' ) );
 		$this->assertNull( PWA::matches_manifest_path( '' ) );
 	}
 

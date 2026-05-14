@@ -4,7 +4,7 @@
  */
 /* eslint-enable jsdoc/check-tag-names */
 
-import { initInstallPrompt, resetForTests } from '../install-prompt';
+import { initInstallPrompt, resetForTests, ensureListenerForTests } from '../install-prompt';
 
 beforeEach(() => {
 	resetForTests();
@@ -50,6 +50,19 @@ describe('install-prompt', () => {
 		initInstallPrompt({ getFirstUploadDone: () => false, postId: 1, cookiePath: '/' });
 		const event = fireBeforeInstallPrompt();
 		expect(event.preventDefault).toHaveBeenCalledTimes(1);
+	});
+
+	test('captures a beforeinstallprompt fired before initInstallPrompt is called', async () => {
+		// Chrome may fire beforeinstallprompt before view.js's Interactivity
+		// `init()` runs. The module-load eager listener (re-attached here
+		// because beforeEach's resetForTests removed it) must catch it.
+		ensureListenerForTests();
+		setUserAgentData({ mobile: true });
+		const promptFn = jest.fn(() => Promise.resolve({ outcome: 'accepted' }));
+		fireBeforeInstallPrompt(promptFn);
+		const api = initInstallPrompt({ getFirstUploadDone: () => true, postId: 1, cookiePath: '/' });
+		await api.maybeShowPrompt();
+		expect(promptFn).toHaveBeenCalledTimes(1);
 	});
 
 	test('exposes maybeShowPrompt as a callable', () => {

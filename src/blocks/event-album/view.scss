@@ -8,7 +8,17 @@
 .wp-block-pixfete-event-album {
 	// Required to suppress horizontal scroll introduced by the edge-to-edge
 	// grid technique on mobile (see .pixfete-grid margin/width rules below).
+	// `overflow-x: hidden` alone would auto-promote the implicit
+	// `overflow-y: visible` to `overflow-y: auto` per spec — turning the
+	// wrapper into a scroll container, which on iOS Safari re-anchors
+	// `position: fixed` descendants (the upload FAB) to the wrapper
+	// instead of the visual viewport, leaving the FAB at the document's
+	// bottom and forcing guests to scroll down to find it. `clip`
+	// clips overflow without creating a scroll container. We list
+	// `hidden` first as a fallback for browsers older than Safari 16 /
+	// Firefox 90 / Chrome 90 — modern browsers prefer the later `clip`.
 	overflow-x: hidden;
+	overflow-x: clip;
 
 	// ─── Loading ────────────────────────────────────────────────────
 
@@ -427,6 +437,12 @@
 			margin-left: 0;
 			margin-right: 0;
 			width: auto;
+
+			// The mobile `#000` background paints the 2px separator lines
+			// between full-bleed photos. On desktop the grid sits inside
+			// the theme's content area and the column gaps should reveal
+			// the theme background, not a black plate.
+			background: transparent;
 		}
 	}
 

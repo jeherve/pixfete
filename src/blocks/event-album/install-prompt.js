@@ -7,6 +7,13 @@
  * their first upload, (2) mobile detection, and (3) the per-event
  * dismissal cookie. See `initInstallPrompt()` below for the gating
  * order; `resetForTests()` exists so Jest can isolate test cases.
+ *
+ * The capture listener attaches at module load — not inside
+ * `initInstallPrompt()` — because Chrome can fire
+ * `beforeinstallprompt` as soon as the page meets PWA criteria, which
+ * may be before the Interactivity API hydrates the view module and
+ * runs `init()`. A late-attached listener would miss that event and
+ * the install prompt would never appear for the rest of the session.
  */
 
 let deferredPrompt = null;
@@ -26,6 +33,25 @@ function onBeforeInstallPrompt(event) {
 	event.preventDefault();
 	deferredPrompt = event;
 }
+
+/**
+ * Attach the `beforeinstallprompt` capture listener if it isn't
+ * already attached. Idempotent so it's safe to call from both the
+ * module-load eager path and the `initInstallPrompt()` lazy path
+ * (which is the entry point tests use after `resetForTests()` has
+ * removed the listener).
+ */
+function ensureListener() {
+	if (typeof window === 'undefined' || listenerInstalled) {
+		return;
+	}
+	window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+	listenerInstalled = true;
+}
+
+// Eagerly attach at module load so we never miss the event firing
+// before the view module's Interactivity init runs. See class docblock.
+ensureListener();
 
 /**
  * Whether the current device should be offered the install prompt.
@@ -122,10 +148,9 @@ export function initInstallPrompt({ getFirstUploadDone, postId, cookiePath } = {
 	if (typeof window === 'undefined') {
 		return { maybeShowPrompt: async () => undefined };
 	}
-	if (!listenerInstalled) {
-		window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-		listenerInstalled = true;
-	}
+	// Re-attach the listener if `resetForTests()` removed it. In production
+	// `ensureListener()` already ran at module load; this is a no-op there.
+	ensureListener();
 	return {
 		maybeShowPrompt: async () => {
 			if (!deferredPrompt || promptShown) {
@@ -176,4 +201,16 @@ export function resetForTests() {
 	deferredPrompt = null;
 	promptShown = false;
 	listenerInstalled = false;
+}
+
+/**
+ * Re-attach the eager capture listener.
+ *
+ * Not part of the public API — exported so tests can simulate the
+ * module-load eager attachment after `resetForTests()` has stripped it,
+ * and verify that an early `beforeinstallprompt` event (one fired
+ * before `initInstallPrompt()` runs) is still captured.
+ */
+export function ensureListenerForTests() {
+	ensureListener();
 }

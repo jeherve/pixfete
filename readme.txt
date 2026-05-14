@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -120,6 +120,15 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 3. Block settings in the editor sidebar to configure the event password, date range, and table name tracking.
 
 == Changelog ==
+
+= 1.3.1 - 2026-05-14 =
+
+**Fixed**
+
+* The upload button now stays anchored to the bottom-right of the screen on mobile, instead of sliding down with the page on some phones and forcing guests to scroll to find it.
+* The photo gallery no longer shows a black strip beside the photos on desktop and tablet — the column gaps now use your theme's background.
+* The "install this album as an app" prompt now appears reliably on managed hosts (including WordPress.com) where the underlying support file was being blocked from loading.
+* The install prompt no longer goes missing on Chrome when the browser is fast to recognize the album as installable — the page now starts listening as soon as it loads.
 
 = 1.3.0 - 2026-05-14 =
 
