@@ -2,13 +2,20 @@
 /**
  * Pixfête Service Worker.
  *
- * Sole responsibility: drain the IndexedDB upload queue when the
+ * Primary responsibility: drain the IndexedDB upload queue when the
  * Background Sync API fires, so photos uploaded on flaky networks
  * (or with the tab closed) land safely.
  *
- * The SW is deliberately not a fetch interceptor — caching album
- * photos for offline read access raises privacy questions we don't
- * want to answer in this iteration.
+ * The SW deliberately does not cache album photos — caching guest
+ * photos for offline read raises privacy questions we don't want to
+ * answer in this iteration. The fetch listener at the bottom of this
+ * file therefore passes navigations straight through to the network
+ * and ignores every other request. Its sole purpose is to satisfy
+ * Chrome's installability check: without a non-trivial fetch handler
+ * registered on the controlling SW, Chrome will not fire
+ * `beforeinstallprompt` and the "install this album" prompt never
+ * appears — which was the symptom on managed hosts even after the
+ * SW URL fix.
  */
 
 import { listPending, markDone, markFailed, openQueue } from './blocks/event-album/upload-queue';
@@ -155,4 +162,18 @@ self.addEventListener('sync', (event) => {
 		return;
 	}
 	event.waitUntil(drainQueue());
+});
+
+// Fetch handler exists purely to satisfy Chrome's PWA install criteria.
+// Chrome will not fire `beforeinstallprompt` unless the controlling SW
+// has a fetch listener AND that listener actually intercepts something
+// (no-op handlers are detected via static analysis and ignored). We
+// don't want to cache anything (see the file docblock), so we only
+// route navigation requests through the SW and pass them straight to
+// the network. Every other request (subresources, REST API, polling)
+// is left to the browser's default handling.
+self.addEventListener('fetch', (event) => {
+	if (event.request.mode === 'navigate') {
+		event.respondWith(fetch(event.request));
+	}
 });

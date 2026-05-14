@@ -43,6 +43,40 @@ afterEach(() => {
 
 const REST_BASE = 'https://example.test/wp-json/pixfete/v1';
 
+describe('Service Worker fetch handler', () => {
+	test('registers a non-trivial fetch listener that only intercepts navigations', () => {
+		// Chrome will not fire `beforeinstallprompt` unless the Service
+		// Worker has a fetch event handler AND that handler is non-trivial
+		// — a no-op handler is detected and skipped by Chrome's
+		// installability check. The handler must therefore exist and must
+		// call `event.respondWith` for at least some requests so static
+		// analysis sees a real interceptor. We choose navigations: routing
+		// every request through the SW would add overhead and we don't
+		// actually want to cache anything (see sw.js docblock).
+		//
+		// sw.js is `require`-cached and only evaluated against the first
+		// beforeEach's `global.self`, so we must inspect the handler list
+		// inside a single test rather than splitting across describes.
+		const fetchCall = global.self.addEventListener.mock.calls.find(([type]) => type === 'fetch');
+		expect(fetchCall).toBeDefined();
+		const handler = fetchCall[1];
+
+		const navResponse = jest.fn();
+		handler({
+			request: { mode: 'navigate', url: 'https://example.test/' },
+			respondWith: navResponse,
+		});
+		expect(navResponse).toHaveBeenCalledTimes(1);
+
+		const apiResponse = jest.fn();
+		handler({
+			request: { mode: 'cors', url: 'https://example.test/wp-json/pixfete/v1/photos/7' },
+			respondWith: apiResponse,
+		});
+		expect(apiResponse).not.toHaveBeenCalled();
+	});
+});
+
 describe('Service Worker drainQueue', () => {
 	test('uploads pending items and notifies clients', async () => {
 		const id = await enqueue({
