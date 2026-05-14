@@ -20,8 +20,17 @@ defined( 'ABSPATH' ) || exit;
  * Why home_url-relative: a Service Worker registered from
  * `/wp-content/plugins/pixfete/build/sw.js` would only control pages
  * under that path. Album pages live anywhere under the WordPress home
- * URL, so we intercept `GET <home>/pixfete-sw.js` in `template_redirect`
+ * URL, so we intercept `GET <home>/pixfete-sw` in `template_redirect`
  * and stream the built file.
+ *
+ * Why no `.js` extension: managed hosts (including WordPress.com Atomic)
+ * front WordPress with an nginx config that maps `*.js` to a static-file
+ * handler. Any `.js` request that doesn't resolve to a file on disk
+ * returns 404 from nginx before PHP gets a chance to handle it, killing
+ * the Service Worker registration. Dropping the extension keeps the
+ * request inside WordPress's front controller. Browsers identify a
+ * Service Worker script by `Content-Type`, not the URL suffix, so the
+ * change is invisible to clients.
  *
  * Why REQUEST_URI matching (rather than a rewrite rule): rewrite rules
  * only flush on plugin (re)activation, so users upgrading from an
@@ -38,12 +47,16 @@ class PWA {
 	/**
 	 * Path component appended to the site home URL to reach the SW.
 	 *
-	 * Stored as a constant so the test suite (and render.php callers)
-	 * can assert on the exact path without duplicating string literals.
+	 * No `.js` extension: managed hosts (including WordPress.com Atomic)
+	 * intercept `*.js` requests with an nginx static-file handler and
+	 * return 404 before WordPress's front controller runs. See the class
+	 * docblock for the full reasoning. Stored as a constant so the test
+	 * suite (and render.php callers) can assert on the exact path
+	 * without duplicating string literals.
 	 *
 	 * @var string
 	 */
-	public const SW_PATH = '/pixfete-sw.js';
+	public const SW_PATH = '/pixfete-sw';
 
 	/**
 	 * URL path template for per-event Web App Manifests.
@@ -71,7 +84,7 @@ class PWA {
 		 * Filters whether Pixfête manages its own Service Worker.
 		 *
 		 * Return false to let another PWA/SW plugin own the origin scope.
-		 * When disabled, Pixfête neither serves `/pixfete-sw.js` nor asks
+		 * When disabled, Pixfête neither serves `/pixfete-sw` nor asks
 		 * the frontend to register a Service Worker. Uploads still queue
 		 * to IndexedDB and drain via the in-page loop, just without
 		 * Background Sync recovery after tab close.
@@ -245,7 +258,7 @@ class PWA {
 	 * The full path component of the Service Worker URL on this site.
 	 *
 	 * Equal to the path part of `home_url( SW_PATH )`, e.g.
-	 * `/pixfete-sw.js` on a root install or `/blog/pixfete-sw.js` on a
+	 * `/pixfete-sw` on a root install or `/blog/pixfete-sw` on a
 	 * subdirectory install. Exposed so render.php can keep its scope
 	 * computation in sync with the matcher without re-implementing the
 	 * URL parse.

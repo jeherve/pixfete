@@ -84,7 +84,7 @@ The plugin registers two blocks and a REST API under the `pixfete/v1` namespace:
 | `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
 | `src/class-moderator.php` | Custom moderator role, dashboard lockout, and per-event moderator assignment checks |
 | `src/class-slideshow.php` | Live Photo Wall block registration and page template |
-| `src/class-pwa.php` | PWA hub: serves the Service Worker (`/pixfete-sw.js`) for upload queue draining and the dynamic per-event Web App Manifest (`/pixfete-<post-id>.webmanifest`) that powers installable event albums |
+| `src/class-pwa.php` | PWA hub: serves the Service Worker (`/pixfete-sw`) for upload queue draining and the dynamic per-event Web App Manifest (`/pixfete-<post-id>.webmanifest`) that powers installable event albums |
 | `src/blocks/event-album/` | Event Photo Album block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/blocks/event-album/install-prompt.js` | Captures `beforeinstallprompt`, gates the install offer on mobile + first upload + dismissal cookie, and triggers the browser's native install prompt |
 | `src/blocks/event-slideshow/` | Live Photo Wall block assets (edit.js, view.js, render.php, block.json, styles) |
@@ -203,7 +203,7 @@ Photo uploads are queued in IndexedDB before they hit the network, so files surv
 
 A Service Worker drains the queue via the Background Sync API where it's available (Chrome, Edge, Android). Browsers without Background Sync — notably iOS Safari — fall back to in-page retry while the album page is open.
 
-The Service Worker is served from `/pixfete-sw.js` with the `Service-Worker-Allowed: /` header so it can claim album pages anywhere on the site. Registration and routing are handled in `src/class-pwa.php`.
+The Service Worker is served from `/pixfete-sw` (no extension — managed hosts including WordPress.com Atomic intercept `*.js` requests with an nginx static handler before WordPress's front controller can respond) with the `Service-Worker-Allowed: /` header so it can claim album pages anywhere on the site. Registration and routing are handled in `src/class-pwa.php`.
 
 ### Event Photo Album block attributes
 
