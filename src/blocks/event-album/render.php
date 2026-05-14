@@ -74,12 +74,13 @@ $pixfete_i18n = array(
 // a competing PWA/SW plugin. The scope mirrors the site's home URL path
 // so subdirectory and subdirectory-multisite installs get a tight scope
 // instead of one SW trying to claim the whole origin.
-// manifestUrl is gated on the same check that controls the manifest
-// endpoint and the <link rel="manifest"> emission, so draft/private
-// previews — where the endpoint would 404 — don't trip the install-
-// prompt initializer in view.js. is_event_album_post() already runs the
-// publish + has_block + filter checks, so we don't have to re-check
-// is_manifest_enabled() here.
+// manifestUrl is gated on `is_manifest_enabled() && is_event_album_post()` —
+// the same pair of checks that controls the manifest endpoint and the
+// <link rel="manifest"> emission. Keeping all three sites in lockstep
+// means draft/private previews (where the endpoint would 404) don't
+// trip the install-prompt initializer in view.js, and disabling the
+// manifest via the `pixfete_serve_manifest` filter suppresses the JS
+// path too.
 $pixfete_pwa_enabled  = \Jeherve\Pixfete\PWA::is_enabled();
 $pixfete_manifest_url = \Jeherve\Pixfete\PWA::is_manifest_enabled()
 	&& \Jeherve\Pixfete\PWA::is_event_album_post( (int) get_the_ID() )
