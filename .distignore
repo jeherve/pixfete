@@ -40,6 +40,7 @@ eslint.config.js
 phpunit.xml.dist
 composer.json
 composer.lock
+patchwork.json
 package.json
 package-lock.json
 blueprint.json

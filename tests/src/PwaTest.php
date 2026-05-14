@@ -162,6 +162,27 @@ final class PwaTest extends TestCase {
 	}
 
 	/**
+	 * `is_manifest_enabled()` defaults to true so the manifest ships out of the box.
+	 */
+	public function test_is_manifest_enabled_defaults_true(): void {
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		$this->assertTrue( PWA::is_manifest_enabled() );
+	}
+
+	/**
+	 * Hosts can disable the manifest via the `pixfete_serve_manifest` filter
+	 * without disabling the Service Worker — they're independently controlled.
+	 */
+	public function test_is_manifest_enabled_respects_filter(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, bool $value ): bool {
+				return 'pixfete_serve_manifest' === $hook ? false : $value;
+			}
+		);
+		$this->assertFalse( PWA::is_manifest_enabled() );
+	}
+
+	/**
 	 * `sw_scope()` returns `/` on a root install — the default SW scope.
 	 */
 	public function test_sw_scope_root_install(): void {
@@ -202,5 +223,427 @@ final class PwaTest extends TestCase {
 
 		$this->assertTrue( PWA::matches_sw_path( '/site-a/pixfete-sw.js' ) );
 		$this->assertFalse( PWA::matches_sw_path( '/site-b/pixfete-sw.js' ) );
+	}
+
+	/**
+	 * `manifest_path()` returns the canonical path on a root install.
+	 */
+	public function test_manifest_path_root_install(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertSame( '/pixfete-123.webmanifest', PWA::manifest_path( 123 ) );
+	}
+
+	/**
+	 * `manifest_path()` prefixes with the home URL path on subdirectory installs.
+	 */
+	public function test_manifest_path_subdirectory_install(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+		$this->assertSame( '/blog/pixfete-123.webmanifest', PWA::manifest_path( 123 ) );
+	}
+
+	/**
+	 * `matches_manifest_path()` returns the post ID for a canonical match.
+	 */
+	public function test_matches_manifest_path_accepts_canonical_path(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertSame( 123, PWA::matches_manifest_path( '/pixfete-123.webmanifest' ) );
+	}
+
+	/**
+	 * Subdirectory installs match the prefixed path.
+	 */
+	public function test_matches_manifest_path_matches_subdirectory_install(): void {
+		$this->stub_url_helpers( 'https://example.test/blog' );
+		$this->assertSame( 123, PWA::matches_manifest_path( '/blog/pixfete-123.webmanifest' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-123.webmanifest' ) );
+	}
+
+	/**
+	 * Query strings on the manifest URL don't break the match.
+	 */
+	public function test_matches_manifest_path_strips_query_string(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertSame( 123, PWA::matches_manifest_path( '/pixfete-123.webmanifest?ver=1' ) );
+	}
+
+	/**
+	 * Non-numeric IDs (`/pixfete-foo.webmanifest`) are rejected — we
+	 * never want to call `get_post()` with junk input.
+	 */
+	public function test_matches_manifest_path_rejects_non_numeric_id(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-foo.webmanifest' ) );
+	}
+
+	/**
+	 * Zero and negative IDs are also rejected.
+	 */
+	public function test_matches_manifest_path_rejects_zero_and_negative(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-0.webmanifest' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete--5.webmanifest' ) );
+	}
+
+	/**
+	 * Unrelated paths and empty input return null.
+	 */
+	public function test_matches_manifest_path_rejects_other_paths(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		$this->assertNull( PWA::matches_manifest_path( '/wp-admin/' ) );
+		$this->assertNull( PWA::matches_manifest_path( '/pixfete-sw.js' ) );
+		$this->assertNull( PWA::matches_manifest_path( '' ) );
+	}
+
+	/**
+	 * Manifest dispatcher steps aside when `pixfete_serve_manifest`
+	 * returns false — even though the URL matches.
+	 */
+	public function test_maybe_serve_skips_manifest_when_filter_disables(): void {
+		$_SERVER['REQUEST_URI'] = '/pixfete-123.webmanifest';
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, $value ) {
+				if ( 'pixfete_serve_manifest' === $hook ) {
+					return false;
+				}
+				return $value;
+			}
+		);
+		Functions\expect( 'status_header' )->never();
+		Functions\expect( 'get_post' )->never();
+
+		PWA::maybe_serve();
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * Manifest URL with no matching post returns 404 — `get_post()` null
+	 * is a real "the post was deleted" case and we shouldn't serve a
+	 * broken manifest for it.
+	 *
+	 * `status_header` is stubbed to throw so we can intercept the
+	 * response path before the production `exit` halts PHPUnit.
+	 */
+	public function test_maybe_serve_returns_404_for_unknown_post(): void {
+		$_SERVER['REQUEST_URI'] = '/pixfete-999.webmanifest';
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'has_block' )->justReturn( false );
+		Functions\expect( 'status_header' )->once()->with( 404 )->andThrow( new \RuntimeException( 'halt' ) );
+		Functions\when( 'header' )->justReturn( null );
+
+		try {
+			PWA::maybe_serve();
+		} catch ( \Throwable $e ) {
+			unset( $e ); // Expected: status_header stub throws so we never hit exit().
+		}
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * `is_event_album_post()` accepts a published post that carries the
+	 * `pixfete/event-album` block — the only shape that can legitimately
+	 * back a manifest URL.
+	 */
+	public function test_is_event_album_post_accepts_published_event_album(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'post_status' => 'publish' )
+		);
+		Functions\when( 'has_block' )->alias(
+			static function ( string $block_name, $post = null ): bool {
+				unset( $post );
+				return 'pixfete/event-album' === $block_name;
+			}
+		);
+
+		$this->assertTrue( PWA::is_event_album_post( 42 ) );
+	}
+
+	/**
+	 * `is_event_album_post()` rejects drafts/private posts. The manifest
+	 * endpoint is publicly enumerable, so leaking unpublished titles via
+	 * the JSON body would be an information-disclosure bug.
+	 */
+	public function test_is_event_album_post_rejects_non_published_status(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'post_status' => 'draft' )
+		);
+		Functions\when( 'has_block' )->justReturn( true );
+
+		$this->assertFalse( PWA::is_event_album_post( 42 ) );
+	}
+
+	/**
+	 * `is_event_album_post()` rejects published posts that don't actually
+	 * carry the event-album block — `/pixfete-<id>.webmanifest` for a
+	 * regular blog post would otherwise return a nonsensical manifest.
+	 */
+	public function test_is_event_album_post_rejects_post_without_block(): void {
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'post_status' => 'publish' )
+		);
+		Functions\when( 'has_block' )->justReturn( false );
+
+		$this->assertFalse( PWA::is_event_album_post( 42 ) );
+	}
+
+	/**
+	 * Missing post (deleted, never existed) yields false without
+	 * dereferencing the null return from `get_post()`.
+	 */
+	public function test_is_event_album_post_rejects_missing_post(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'has_block' )->justReturn( false );
+
+		$this->assertFalse( PWA::is_event_album_post( 999 ) );
+	}
+
+	/**
+	 * Zero or negative IDs short-circuit before any WP call — defends
+	 * against a matcher regression that lets junk IDs reach `get_post()`.
+	 */
+	public function test_is_event_album_post_rejects_non_positive_ids(): void {
+		Functions\expect( 'get_post' )->never();
+
+		$this->assertFalse( PWA::is_event_album_post( 0 ) );
+		$this->assertFalse( PWA::is_event_album_post( -1 ) );
+	}
+
+	/**
+	 * Block-theme path: `wp_get_global_styles` returns a background color.
+	 */
+	public function test_resolve_theme_color_uses_block_theme_global_styles(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array( 'color' => array( 'background' => '#abcdef' ) ) );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+
+		$this->assertSame( '#abcdef', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * Block-theme path normalizes 3-digit hex shorthand to 6-digit so the
+	 * manifest is always #RRGGBB (some browsers reject the short form).
+	 */
+	public function test_resolve_theme_color_expands_shorthand_hex(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array( 'color' => array( 'background' => '#abc' ) ) );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+
+		$this->assertSame( '#aabbcc', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * Classic theme fallback when block-theme path returns nothing usable.
+	 */
+	public function test_resolve_theme_color_falls_back_to_classic_background(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( 'fafafa' );
+
+		$this->assertSame( '#fafafa', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * Pixfête default kicks in when neither path yields a color.
+	 * Hardcoded default is `#ffffff` (white).
+	 */
+	public function test_resolve_theme_color_defaults_to_white(): void {
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+
+		$this->assertSame( '#ffffff', PWA::resolve_theme_color() );
+	}
+
+	/**
+	 * `short_name()` returns short titles unchanged.
+	 */
+	public function test_short_name_returns_short_title_unchanged(): void {
+		$this->assertSame( 'Wedding', PWA::short_name( 'Wedding' ) );
+		$this->assertSame( '', PWA::short_name( '' ) );
+	}
+
+	/**
+	 * `short_name()` splits on `&` so "Sarah & Tom's Wedding" yields "Sarah".
+	 */
+	public function test_short_name_splits_on_ampersand(): void {
+		$this->assertSame( 'Sarah', PWA::short_name( "Sarah & Tom's Wedding" ) );
+	}
+
+	/**
+	 * `short_name()` splits on em-dash so "Sarah — Wedding" yields "Sarah".
+	 */
+	public function test_short_name_splits_on_em_dash(): void {
+		$this->assertSame( 'Sarah', PWA::short_name( 'Sarah — Wedding' ) );
+	}
+
+	/**
+	 * Multiple splitters in the same title pick the first segment.
+	 */
+	public function test_short_name_handles_mixed_splitters(): void {
+		$this->assertSame( 'Sarah', PWA::short_name( 'Sarah & Tom — June 2026' ) );
+	}
+
+	/**
+	 * A single long word is hard-truncated to 12 characters.
+	 */
+	public function test_short_name_hard_truncates_long_single_word(): void {
+		$this->assertSame( 'AVeryLongWed', PWA::short_name( 'AVeryLongWeddingTitle' ) );
+	}
+
+	/**
+	 * Whitespace alone is also a splitter, so "Some Very Long Title" gives "Some".
+	 */
+	public function test_short_name_splits_on_whitespace(): void {
+		$this->assertSame( 'Some', PWA::short_name( 'Some Very Long Title' ) );
+	}
+
+	/**
+	 * `build_manifest()` produces a complete manifest for a post that has
+	 * no featured image — icons fall back to the bundled Pixfête assets.
+	 */
+	public function test_build_manifest_uses_fallback_icons_without_featured_image(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( "Sarah & Tom's Wedding" );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertSame( "Sarah & Tom's Wedding", $manifest['name'] );
+		$this->assertSame( 'Sarah', $manifest['short_name'] );
+		$this->assertSame( 'https://example.test/wedding/', $manifest['start_url'] );
+		$this->assertSame( 'https://example.test/wedding/', $manifest['scope'] );
+		$this->assertSame( 'standalone', $manifest['display'] );
+		$this->assertSame( '#ffffff', $manifest['theme_color'] );
+		$this->assertSame( '#ffffff', $manifest['background_color'] );
+		$this->assertCount( 3, $manifest['icons'] );
+		$this->assertStringContainsString( 'icon-192.png', $manifest['icons'][0]['src'] );
+		$this->assertSame( '192x192', $manifest['icons'][0]['sizes'] );
+		$this->assertSame( 'image/png', $manifest['icons'][0]['type'] );
+		$this->assertSame( 'any', $manifest['icons'][0]['purpose'] );
+		$this->assertStringContainsString( 'icon-maskable-512.png', $manifest['icons'][2]['src'] );
+		$this->assertSame( 'maskable', $manifest['icons'][2]['purpose'] );
+	}
+
+	/**
+	 * Featured-image happy path: 192 and 512 variants exist, so icons
+	 * point at them and maskable reuses the 512 source.
+	 */
+	public function test_build_manifest_uses_featured_image_when_available(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 99 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_post_mime_type' )->justReturn( 'image/jpeg' );
+		Functions\when( 'wp_get_attachment_image_src' )->alias(
+			static function ( int $id, string $size ): array {
+				return array(
+					"https://example.test/wp-content/uploads/{$size}.jpg",
+					'pixfete-pwa-192' === $size ? 192 : 512,
+					'pixfete-pwa-192' === $size ? 192 : 512,
+					true,
+				);
+			}
+		);
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertCount( 3, $manifest['icons'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-192.jpg', $manifest['icons'][0]['src'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.jpg', $manifest['icons'][1]['src'] );
+		$this->assertSame( 'maskable', $manifest['icons'][2]['purpose'] );
+		$this->assertSame( 'https://example.test/wp-content/uploads/pixfete-pwa-512.jpg', $manifest['icons'][2]['src'] );
+		// Mime type is derived from the attachment, not hard-coded — JPEG/WebP/AVIF uploads
+		// would otherwise be advertised as image/png and rejected by some browsers.
+		$this->assertSame( 'image/jpeg', $manifest['icons'][0]['type'] );
+		$this->assertSame( 'image/jpeg', $manifest['icons'][1]['type'] );
+		$this->assertSame( 'image/jpeg', $manifest['icons'][2]['type'] );
+	}
+
+	/**
+	 * When the attachment's mime type is unknown, the icon entries omit
+	 * `type` rather than fabricating one — browsers can sniff from the
+	 * response Content-Type in that case.
+	 */
+	public function test_build_manifest_omits_type_when_mime_unknown(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 99 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'get_post_mime_type' )->justReturn( '' );
+		Functions\when( 'wp_get_attachment_image_src' )->alias(
+			static function ( int $id, string $size ): array {
+				return array(
+					"https://example.test/wp-content/uploads/{$size}.bin",
+					512,
+					512,
+					true,
+				);
+			}
+		);
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertArrayNotHasKey( 'type', $manifest['icons'][0] );
+		$this->assertArrayNotHasKey( 'type', $manifest['icons'][1] );
+		$this->assertArrayNotHasKey( 'type', $manifest['icons'][2] );
+	}
+
+	/**
+	 * Featured image present but sized variants don't exist on disk
+	 * (`wp_get_attachment_image_src` returns false). Caller must fall
+	 * back to bundled icons rather than emit broken URLs.
+	 */
+	public function test_build_manifest_falls_back_when_sized_variants_missing(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 99 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_get_attachment_image_src' )->justReturn( false );
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertStringContainsString( 'assets/pwa/icon-192.png', $manifest['icons'][0]['src'] );
+	}
+
+	/**
+	 * The `pixfete_manifest` filter receives the manifest array and the
+	 * post ID, and its return value is what `build_manifest` returns.
+	 */
+	public function test_build_manifest_applies_pixfete_manifest_filter(): void {
+		$this->stub_url_helpers( 'https://example.test' );
+		Functions\when( 'get_the_title' )->justReturn( 'Wedding' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/wedding/' );
+		Functions\when( 'get_post_thumbnail_id' )->justReturn( 0 );
+		Functions\when( 'wp_get_global_styles' )->justReturn( array() );
+		Functions\when( 'get_background_color' )->justReturn( '' );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( string $hook, $value, $post_id = null ) {
+				if ( 'pixfete_manifest' === $hook ) {
+					$value['name']          = 'Filtered Name';
+					$value['_post_id_seen'] = $post_id;
+				}
+				return $value;
+			}
+		);
+
+		$manifest = PWA::build_manifest( 123 );
+
+		$this->assertSame( 'Filtered Name', $manifest['name'] );
+		$this->assertSame( 123, $manifest['_post_id_seen'] );
 	}
 }

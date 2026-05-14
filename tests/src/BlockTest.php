@@ -119,4 +119,40 @@ class BlockTest extends TestCase {
 			'Template content must include a site-logo block.'
 		);
 	}
+
+	// ─── Manifest <link> emission ────────────────────────────────────
+
+	/**
+	 * Manifest `<link>` is suppressed when the current post is not a
+	 * legitimate event-album manifest target — e.g. a draft preview of an
+	 * event-album page. Aligning with {@see PWA::is_event_album_post()}
+	 * keeps the `<link>` and the endpoint in lockstep, avoiding a noisy
+	 * 404 fetch in DevTools whenever a draft is previewed.
+	 */
+	public function test_manifest_link_is_skipped_for_draft_preview(): void {
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'is_singular' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( (object) array( 'ID' => 42 ) );
+		// Draft preview: post exists with the block but isn't published, so
+		// `is_event_album_post()` returns false and the <link> should be
+		// suppressed. We stub the underlying calls to keep the gate honest.
+		Functions\when( 'has_block' )->alias(
+			static function ( string $block_name, $post = null ): bool {
+				unset( $post );
+				return 'pixfete/event-album' === $block_name;
+			}
+		);
+		Functions\when( 'get_post' )->justReturn(
+			(object) array(
+				'ID'          => 42,
+				'post_status' => 'draft',
+			)
+		);
+
+		ob_start();
+		Block::maybe_render_manifest_link();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'rel="manifest"', $output );
+	}
 }
