@@ -337,6 +337,22 @@ describe('lightbox drag-to-follow', () => {
 		expect(store.state.lightboxIndex).toBe(2);
 		expect(img.style.transform).toBe('translateX(0)');
 	});
+
+	test('a cancelled touch springs the image back without navigating', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 200, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(120, 105)); // dx=-80, drag in progress
+		expect(img.style.transform).toBe('translateX(-80px)');
+
+		store.actions.lightboxTouchCancel();
+
+		expect(store.state.lightboxIndex).toBe(1); // no navigation on cancel
+		expect(img.style.transform).toBe('translateX(0)'); // sprung back, not stranded
+	});
 });
 
 describe('lightbox focus management', () => {

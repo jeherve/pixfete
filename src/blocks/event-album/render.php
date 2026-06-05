@@ -432,6 +432,7 @@ if ( $pixfete_is_moderator ) {
 			data-wp-on--touchstart="actions.lightboxTouchStart"
 			data-wp-on--touchmove="actions.lightboxTouchMove"
 			data-wp-on--touchend="actions.lightboxTouchEnd"
+			data-wp-on--touchcancel="actions.lightboxTouchCancel"
 			data-wp-init="callbacks.initLightboxKeyboard"
 		>
 			<button class="pixfete-lightbox-close" aria-label="<?php esc_attr_e( 'Close', 'pixfete' ); ?>">&times;</button>

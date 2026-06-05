@@ -1798,6 +1798,29 @@ const { state } = store('pixfete', {
 		},
 
 		/**
+		 * When the browser cancels the touch sequence mid-drag (an incoming
+		 * call, a system/edge gesture, palm rejection), touchend never fires —
+		 * so without this the drag would stay "in progress" and the image
+		 * stranded at its last `translateX(dx)` offset. Clear the drag flag and
+		 * spring the photo back to center so a cancelled gesture never commits
+		 * navigation or leaves the photo off-center.
+		 */
+		lightboxTouchCancel() {
+			if (!lightboxDragging) {
+				return;
+			}
+			lightboxDragging = false;
+			const image = document.querySelector('.pixfete-lightbox-image');
+			if (!image) {
+				return;
+			}
+			if (!prefersReducedMotion()) {
+				image.style.transition = SLIDE_TRANSITION;
+			}
+			image.style.transform = 'translateX(0)';
+		},
+
+		/**
 		 * Toggle the FAB expanded/collapsed state.
 		 */
 		toggleFab() {
