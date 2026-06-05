@@ -90,9 +90,15 @@ If you can't drive the browser, say so in your hand-off — never claim a UI or 
 
 - The changelog lives in `readme.txt` and follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format, adapted for WordPress.org heading syntax.
 - **Version headings** use the format `= X.Y.Z - YYYY-MM-DD =` (e.g., `= 1.2.0 - 2026-04-01 =`).
+- **Unreleased changes go under an "Unreleased" heading** (`= Unreleased =`). When you make a fix or other customer-facing change, add the changelog entry to the existing "Unreleased" section — or create that section if it doesn't exist yet. Do **not** invent a new version number or add a date.
 - **Group changes by type** using bold labels: `**Added**`, `**Changed**`, `**Deprecated**`, `**Removed**`, `**Fixed**`, `**Security**`. Only include categories that have entries for that release.
 - Entries are **customer-facing** — write them in plain, non-technical language that any WordPress user can understand. Avoid jargon like "InnerBlocks", "serialization", or "save function". Describe the problem the user experienced and that it's now fixed (e.g., "Custom consent messages no longer disappear after refreshing the page").
 - **When a change is customer-facing, include a changelog entry as part of the commit.** Don't defer changelog updates to a separate "release prep" step — add them alongside the code change so the changelog stays current.
+
+## Versioning
+
+- **Never bump the version number when making a fix or feature change.** The version stays as-is on regular work; only the changelog's "Unreleased" section grows.
+- **Version bumps happen only in dedicated release PRs** that focus on the release and nothing else. Those PRs bump the version everywhere it appears (plugin header, `readme.txt` "Stable tag", etc.) and replace the "Unreleased" heading with the new `= X.Y.Z - YYYY-MM-DD =` heading.
 
 ## Files Excluded from Distribution
 
