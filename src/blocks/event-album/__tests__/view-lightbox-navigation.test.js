@@ -235,6 +235,110 @@ describe('lightbox touch swipe', () => {
 	});
 });
 
+describe('lightbox drag-to-follow', () => {
+	function touchMoveEvent(x, y) {
+		return {
+			touches: [{ clientX: x, clientY: y }],
+			changedTouches: [{ clientX: x, clientY: y }],
+			preventDefault: jest.fn(),
+		};
+	}
+
+	function buildLightboxImage() {
+		document.body.replaceChildren();
+		const img = document.createElement('img');
+		img.className = 'pixfete-lightbox-image';
+		document.body.append(img);
+		return img;
+	}
+
+	beforeEach(() => {
+		window.matchMedia = (query) => ({
+			matches: false,
+			media: query,
+			addEventListener() {},
+			removeEventListener() {},
+		});
+	});
+
+	test('the image follows the finger horizontally during a drag', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 200, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(140, 105)); // dx = -60
+
+		expect(img.style.transform).toBe('translateX(-60px)');
+	});
+
+	test('dragging past the first photo is rubber-band damped', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 0; // at the start, dragging right is blocked
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 100, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(200, 100)); // dx = +100, damped to 30
+
+		expect(img.style.transform).toBe('translateX(30px)');
+	});
+
+	test('vertical-dominant drags do not translate the image', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 100, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(120, 300)); // dx=20, dy=200
+
+		expect(img.style.transform).toBe('');
+	});
+
+	test('reduced motion disables drag-follow', () => {
+		window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 200, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(140, 105));
+
+		expect(img.style.transform).toBe('');
+	});
+
+	test('a short swipe springs the image back to center', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 1;
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 100, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(120, 100)); // dx=20, below threshold
+		store.actions.lightboxTouchEnd({ changedTouches: [{ clientX: 120, clientY: 100 }] });
+
+		expect(store.state.lightboxIndex).toBe(1); // unchanged
+		expect(img.style.transform).toBe('translateX(0)');
+	});
+
+	test('a blocked edge swipe springs back without changing the index', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		store.state.lightboxIndex = 2; // last photo
+		const img = buildLightboxImage();
+
+		store.actions.lightboxTouchStart({ touches: [{ clientX: 200, clientY: 100 }] });
+		store.actions.lightboxTouchMove(touchMoveEvent(80, 105)); // dx=-120, blocked at end
+		store.actions.lightboxTouchEnd({ changedTouches: [{ clientX: 80, clientY: 105 }] });
+
+		expect(store.state.lightboxIndex).toBe(2);
+		expect(img.style.transform).toBe('translateX(0)');
+	});
+});
+
 describe('lightbox focus management', () => {
 	function buildLightboxDom() {
 		document.body.replaceChildren();
@@ -344,5 +448,102 @@ describe('showNewPhotos lightboxIndex shift', () => {
 		store.actions.showNewPhotos();
 
 		expect(store.state.lightboxIndex).toBe(-1);
+	});
+});
+
+describe('lightbox slide-in animation', () => {
+	function buildLightboxImage(width) {
+		document.body.replaceChildren();
+		const img = document.createElement('img');
+		img.className = 'pixfete-lightbox-image';
+		Object.defineProperty(img, 'clientWidth', { value: width, configurable: true });
+		document.body.append(img);
+		return img;
+	}
+
+	beforeEach(() => {
+		window.matchMedia = (query) => ({
+			matches: false,
+			media: query,
+			addEventListener() {},
+			removeEventListener() {},
+		});
+	});
+
+	test('navigating forward slides the photo in from the right', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		const img = buildLightboxImage(300);
+		let rafCb;
+		window.requestAnimationFrame = (cb) => {
+			rafCb = cb;
+			return 1;
+		};
+
+		// First call (opening: prev was -1) establishes prevIndex without animating.
+		store.state.lightboxIndex = 1;
+		store.callbacks.animateLightboxSlide();
+		expect(img.style.transform).toBe('');
+
+		// Forward navigation animates.
+		store.state.lightboxIndex = 2;
+		store.callbacks.animateLightboxSlide();
+		expect(img.style.transform).toBe('translateX(300px)');
+		expect(img.style.transition).toBe('none');
+
+		rafCb();
+		expect(img.style.transform).toBe('translateX(0px)');
+		expect(img.style.transition).toContain('transform');
+	});
+
+	test('navigating backward slides the photo in from the left', () => {
+		const store = loadStore();
+		seedPhotos(store, 3);
+		const img = buildLightboxImage(300);
+		window.requestAnimationFrame = () => 1;
+
+		store.state.lightboxIndex = 2;
+		store.callbacks.animateLightboxSlide(); // establish prev = 2
+		store.state.lightboxIndex = 1;
+		store.callbacks.animateLightboxSlide();
+
+		expect(img.style.transform).toBe('translateX(-300px)');
+	});
+
+	test('reduced motion skips the slide', () => {
+		window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+		const store = loadStore();
+		seedPhotos(store, 3);
+		const img = buildLightboxImage(300);
+
+		store.state.lightboxIndex = 1;
+		store.callbacks.animateLightboxSlide();
+		store.state.lightboxIndex = 2;
+		store.callbacks.animateLightboxSlide();
+
+		expect(img.style.transform).toBe('');
+	});
+
+	test('does not slide when showNewPhotos shifts the index but keeps the same photo', () => {
+		const store = loadStore();
+		seedPhotos(store, 3); // ids 100, 101, 102
+		const img = buildLightboxImage(300);
+		window.requestAnimationFrame = (cb) => cb();
+
+		// Viewing photo id=101 at index 1; prime prev trackers.
+		store.state.lightboxIndex = 1;
+		store.callbacks.animateLightboxSlide();
+
+		// Simulate showNewPhotos: prepend 2 photos and shift the index so the
+		// SAME photo (id=101) stays visible — now at index 3.
+		store.state.photos = [
+			{ id: 200, full: 'n0.jpg', thumbnail: 't0.jpg', guest_name: 'A' },
+			{ id: 201, full: 'n1.jpg', thumbnail: 't1.jpg', guest_name: 'B' },
+			...store.state.photos,
+		];
+		store.state.lightboxIndex = 3;
+		store.callbacks.animateLightboxSlide();
+
+		expect(img.style.transform).toBe(''); // no spurious slide
 	});
 });

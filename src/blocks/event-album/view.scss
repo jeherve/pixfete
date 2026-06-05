@@ -563,6 +563,8 @@
 		max-height: 80vh;
 		object-fit: contain;
 		cursor: default;
+		will-change: transform;
+		touch-action: pan-y;
 	}
 
 	.pixfete-lightbox-name {
@@ -616,6 +618,10 @@
 	@media (prefers-reduced-motion: reduce) {
 
 		.pixfete-lightbox-nav {
+			transition: none;
+		}
+
+		.pixfete-lightbox-image {
 			transition: none;
 		}
 	}

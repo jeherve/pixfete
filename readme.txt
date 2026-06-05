@@ -121,6 +121,12 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 == Changelog ==
 
+= Unreleased =
+
+**Added**
+
+* Swiping between photos in the full-screen photo viewer now follows your finger and animates smoothly, with a gentle bounce when you reach the first or last photo.
+
 = 1.3.3 - 2026-06-05 =
 
 **Fixed**
