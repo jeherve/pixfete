@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -120,6 +120,13 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 3. Block settings in the editor sidebar to configure the event password, date range, and table name tracking.
 
 == Changelog ==
+
+= 1.3.3 - 2026-06-05 =
+
+**Fixed**
+
+* Photos you upload now appear in your own album view right away. After a recent update, the app sometimes handed your photo off to be sent in the background, so it could take a while to show up — or only turn up after you'd left the page — even though it had uploaded successfully.
+* Guests who opened the album before any photos had been added now keep receiving new photos as they're posted, instead of being stuck on an empty gallery until they reload the page. This is why some guests saw the new photos while others didn't.
 
 = 1.3.2 - 2026-05-14 =
 

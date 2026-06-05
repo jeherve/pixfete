@@ -16,6 +16,26 @@ function blob(content = 'data') {
 	return new Blob([content], { type: 'image/jpeg' });
 }
 
+// Rewrite a record's claim timestamp directly so a stale lease can be
+// simulated without faking timers (which would interfere with
+// fake-indexeddb's transaction scheduling).
+async function backdateClaim(id, claimedAt) {
+	const db = await openQueue();
+	const tx = db.transaction('queue', 'readwrite');
+	const store = tx.objectStore('queue');
+	const item = await new Promise((resolve, reject) => {
+		const req = store.get(id);
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+	item.claimedAt = claimedAt;
+	await new Promise((resolve, reject) => {
+		const req = store.put(item);
+		req.onsuccess = () => resolve();
+		req.onerror = () => reject(req.error);
+	});
+}
+
 describe('upload-queue', () => {
 	test('opens the database lazily', async () => {
 		const db = await openQueue();
@@ -117,5 +137,76 @@ describe('upload-queue', () => {
 		expect(map[id1].attempts).toBe(0);
 		expect(map[id1].lastError).toBeNull();
 		expect(map[id2].status).toBe('pending');
+	});
+});
+
+describe('claimNext / releaseClaim coordinate the two drainers', () => {
+	test('claimNext returns the oldest pending record and stamps a claim', async () => {
+		const { claimNext } = require('../upload-queue');
+		const first = await enqueue({ pageId: 1, blob: blob('a'), name: 'a.jpg' });
+		await enqueue({ pageId: 1, blob: blob('b'), name: 'b.jpg' });
+
+		const claimed = await claimNext(1);
+		expect(claimed.id).toBe(first);
+		expect(typeof claimed.claimedAt).toBe('number');
+	});
+
+	test('a freshly claimed record is not handed to the next claim', async () => {
+		// The in-page drain and the Service Worker drain run in separate JS
+		// realms over the same IndexedDB store. Without a claim they both read
+		// the same 'pending' record and POST it concurrently, producing a
+		// duplicate photo on the server. The second claim must skip a record
+		// the first claim already took.
+		const { claimNext } = require('../upload-queue');
+		const first = await enqueue({ pageId: 1, blob: blob('a'), name: 'a.jpg' });
+		const second = await enqueue({ pageId: 1, blob: blob('b'), name: 'b.jpg' });
+
+		const a = await claimNext(1);
+		const b = await claimNext(1);
+
+		expect(a.id).toBe(first);
+		expect(b.id).toBe(second);
+
+		// Both are in flight now; nothing is left to double-claim.
+		expect(await claimNext(1)).toBeNull();
+	});
+
+	test('claimNext skips failed records', async () => {
+		const { claimNext } = require('../upload-queue');
+		const id = await enqueue({ pageId: 1, blob: blob(), name: 'a.jpg' });
+		await markFailed(id, 'http');
+
+		expect(await claimNext(1)).toBeNull();
+	});
+
+	test('claimNext reclaims a record whose lease has gone stale', async () => {
+		// A drainer that dies mid-upload (tab closed, SW killed) leaves the
+		// record claimed. Once the lease expires the record must become
+		// claimable again so the upload still recovers instead of being
+		// stranded 'pending' but permanently un-claimable.
+		const { claimNext } = require('../upload-queue');
+		const id = await enqueue({ pageId: 1, blob: blob(), name: 'a.jpg' });
+
+		await claimNext(1);
+		expect(await claimNext(1)).toBeNull(); // fresh lease blocks reclaim
+
+		await backdateClaim(id, Date.now() - 10 * 60 * 1000);
+
+		const reclaimed = await claimNext(1);
+		expect(reclaimed.id).toBe(id);
+	});
+
+	test('releaseClaim returns a record to the claimable pool', async () => {
+		const { claimNext, releaseClaim } = require('../upload-queue');
+		const id = await enqueue({ pageId: 1, blob: blob(), name: 'a.jpg' });
+
+		const claimed = await claimNext(1);
+		expect(claimed.id).toBe(id);
+		expect(await claimNext(1)).toBeNull();
+
+		await releaseClaim(id);
+
+		const reclaimed = await claimNext(1);
+		expect(reclaimed.id).toBe(id);
 	});
 });

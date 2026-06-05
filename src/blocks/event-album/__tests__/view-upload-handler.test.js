@@ -224,6 +224,150 @@ describe('drainQueue uploads pending items', () => {
 	});
 });
 
+describe('drainQueue treats a network failure as unfinished, not failed', () => {
+	test('a fetch rejection leaves the record pending so Background Sync can recover it', async () => {
+		// Regression: a network-layer throw used to mark the record 'failed'.
+		// Background Sync's drain skips 'failed' records, so the very upload
+		// Background Sync exists to recover could never complete — and the
+		// guest was pushed behind the manual "Retry uploads" gate for what was
+		// only a transient blip. A throw means "never reached the server", so
+		// the record must stay 'pending' for an automatic retry.
+		const def = loadStore();
+		await enqueue({
+			pageId: 42,
+			blob: new Blob(['x'], { type: 'image/jpeg' }),
+			name: 'a.jpg',
+		});
+		def.state.pendingUploads = await listPending(42);
+
+		global.fetch.mockRejectedValueOnce(new Error('network down'));
+
+		await def.actions.drainQueue();
+
+		const remaining = await listPending(42);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].status).toBe('pending');
+		expect(def.state.pendingUploads[0].status).toBe('pending');
+	});
+});
+
+describe('uploads happen in the foreground, with Background Sync as recovery only', () => {
+	function mockServiceWorker() {
+		const syncRegister = jest.fn().mockResolvedValue();
+		Object.defineProperty(navigator, 'serviceWorker', {
+			configurable: true,
+			value: {
+				getRegistration: jest.fn().mockResolvedValue({ active: { scriptURL: '/pixfete-sw' } }),
+				ready: Promise.resolve({ sync: { register: syncRegister } }),
+				register: jest.fn().mockResolvedValue({}),
+				addEventListener: jest.fn(),
+			},
+		});
+		return syncRegister;
+	}
+
+	afterEach(() => {
+		delete navigator.serviceWorker;
+	});
+
+	test('an online upload appears immediately without waiting for Background Sync', async () => {
+		// Root-cause regression: when Background Sync was available the code
+		// skipped the in-page drain and deferred the POST to the browser's
+		// `sync` event, so the uploader's own photo only appeared (via the SW
+		// broadcast) minutes later — or after they had closed the tab. The
+		// in-page drain must run regardless so the photo shows right away.
+		const syncRegister = mockServiceWorker();
+		const def = loadStore();
+
+		global.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ id: 77, full: 'u', thumbnail: 't', guest_name: 'g', uploaded_at: 9 }),
+		});
+
+		const files = makeFileList(1);
+		await runGenerator(def.actions.handleFileSelect({ target: { files, value: '' } }));
+
+		// The photo is in the gallery now — the foreground drain POSTed it.
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+		expect(def.state.photos[0].id).toBe(77);
+		expect(await listPending(42)).toHaveLength(0);
+		// Nothing was left unfinished, so we never fall back to Background Sync.
+		expect(syncRegister).not.toHaveBeenCalled();
+	});
+
+	test('a down-network upload is marked failed when Background Sync is unavailable', async () => {
+		// Browsers without the Background Sync API (iOS Safari, Firefox) can't
+		// recover a record left 'pending' by a network blip: the SW never
+		// retries it and the "Retry uploads" button only surfaces for 'failed'
+		// records. Without this the placeholder is stuck on "Uploading…"
+		// forever. There is no navigator.serviceWorker here, so
+		// tryRegisterBackgroundSync returns false and the leftover must be
+		// marked failed to restore a user-visible recovery path.
+		const def = loadStore();
+
+		global.fetch.mockRejectedValueOnce(new Error('network down'));
+
+		const files = makeFileList(1);
+		await runGenerator(def.actions.handleFileSelect({ target: { files, value: '' } }));
+
+		const remaining = await listPending(42);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].status).toBe('failed');
+		expect(def.state.pendingUploads[0].status).toBe('failed');
+	});
+
+	test('a record another tab is uploading is left alone, not marked failed', async () => {
+		// Regression: with Background Sync unavailable, drainThenSync failed
+		// every leftover 'pending' record. But in a multi-tab session a sibling
+		// tab may have claimed and be actively uploading a record (still
+		// 'pending', fresh claimedAt) — our drain correctly skipped it rather
+		// than double-POSTing. Failing it here would surface a bogus "Retry
+		// uploads" button and leave stale state once the other tab finishes and
+		// deletes the record. A fresh claim means "in progress elsewhere", so we
+		// must not touch it. There is no navigator.serviceWorker here, so
+		// Background Sync is unavailable and the only thing stopping the fail is
+		// the fresh-claim guard.
+		const { claimNext } = require('../upload-queue');
+		const def = loadStore();
+
+		const id = await enqueue({
+			pageId: 42,
+			blob: new Blob(['x'], { type: 'image/jpeg' }),
+			name: 'a.jpg',
+		});
+		// Simulate the sibling tab claiming the record (fresh lease).
+		await claimNext(42);
+
+		await def.actions.drainThenSync();
+
+		// fetch was never called — our drain saw the record as claimed and
+		// skipped it — and the record stays 'pending', not 'failed'.
+		expect(global.fetch).not.toHaveBeenCalled();
+		const remaining = await listPending(42);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].id).toBe(id);
+		expect(remaining[0].status).toBe('pending');
+	});
+
+	test('an upload that fails on a down network is handed to Background Sync', async () => {
+		// The recovery half: when the foreground drain can't reach the server,
+		// the record stays pending and Background Sync is registered to finish
+		// it once connectivity returns — even if the tab closes first.
+		const syncRegister = mockServiceWorker();
+		const def = loadStore();
+
+		global.fetch.mockRejectedValueOnce(new Error('network down'));
+
+		const files = makeFileList(1);
+		await runGenerator(def.actions.handleFileSelect({ target: { files, value: '' } }));
+
+		expect(def.state.photos).toHaveLength(0);
+		const remaining = await listPending(42);
+		expect(remaining[0].status).toBe('pending');
+		expect(syncRegister).toHaveBeenCalledWith('pixfete-upload-queue');
+	});
+});
+
 describe('handleFileSelect persists restBase for SW recovery', () => {
 	test('records each queued upload with the page-computed restBase', async () => {
 		// Regression: the SW used to derive restBase from its scope, which
