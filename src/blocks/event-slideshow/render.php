@@ -40,6 +40,7 @@ $pixfete_honeypot_field = apply_filters( 'pixfete_honeypot_field_name', 'email' 
  * src/blocks/event-album/render.php for the same pattern.
  */
 $pixfete_i18n = array(
+	'passwordRequired'     => __( 'Please enter the event password.', 'pixfete' ),
 	'passwordIncorrect'    => __( 'The password is incorrect.', 'pixfete' ),
 	'networkError'         => __( 'A network error occurred.', 'pixfete' ),
 	'initFailed'           => __( 'Could not initialize. Please try again.', 'pixfete' ),
@@ -101,7 +102,12 @@ $pixfete_context = array(
 		class="pixfete-slideshow-form"
 		data-wp-bind--hidden="!state.isPasswordView"
 	>
-		<form data-wp-on-async--submit="actions.submitPassword">
+		<?php
+		// novalidate keeps `required` for accessibility but disables the native
+		// validation UI, which would otherwise abort submission before our handler
+		// runs and leave guests with no feedback (the bubble is invisible on mobile).
+		?>
+		<form data-wp-on--submit="actions.submitPassword" novalidate>
 			<label for="pixfete-slideshow-password">
 				<?php echo esc_html__( 'Event Password', 'pixfete' ); ?>
 			</label>

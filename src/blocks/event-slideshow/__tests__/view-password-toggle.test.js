@@ -83,3 +83,43 @@ describe('slideshow password visibility toggle', () => {
 		expect(store.state.passwordToggleLabel).toBe('Hide password');
 	});
 });
+
+/**
+ * Drive a generator-based action to completion, awaiting any yielded promises.
+ *
+ * @param {Object} gen The generator returned by an action.
+ * @return {Promise} Resolves with the generator's return value.
+ */
+async function runGenerator(gen) {
+	let result = gen.next();
+	while (!result.done) {
+		try {
+			const value = await result.value;
+			result = gen.next(value);
+		} catch (error) {
+			result = gen.throw(error);
+		}
+	}
+	return result.value;
+}
+
+describe('slideshow submitPassword empty input', () => {
+	afterEach(() => {
+		delete global.fetch;
+	});
+
+	test('shows the required message and skips the server when empty', async () => {
+		mockContext.i18n.passwordRequired = 'Please enter the event password.';
+		global.fetch = jest.fn();
+
+		const store = loadStore();
+		store.state.passwordInput = '   ';
+
+		await runGenerator(store.actions.submitPassword({ preventDefault: () => {} }));
+
+		expect(store.state.errorMessage).toBe('Please enter the event password.');
+		expect(global.fetch).not.toHaveBeenCalled();
+		// Should never enter the submitting state for an empty submission.
+		expect(store.state.isSubmitting).toBe(false);
+	});
+});

@@ -147,7 +147,13 @@ if ( $pixfete_is_moderator ) {
 
 		<?php // Password view. ?>
 		<div data-wp-bind--hidden="!state.isPasswordView" class="pixfete-form">
-			<form data-wp-on--submit="actions.submitPassword">
+			<?php
+			// novalidate keeps `required` for accessibility (screen readers still
+			// announce the field) but disables the browser's native validation UI,
+			// which would otherwise abort submission before our submit handler runs
+			// and silently swallow the in-page error message — invisible on mobile.
+			?>
+			<form data-wp-on--submit="actions.submitPassword" novalidate>
 				<label for="pixfete-password"><?php esc_html_e( 'Event Password', 'pixfete' ); ?></label>
 				<div class="pixfete-password-field">
 					<input
@@ -220,7 +226,8 @@ if ( $pixfete_is_moderator ) {
 
 		<?php // Registration view. ?>
 		<div data-wp-bind--hidden="!state.isRegistrationView" class="pixfete-form">
-			<form data-wp-on--submit="actions.submitRegistration">
+			<?php // novalidate: let our submit handler show the in-page name error (see password form above). ?>
+			<form data-wp-on--submit="actions.submitRegistration" novalidate>
 				<label for="pixfete-guest-name"><?php esc_html_e( 'Your first name', 'pixfete' ); ?></label>
 				<input
 					id="pixfete-guest-name"
