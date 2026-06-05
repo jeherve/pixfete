@@ -127,13 +127,13 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 * Photos you upload now appear in your own album view right away. After a recent update, the app sometimes handed your photo off to be sent in the background, so it could take a while to show up — or only turn up after you'd left the page — even though it had uploaded successfully.
 * Guests who opened the album before any photos had been added now keep receiving new photos as they're posted, instead of being stuck on an empty gallery until they reload the page. This is why some guests saw the new photos while others didn't.
+* The photo gallery no longer shows black gaps between photos on phones — the spacing between photos now uses your theme's background, with a little more room between each photo.
 
 = 1.3.2 - 2026-05-14 =
 
 **Fixed**
 
 * The "install this album as an app" prompt now appears reliably on Chrome (mobile and desktop). The browser was silently refusing to offer the prompt because the album's offline helper wasn't doing enough work for Chrome's installability check.
-* The photo gallery no longer shows black gaps between photos on phones — the spacing between photos now uses your theme's background, with a little more room between each photo.
 
 = 1.3.1 - 2026-05-14 =
 
