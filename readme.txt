@@ -127,6 +127,10 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 * Swiping between photos in the full-screen photo viewer now follows your finger and animates smoothly, with a gentle bounce when you reach the first or last photo.
 
+**Fixed**
+
+* When you start uploading a photo from your phone after scrolling down the album, the "uploading" indicator now stays in view at the top of the screen, so you can see right away that your photo is on its way.
+
 = 1.3.3 - 2026-06-05 =
 
 **Fixed**
