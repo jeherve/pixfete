@@ -69,14 +69,12 @@ export async function drainQueue() {
 				});
 			} catch {
 				// Network-layer failure — the request never reached the server,
-				// so the upload is genuinely unfinished. Mark failed and let the
-				// browser retry `sync` later.
-				await markFailed(item.id, 'network');
-				await broadcast({
-					type: 'pixfete:upload-failed',
-					queueId: item.id,
-					pageId,
-				});
+				// so the upload is genuinely unfinished. Leave the record
+				// 'pending' (don't mark it 'failed') so the next `sync` event
+				// retries it: this loop skips 'failed' records, so failing it
+				// here would make Background Sync abandon the very upload it
+				// exists to recover. Stop draining this page; the browser fires
+				// `sync` again on its own schedule once connectivity returns.
 				break;
 			}
 			if (!response.ok) {

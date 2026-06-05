@@ -780,10 +780,7 @@ const { state } = store('pixfete', {
 				state.currentView = 'gallery';
 				const { actions } = store('pixfete');
 				if (state.pendingUploads.length) {
-					const synced = yield tryRegisterBackgroundSync();
-					if (!synced) {
-						actions.drainQueue();
-					}
+					yield actions.drainThenSync();
 				}
 				actions.loadPhotos();
 				actions.startPolling();
@@ -1039,10 +1036,7 @@ const { state } = store('pixfete', {
 					const { actions } = store('pixfete');
 					actions.loadPhotos();
 					if (state.pendingUploads.length) {
-						const synced = yield tryRegisterBackgroundSync();
-						if (!synced) {
-							actions.drainQueue();
-						}
+						yield actions.drainThenSync();
 					}
 					actions.startPolling();
 					return;
@@ -1167,13 +1161,21 @@ const { state } = store('pixfete', {
 			const restBase = ctx.restBase;
 
 			state.pollingId = setInterval(async () => {
-				if (!state.latestUploadedAt) {
-					return;
-				}
-
 				try {
 					const url = new URL(`${restBase}/photos/${pageId}`);
-					url.searchParams.set('since', String(state.latestUploadedAt));
+					// Guests who opened the album while it was still empty have
+					// no watermark yet (latestUploadedAt === 0). Bailing out
+					// here used to strand them: their poll never ran, so they
+					// never saw a single photo uploaded after they arrived
+					// until they reloaded — the "some guests see them, some
+					// don't" split came down to who loaded the album before vs.
+					// after the first photo existed. Poll without `since` until
+					// a photo arrives; the id-based dedup below keeps us from
+					// re-adding anything already shown, and the first result
+					// advances the watermark so later polls go incremental.
+					if (state.latestUploadedAt) {
+						url.searchParams.set('since', String(state.latestUploadedAt));
+					}
 					url.searchParams.set('per_page', '100');
 
 					const response = await fetch(url.toString(), {
@@ -1290,14 +1292,11 @@ const { state } = store('pixfete', {
 			// Reset the input so the same file can be selected again later.
 			event.target.value = '';
 
-			// Prefer Background Sync when the platform offers it: the SW
-			// owns the drain end-to-end and won't race the in-page loop.
-			// Otherwise fall back to the in-page drain.
-			const synced = yield tryRegisterBackgroundSync();
-			if (!synced) {
-				const { actions } = store('pixfete');
-				yield actions.drainQueue();
-			}
+			// Upload immediately in the foreground so the guest sees their
+			// photo right away; Background Sync only recovers what the drain
+			// couldn't finish. See drainThenSync.
+			const { actions } = store('pixfete');
+			yield actions.drainThenSync();
 		},
 
 		/**
@@ -1319,12 +1318,44 @@ const { state } = store('pixfete', {
 			const pending = await listPending(ctx.pageId);
 			state.pendingUploads = decoratePending(pending, ctx.i18n);
 
-			// Same dual-path rule as handleFileSelect: BG Sync owns the
-			// drain when available, in-page loop only runs as fallback.
-			const synced = await tryRegisterBackgroundSync();
-			if (!synced) {
-				const { actions } = store('pixfete');
-				await actions.drainQueue();
+			// Same foreground-first rule as handleFileSelect: upload now,
+			// register Background Sync only for whatever can't be reached.
+			const { actions } = store('pixfete');
+			await actions.drainThenSync();
+		},
+
+		/**
+		 * Upload queued photos now, then hand any unfinished ones to Background Sync.
+		 *
+		 * The single entry point every upload trigger funnels through
+		 * (handleFileSelect, the init/consent resume paths, and the manual
+		 * retry). The in-page drain runs *first* so an online guest sees their
+		 * own photo immediately and the polling watermark advances — deferring
+		 * an online upload to the browser's `sync` event was exactly what left
+		 * guests staring at a gallery that never showed their photo until
+		 * Background Sync eventually fired (often after they'd closed the tab).
+		 *
+		 * Background Sync is demoted to a recovery net: it's only registered
+		 * for records the foreground drain left 'pending' (i.e. the network was
+		 * down), so it finishes those once connectivity returns, even if the
+		 * tab closes first. Registering it only for leftovers — and only after
+		 * the foreground drain has completed — also keeps the two drainers from
+		 * running concurrently on the same record and double-POSTing it.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async drainThenSync() {
+			const ctx = getContext();
+			const { actions } = store('pixfete');
+
+			await actions.drainQueue();
+
+			// Anything still pending after the foreground drain couldn't reach
+			// the server. Failed records are excluded — those wait on the
+			// manual "Retry uploads" button, and Background Sync skips them.
+			const stillQueued = (await listPending(ctx.pageId)).filter((item) => item.status !== 'failed');
+			if (stillQueued.length) {
+				await tryRegisterBackgroundSync();
 			}
 		},
 
@@ -1366,7 +1397,14 @@ const { state } = store('pixfete', {
 						body: formData,
 					});
 				} catch {
-					await markFailed(item.id, 'network');
+					// Network-layer failure — the request never reached the
+					// server, so the upload is simply unfinished, not rejected.
+					// Leave the record 'pending' (rather than marking it
+					// 'failed') so Background Sync — whose drain skips 'failed'
+					// records — can still complete it on reconnect, and so a
+					// transient blip doesn't push the guest behind the manual
+					// "Retry uploads" gate. Stop draining; the caller registers
+					// Background Sync for whatever is still queued.
 					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
 					return;
 				}

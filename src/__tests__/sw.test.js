@@ -186,6 +186,29 @@ describe('Service Worker drainQueue', () => {
 		warnSpy.mockRestore();
 	});
 
+	test('a network throw leaves the record pending for the next sync, not failed', async () => {
+		// Background Sync exists to retry uploads when connectivity returns. If
+		// the network drops again mid-drain, marking the record 'failed' would
+		// make the drain skip it forever (the loop ignores failed records) —
+		// defeating the recovery the SW is there to provide. The record must
+		// stay 'pending' so the next `sync` event retries it.
+		await enqueue({
+			pageId: 7,
+			blob: new Blob(['x'], { type: 'image/jpeg' }),
+			name: 'a.jpg',
+			restBase: REST_BASE,
+		});
+		global.fetch.mockRejectedValueOnce(new Error('network down'));
+
+		await drainQueue();
+
+		const remaining = await listPending(7);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].status).toBe('pending');
+		// No failure broadcast — the page keeps showing it as queued, not failed.
+		expect(postedMessages).toEqual([]);
+	});
+
 	test('records missing restBase as failed instead of guessing an origin', async () => {
 		// Upgrade case: a queue record persisted before the restBase field
 		// existed. We refuse to route the upload to a fabricated URL because
