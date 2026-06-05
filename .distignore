@@ -49,3 +49,4 @@ playwright.config.js
 conductor.json
 README.md
 CLAUDE.md
+AGENTS.md
