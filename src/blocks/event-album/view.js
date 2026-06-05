@@ -10,7 +10,7 @@
 import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
-import { enqueue, listPending, markDone, markFailed, requeueFailed } from './upload-queue';
+import { enqueue, listPending, markDone, markFailed, requeueFailed, claimNext, releaseClaim } from './upload-queue';
 import { initInstallPrompt } from './install-prompt';
 
 /**
@@ -146,14 +146,17 @@ async function registerServiceWorker(url, scope) {
 /**
  * Ask the Service Worker to drain via the Background Sync API.
  *
- * Returning `true` means the SW will own the drain, so the caller MUST
- * skip its in-page drain to avoid both paths racing on the same queue
- * record and double-POSTing the blob. Returning `false` means the
+ * Returning `true` means the SW will retry the queue on its own schedule
+ * once connectivity returns — the recovery net for records the foreground
+ * drain couldn't finish. The foreground drain still runs regardless (see
+ * `drainThenSync`); the two no longer need to be mutually exclusive
+ * because each claims a record before POSTing it (see `claimNext`), so
+ * they can't both upload the same blob. Returning `false` means the
  * platform didn't accept the registration (no SW, no Background Sync,
- * permission denied, etc.) and the caller should fall back to the
- * in-page drain.
+ * permission denied, etc.) and there is no recovery net, so the caller
+ * marks the leftovers failed for manual retry instead.
  *
- * @return {Promise<boolean>} True when the SW will handle the drain.
+ * @return {Promise<boolean>} True when Background Sync will retry the queue.
  */
 async function tryRegisterBackgroundSync() {
 	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
@@ -1338,9 +1341,18 @@ const { state } = store('pixfete', {
 		 * Background Sync is demoted to a recovery net: it's only registered
 		 * for records the foreground drain left 'pending' (i.e. the network was
 		 * down), so it finishes those once connectivity returns, even if the
-		 * tab closes first. Registering it only for leftovers — and only after
-		 * the foreground drain has completed — also keeps the two drainers from
-		 * running concurrently on the same record and double-POSTing it.
+		 * tab closes first. The two drainers no longer need to be mutually
+		 * exclusive: each claims a record (see `claimNext`) before POSTing it,
+		 * so even if the SW's `sync` fires while this foreground drain is
+		 * running they can't grab the same record and double-POST it.
+		 *
+		 * When Background Sync is unavailable (iOS Safari, Firefox, or a site
+		 * that filtered the SW off) there is nothing to recover the leftovers:
+		 * they would sit 'pending' forever — the "Uploading…" placeholder
+		 * never clears and the "Retry uploads" button (which only shows for
+		 * 'failed' records) never appears. So in that case we mark them failed,
+		 * restoring the manual recovery path that existed before Background
+		 * Sync was introduced.
 		 *
 		 * @return {Promise<void>}
 		 */
@@ -1354,8 +1366,19 @@ const { state } = store('pixfete', {
 			// the server. Failed records are excluded — those wait on the
 			// manual "Retry uploads" button, and Background Sync skips them.
 			const stillQueued = (await listPending(ctx.pageId)).filter((item) => item.status !== 'failed');
-			if (stillQueued.length) {
-				await tryRegisterBackgroundSync();
+			if (!stillQueued.length) {
+				return;
+			}
+
+			const registered = await tryRegisterBackgroundSync();
+			if (!registered) {
+				// No Background Sync to finish these. Surface them as failures
+				// so the guest gets the "Retry uploads" affordance instead of a
+				// placeholder stuck on "Uploading…" indefinitely.
+				for (const item of stillQueued) {
+					await markFailed(item.id, 'network');
+				}
+				state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
 			}
 		},
 
@@ -1372,20 +1395,23 @@ const { state } = store('pixfete', {
 		 * burn the remaining files into the same failure mode. The SW
 		 * retry path picks up where this one left off when available.
 		 *
-		 * Network errors (fetch rejection) mark the item failed and
-		 * retry later; post-success bookkeeping errors (e.g. a CDN
-		 * returning HTML instead of JSON for a 200 response) clear the
-		 * record without re-attempting, since the server accepted the
+		 * Network errors (fetch rejection) release the claim and leave the
+		 * record 'pending' to retry later; post-success bookkeeping errors
+		 * (e.g. a CDN returning HTML instead of JSON for a 200 response) clear
+		 * the record without re-attempting, since the server accepted the
 		 * upload and a retry would duplicate the photo.
+		 *
+		 * Each record is claimed (see `claimNext`) before its POST so this
+		 * loop and the Service Worker's `sync` drain can't both pick up the
+		 * same record and upload it twice.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async drainQueue() {
 			const ctx = getContext();
-			let pending = (await listPending(ctx.pageId)).filter((item) => item.status !== 'failed');
+			let item = await claimNext(ctx.pageId);
 
-			while (pending.length > 0) {
-				const item = pending[0];
+			while (item) {
 				let response;
 				try {
 					const formData = new FormData();
@@ -1399,12 +1425,14 @@ const { state } = store('pixfete', {
 				} catch {
 					// Network-layer failure — the request never reached the
 					// server, so the upload is simply unfinished, not rejected.
-					// Leave the record 'pending' (rather than marking it
-					// 'failed') so Background Sync — whose drain skips 'failed'
-					// records — can still complete it on reconnect, and so a
-					// transient blip doesn't push the guest behind the manual
-					// "Retry uploads" gate. Stop draining; the caller registers
-					// Background Sync for whatever is still queued.
+					// Release the claim and leave the record 'pending' (rather
+					// than marking it 'failed') so Background Sync — whose drain
+					// skips 'failed' records — can still complete it on
+					// reconnect, and so a transient blip doesn't push the guest
+					// behind the manual "Retry uploads" gate. Stop draining; the
+					// caller registers Background Sync for whatever is still
+					// queued (or fails it when Background Sync is unavailable).
+					await releaseClaim(item.id);
 					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
 					return;
 				}
@@ -1443,8 +1471,8 @@ const { state } = store('pixfete', {
 					installPromptApi.maybeShowPrompt();
 				}
 
-				pending = (await listPending(ctx.pageId)).filter((p) => p.status !== 'failed');
 				state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
+				item = await claimNext(ctx.pageId);
 			}
 		},
 

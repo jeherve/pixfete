@@ -295,6 +295,27 @@ describe('uploads happen in the foreground, with Background Sync as recovery onl
 		expect(syncRegister).not.toHaveBeenCalled();
 	});
 
+	test('a down-network upload is marked failed when Background Sync is unavailable', async () => {
+		// Browsers without the Background Sync API (iOS Safari, Firefox) can't
+		// recover a record left 'pending' by a network blip: the SW never
+		// retries it and the "Retry uploads" button only surfaces for 'failed'
+		// records. Without this the placeholder is stuck on "Uploading…"
+		// forever. There is no navigator.serviceWorker here, so
+		// tryRegisterBackgroundSync returns false and the leftover must be
+		// marked failed to restore a user-visible recovery path.
+		const def = loadStore();
+
+		global.fetch.mockRejectedValueOnce(new Error('network down'));
+
+		const files = makeFileList(1);
+		await runGenerator(def.actions.handleFileSelect({ target: { files, value: '' } }));
+
+		const remaining = await listPending(42);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].status).toBe('failed');
+		expect(def.state.pendingUploads[0].status).toBe('failed');
+	});
+
 	test('an upload that fails on a down network is handed to Background Sync', async () => {
 		// The recovery half: when the foreground drain can't reach the server,
 		// the record stays pending and Background Sync is registered to finish

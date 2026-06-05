@@ -18,7 +18,7 @@
  * SW URL fix.
  */
 
-import { listPending, markDone, markFailed, openQueue } from './blocks/event-album/upload-queue';
+import { claimNext, markDone, markFailed, openQueue, releaseClaim } from './blocks/event-album/upload-queue';
 
 const SYNC_TAG = 'pixfete-upload-queue';
 
@@ -38,17 +38,18 @@ const SYNC_TAG = 'pixfete-upload-queue';
  * record predates the field (an upgrade case) and we'd rather surface
  * the failure than guess an origin and route uploads to the wrong site.
  *
+ * Each record is claimed (see `claimNext`) before its POST so this drain
+ * and the page's in-page drain can't both upload the same record and
+ * create a duplicate photo when they happen to run at the same time.
+ *
  * @return {Promise<void>}
  */
 export async function drainQueue() {
 	const allPages = await collectPendingPageIds();
 
 	for (const pageId of allPages) {
-		const pending = await listPending(pageId);
-		for (const item of pending) {
-			if (item.status === 'failed') {
-				continue;
-			}
+		let item = await claimNext(pageId);
+		while (item) {
 			if (!item.restBase) {
 				await markFailed(item.id, 'no-rest-base');
 				await broadcast({
@@ -69,12 +70,14 @@ export async function drainQueue() {
 				});
 			} catch {
 				// Network-layer failure — the request never reached the server,
-				// so the upload is genuinely unfinished. Leave the record
-				// 'pending' (don't mark it 'failed') so the next `sync` event
-				// retries it: this loop skips 'failed' records, so failing it
-				// here would make Background Sync abandon the very upload it
-				// exists to recover. Stop draining this page; the browser fires
-				// `sync` again on its own schedule once connectivity returns.
+				// so the upload is genuinely unfinished. Release the claim and
+				// leave the record 'pending' (don't mark it 'failed') so the
+				// next `sync` event retries it: this loop skips 'failed'
+				// records, so failing it here would make Background Sync abandon
+				// the very upload it exists to recover. Stop draining this page;
+				// the browser fires `sync` again on its own schedule once
+				// connectivity returns.
+				await releaseClaim(item.id);
 				break;
 			}
 			if (!response.ok) {
@@ -106,6 +109,7 @@ export async function drainQueue() {
 				pageId,
 				photo,
 			});
+			item = await claimNext(pageId);
 		}
 	}
 }

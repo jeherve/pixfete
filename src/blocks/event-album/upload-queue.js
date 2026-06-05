@@ -14,6 +14,22 @@ const DB_NAME = 'pixfete-uploads';
 const DB_VERSION = 1;
 const STORE = 'queue';
 
+/**
+ * How long (ms) a claimed record is hidden from other drainers.
+ *
+ * The in-page drain and the Service Worker drain run in separate JS
+ * realms over this one store; claiming a record before uploading it
+ * stops them double-POSTing the same blob. If the drainer that claimed
+ * a record dies mid-upload (tab closed, SW killed) the claim would
+ * otherwise strand the record forever, so the claim is a *lease*: once
+ * it goes stale the record becomes claimable again and the upload
+ * recovers. Two minutes comfortably outlasts a normal photo POST while
+ * still recovering a genuinely dead drainer reasonably quickly.
+ *
+ * @type {number}
+ */
+const CLAIM_LEASE_MS = 2 * 60 * 1000;
+
 let dbPromise = null;
 
 /**
@@ -179,6 +195,81 @@ export async function markFailed(id, lastError) {
 }
 
 /**
+ * Atomically claim the oldest uploadable record for a page.
+ *
+ * The in-page drain (view.js) and the Service Worker drain (sw.js) both
+ * pull work from this store but run in separate JS realms with no shared
+ * memory. Picking the next record with a plain `listPending` + take-first
+ * lets them grab the *same* 'pending' record and POST it concurrently —
+ * the server then stores the photo twice. Claiming closes that race: the
+ * read and the claiming write happen inside a single readwrite
+ * transaction (IndexedDB serializes those across realms), so whichever
+ * drainer wins the transaction stamps `claimedAt` and the other sees the
+ * record as taken and moves on.
+ *
+ * Only 'pending' records are claimable. A record claimed within the last
+ * {@link CLAIM_LEASE_MS} is skipped; past that its lease is treated as
+ * stale (the drainer holding it likely died) and it can be reclaimed.
+ *
+ * Implemented with a cursor rather than getAll+put so the read and the
+ * update share one transaction without an `await` in between — awaiting a
+ * microtask mid-transaction would let IndexedDB auto-commit and the write
+ * would then throw.
+ *
+ * @param {number} pageId Page to claim from.
+ * @return {Promise<Object|null>} The claimed record, or null if none are claimable.
+ */
+export async function claimNext(pageId) {
+	const db = await openQueue();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE, 'readwrite');
+		const req = tx.objectStore(STORE).index('pageId').openCursor(pageId);
+		const now = Date.now();
+		req.onsuccess = () => {
+			const cursor = req.result;
+			if (!cursor) {
+				resolve(null);
+				return;
+			}
+			const item = cursor.value;
+			const claimable = item.status === 'pending' && (!item.claimedAt || now - item.claimedAt > CLAIM_LEASE_MS);
+			if (claimable) {
+				item.claimedAt = now;
+				const update = cursor.update(item);
+				update.onsuccess = () => resolve(item);
+				update.onerror = () => reject(update.error);
+				return;
+			}
+			cursor.continue();
+		};
+		req.onerror = () => reject(req.error);
+	});
+}
+
+/**
+ * Release a claim so the record can be drained again.
+ *
+ * Called when an upload attempt failed at the network layer: the record
+ * is unfinished, not rejected, so it returns to the claimable pool for
+ * the next drain (or Background Sync) instead of being held for the
+ * remainder of its lease.
+ *
+ * @param {number} id Queue record id.
+ * @return {Promise<void>}
+ */
+export async function releaseClaim(id) {
+	const db = await openQueue();
+	const tx = db.transaction(STORE, 'readwrite');
+	const store = tx.objectStore(STORE);
+	const item = await promisify(store.get(id));
+	if (!item) {
+		return;
+	}
+	item.claimedAt = null;
+	await promisify(store.put(item));
+}
+
+/**
  * Reset every 'failed' record on a page back to 'pending'.
  *
  * Used when the guest taps "Retry uploads" — we want a clean slate
@@ -199,6 +290,7 @@ export async function requeueFailed(pageId) {
 		item.status = 'pending';
 		item.attempts = 0;
 		item.lastError = null;
+		item.claimedAt = null;
 		await promisify(tx.objectStore(STORE).put(item));
 	}
 }
