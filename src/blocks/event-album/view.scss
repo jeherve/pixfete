@@ -414,12 +414,14 @@
 	// ─── Photo grid ─────────────────────────────────────────────────
 
 	.pixfete-grid {
-		// Mobile: single-column edge-to-edge stack with 2px black separators.
+		// Mobile: single-column edge-to-edge stack with 8px separators. The
+		// gaps stay transparent so they reveal the theme background rather
+		// than painting a black plate behind the photos.
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 8px;
 		padding: 0;
-		background: #000;
+		background: transparent;
 
 		// Edge-to-edge on mobile: break out of theme content container.
 		margin-left: calc(50% - 50vw);
@@ -437,12 +439,6 @@
 			margin-left: 0;
 			margin-right: 0;
 			width: auto;
-
-			// The mobile `#000` background paints the 2px separator lines
-			// between full-bleed photos. On desktop the grid sits inside
-			// the theme's content area and the column gaps should reveal
-			// the theme background, not a black plate.
-			background: transparent;
 		}
 	}
 
@@ -454,10 +450,10 @@
 
 		// Photos are individual blocks inside the multi-column container —
 		// prevent a photo from being split across columns, and add the same
-		// 2px gap below as between rows on mobile.
+		// 8px gap below as between rows on mobile.
 		@media (min-width: 601px) {
 			break-inside: avoid;
-			margin-bottom: 2px;
+			margin-bottom: 8px;
 		}
 
 		img {
