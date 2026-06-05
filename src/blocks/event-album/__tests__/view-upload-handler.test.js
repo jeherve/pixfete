@@ -316,6 +316,39 @@ describe('uploads happen in the foreground, with Background Sync as recovery onl
 		expect(def.state.pendingUploads[0].status).toBe('failed');
 	});
 
+	test('a record another tab is uploading is left alone, not marked failed', async () => {
+		// Regression: with Background Sync unavailable, drainThenSync failed
+		// every leftover 'pending' record. But in a multi-tab session a sibling
+		// tab may have claimed and be actively uploading a record (still
+		// 'pending', fresh claimedAt) — our drain correctly skipped it rather
+		// than double-POSTing. Failing it here would surface a bogus "Retry
+		// uploads" button and leave stale state once the other tab finishes and
+		// deletes the record. A fresh claim means "in progress elsewhere", so we
+		// must not touch it. There is no navigator.serviceWorker here, so
+		// Background Sync is unavailable and the only thing stopping the fail is
+		// the fresh-claim guard.
+		const { claimNext } = require('../upload-queue');
+		const def = loadStore();
+
+		const id = await enqueue({
+			pageId: 42,
+			blob: new Blob(['x'], { type: 'image/jpeg' }),
+			name: 'a.jpg',
+		});
+		// Simulate the sibling tab claiming the record (fresh lease).
+		await claimNext(42);
+
+		await def.actions.drainThenSync();
+
+		// fetch was never called — our drain saw the record as claimed and
+		// skipped it — and the record stays 'pending', not 'failed'.
+		expect(global.fetch).not.toHaveBeenCalled();
+		const remaining = await listPending(42);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].id).toBe(id);
+		expect(remaining[0].status).toBe('pending');
+	});
+
 	test('an upload that fails on a down network is handed to Background Sync', async () => {
 		// The recovery half: when the foreground drain can't reach the server,
 		// the record stays pending and Background Sync is registered to finish

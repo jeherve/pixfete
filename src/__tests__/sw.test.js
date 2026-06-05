@@ -210,6 +210,44 @@ describe('Service Worker drainQueue', () => {
 		expect(postedMessages).toEqual([]);
 	});
 
+	test('a network failure on one page still drains other reachable pages', async () => {
+		// Regression: rejecting the whole drain on the first network throw
+		// abandoned every other page's queue. A device can hold uploads for
+		// several events (distinct restBases on multisite); one unreachable
+		// origin must not strand a reachable one. The reachable page uploads,
+		// the unreachable page stays 'pending', and the drain still rejects so
+		// Background Sync reschedules the leftover.
+		await enqueue({
+			pageId: 7,
+			blob: new Blob(['a'], { type: 'image/jpeg' }),
+			name: 'a.jpg',
+			restBase: 'https://down.test/wp-json/pixfete/v1',
+		});
+		await enqueue({
+			pageId: 8,
+			blob: new Blob(['b'], { type: 'image/jpeg' }),
+			name: 'b.jpg',
+			restBase: 'https://up.test/wp-json/pixfete/v1',
+		});
+		// Page 7's origin is unreachable; page 8's succeeds. Route by URL so the
+		// result doesn't depend on the order collectPendingPageIds returns.
+		global.fetch.mockImplementation((url) => {
+			if (url.startsWith('https://down.test')) {
+				return Promise.reject(new Error('network down'));
+			}
+			return Promise.resolve({ ok: true, json: async () => ({ id: 1 }) });
+		});
+
+		await expect(drainQueue()).rejects.toThrow('network down');
+
+		// Page 8 was reachable and drained despite page 7 failing.
+		expect(await listPending(8)).toHaveLength(0);
+		// Page 7 stays pending (not failed) for Background Sync to retry.
+		const stranded = await listPending(7);
+		expect(stranded).toHaveLength(1);
+		expect(stranded[0].status).toBe('pending');
+	});
+
 	test('records missing restBase as failed instead of guessing an origin', async () => {
 		// Upgrade case: a queue record persisted before the restBase field
 		// existed. We refuse to route the upload to a fabricated URL because

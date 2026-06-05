@@ -29,6 +29,14 @@ const SYNC_TAG = 'pixfete-upload-queue';
  * that page so a single broken file doesn't burn the rest into the same
  * failure mode. The browser will fire `sync` again on its own schedule.
  *
+ * A network-layer failure for one page stops *that* page's drain but does
+ * not abandon the others: a device can hold queued uploads for several
+ * events (distinct `restBase`s on multisite), and one unreachable origin
+ * shouldn't strand uploads bound for a reachable one. We remember the
+ * error, drain every other page, then re-throw at the end so the promise
+ * passed to `event.waitUntil()` still rejects and Background Sync
+ * reschedules the unfinished work.
+ *
  * Each queue record carries its own `restBase` (stashed by the page at
  * enqueue time) so the SW doesn't have to derive a REST URL from
  * `self.registration.scope` — that path drops subdirectory prefixes and
@@ -46,6 +54,7 @@ const SYNC_TAG = 'pixfete-upload-queue';
  */
 export async function drainQueue() {
 	const allPages = await collectPendingPageIds();
+	let networkError = null;
 
 	for (const pageId of allPages) {
 		let item = await claimNext(pageId);
@@ -72,11 +81,15 @@ export async function drainQueue() {
 				// Network-layer failure — the request never reached the server,
 				// so the upload is genuinely unfinished. Release the claim and
 				// leave the record 'pending' (don't mark it 'failed') so the
-				// next `sync` event retries it. Reject the drain after cleanup:
-				// Background Sync only knows to schedule another attempt when
-				// the promise passed to event.waitUntil() fails.
+				// next `sync` event retries it. Remember the error and stop this
+				// page's drain, but keep draining other pages: an unreachable
+				// origin for one event shouldn't block a reachable one. We
+				// re-throw once every page has been attempted so the promise
+				// passed to event.waitUntil() rejects and Background Sync
+				// schedules another attempt.
 				await releaseClaim(item.id);
-				throw err;
+				networkError = err;
+				break;
 			}
 			if (!response.ok) {
 				await markFailed(item.id, 'http');
@@ -109,6 +122,10 @@ export async function drainQueue() {
 			});
 			item = await claimNext(pageId);
 		}
+	}
+
+	if (networkError) {
+		throw networkError;
 	}
 }
 

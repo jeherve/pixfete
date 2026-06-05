@@ -28,7 +28,7 @@ const STORE = 'queue';
  *
  * @type {number}
  */
-const CLAIM_LEASE_MS = 2 * 60 * 1000;
+export const CLAIM_LEASE_MS = 2 * 60 * 1000;
 
 let dbPromise = null;
 

@@ -10,7 +10,16 @@
 import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
-import { enqueue, listPending, markDone, markFailed, requeueFailed, claimNext, releaseClaim } from './upload-queue';
+import {
+	enqueue,
+	listPending,
+	markDone,
+	markFailed,
+	requeueFailed,
+	claimNext,
+	releaseClaim,
+	CLAIM_LEASE_MS,
+} from './upload-queue';
 import { initInstallPrompt } from './install-prompt';
 
 /**
@@ -1365,7 +1374,19 @@ const { state } = store('pixfete', {
 			// Anything still pending after the foreground drain couldn't reach
 			// the server. Failed records are excluded — those wait on the
 			// manual "Retry uploads" button, and Background Sync skips them.
-			const stillQueued = (await listPending(ctx.pageId)).filter((item) => item.status !== 'failed');
+			//
+			// Records still carrying a *fresh* claim are excluded too: another
+			// tab (a separate JS realm over the same queue) has claimed and is
+			// actively uploading them, so our drain skipped them rather than
+			// double-POSTing. Failing those would surface a bogus "Retry
+			// uploads" button here and leave stale state once the other tab
+			// finishes and deletes the record. Our own network-failed leftovers
+			// were released (claimedAt = null) by drainQueue, so they still
+			// qualify; only a genuinely dead drainer's stale lease is reclaimed.
+			const now = Date.now();
+			const stillQueued = (await listPending(ctx.pageId)).filter(
+				(item) => item.status !== 'failed' && (!item.claimedAt || now - item.claimedAt > CLAIM_LEASE_MS)
+			);
 			if (!stillQueued.length) {
 				return;
 			}
