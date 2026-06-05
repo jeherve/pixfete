@@ -126,6 +126,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 **Fixed**
 
 * The "install this album as an app" prompt now appears reliably on Chrome (mobile and desktop). The browser was silently refusing to offer the prompt because the album's offline helper wasn't doing enough work for Chrome's installability check.
+* The photo gallery no longer shows black gaps between photos on phones — the spacing between photos now uses your theme's background, with a little more room between each photo.
 
 = 1.3.1 - 2026-05-14 =
 
