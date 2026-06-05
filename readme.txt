@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -120,6 +120,12 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 3. Block settings in the editor sidebar to configure the event password, date range, and table name tracking.
 
 == Changelog ==
+
+= 1.3.2 - 2026-05-14 =
+
+**Fixed**
+
+* The "install this album as an app" prompt now appears reliably on Chrome (mobile and desktop). The browser was silently refusing to offer the prompt because the album's offline helper wasn't doing enough work for Chrome's installability check.
 
 = 1.3.1 - 2026-05-14 =
 
