@@ -282,10 +282,53 @@ let lightboxTouchStartX = 0;
 let lightboxTouchStartY = 0;
 
 /**
+ * Whether a lightbox drag is in progress. Gates touchmove/touchend so stray
+ * events outside a started gesture are ignored.
+ */
+let lightboxDragging = false;
+
+/**
+ * The lightbox index at the time of the last slide animation, used to derive
+ * swipe direction. Starts at -1 (closed) so opening the lightbox does not
+ * animate a slide.
+ */
+let lightboxPrevIndex = -1;
+
+/**
+ * The photo id shown at the last slide animation. Used to tell genuine
+ * navigation (a different photo) apart from index-only corrections such as
+ * showNewPhotos shifting the index to keep the same photo visible — those
+ * must not animate.
+ */
+let lightboxPrevId = null;
+
+/**
  * Minimum horizontal distance (px) required to register a swipe. Below this,
  * the gesture is treated as a tap or a noisy non-swipe.
  */
 const SWIPE_THRESHOLD = 50;
+
+/**
+ * Shared CSS transition for lightbox photo motion. Used by both the
+ * snap-back (cancelled swipe) and the slide-in (completed navigation) so the
+ * two timing/easing values stay in lockstep.
+ */
+const SLIDE_TRANSITION = 'transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1)';
+
+/**
+ * Whether the visitor has asked the OS to minimize motion. When true we keep
+ * the instant photo swap and skip all slide/drag animation so we honor the
+ * accessibility preference.
+ *
+ * @return {boolean} True if prefers-reduced-motion is set.
+ */
+function prefersReducedMotion() {
+	return (
+		typeof window !== 'undefined' &&
+		typeof window.matchMedia === 'function' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches
+	);
+}
 
 /**
  * The element that held focus before the lightbox opened. Stored at module
@@ -1666,32 +1709,115 @@ const { state } = store('pixfete', {
 			}
 			lightboxTouchStartX = t.clientX;
 			lightboxTouchStartY = t.clientY;
+			lightboxDragging = true;
+			const image = document.querySelector('.pixfete-lightbox-image');
+			if (image) {
+				image.style.transition = 'none';
+			}
 		},
 
 		/**
-		 * On touchend, decide whether the gesture was a horizontal swipe and,
-		 * if so, navigate to the previous or next photo. Vertical-dominant
-		 * gestures and short gestures (below SWIPE_THRESHOLD) are ignored so
-		 * we don't fight with the user's intent to scroll or tap.
+		 * While dragging, translate the lightbox image so it tracks the
+		 * finger. Dragging toward a blocked edge (right at the first photo,
+		 * left at the last) is damped to a third of the distance — the
+		 * rubber-band that signals "nothing more this way". Vertical-dominant
+		 * gestures and reduced-motion users are left alone.
+		 *
+		 * @param {TouchEvent} event The touchmove event.
+		 */
+		lightboxTouchMove(event) {
+			if (!lightboxDragging || prefersReducedMotion()) {
+				return;
+			}
+			const t = event.touches?.[0];
+			if (!t) {
+				return;
+			}
+			const dx = t.clientX - lightboxTouchStartX;
+			const dy = t.clientY - lightboxTouchStartY;
+			if (Math.abs(dx) < Math.abs(dy)) {
+				return;
+			}
+			event.preventDefault?.();
+			const image = document.querySelector('.pixfete-lightbox-image');
+			if (!image) {
+				return;
+			}
+			const atStart = state.lightboxIndex <= 0 && dx > 0;
+			const atEnd = state.lightboxIndex >= state.photos.length - 1 && dx < 0;
+			const offset = atStart || atEnd ? dx * 0.3 : dx;
+			image.style.transform = `translateX(${offset}px)`;
+		},
+
+		/**
+		 * On touchend, decide whether the drag crossed the commit threshold
+		 * and, if so, navigate to the previous or next photo. The threshold
+		 * scales with the photo width (a quarter of it) so the gesture feels
+		 * consistent on large and small screens, but never drops below
+		 * SWIPE_THRESHOLD so a tiny image can't be advanced by an accidental
+		 * nudge. Vertical-dominant gestures, sub-threshold drags, and swipes
+		 * blocked at an edge don't navigate; instead the image springs back
+		 * to center so a half-committed drag never strands the photo offset.
+		 *
+		 * Gated on `lightboxDragging` so a stray touchend outside a gesture we
+		 * started is ignored.
 		 *
 		 * @param {TouchEvent} event The touchend event.
 		 */
 		lightboxTouchEnd(event) {
+			if (!lightboxDragging) {
+				return;
+			}
+			lightboxDragging = false;
 			const t = event.changedTouches?.[0];
 			if (!t) {
 				return;
 			}
 			const dx = t.clientX - lightboxTouchStartX;
 			const dy = t.clientY - lightboxTouchStartY;
-			if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) {
+			const image = document.querySelector('.pixfete-lightbox-image');
+			// Threshold scales with the photo width (25%) but never drops below
+			// SWIPE_THRESHOLD. clientWidth is 0 in jsdom, so tests fall back to
+			// the 50px floor.
+			const width = image?.clientWidth || 0;
+			const threshold = Math.max(SWIPE_THRESHOLD, width * 0.25);
+			const horizontal = Math.abs(dx) >= threshold && Math.abs(dx) >= Math.abs(dy);
+			const { actions } = store('pixfete');
+			if (horizontal && dx < 0 && state.canGoNext) {
+				// Completed swipe forward — the index watch plays the slide-in.
+				actions.nextPhoto();
+			} else if (horizontal && dx > 0 && state.canGoPrev) {
+				actions.prevPhoto();
+			} else if (image) {
+				// Cancelled or blocked at an edge: spring back to center.
+				if (!prefersReducedMotion()) {
+					image.style.transition = SLIDE_TRANSITION;
+				}
+				image.style.transform = 'translateX(0)';
+			}
+		},
+
+		/**
+		 * When the browser cancels the touch sequence mid-drag (an incoming
+		 * call, a system/edge gesture, palm rejection), touchend never fires —
+		 * so without this the drag would stay "in progress" and the image
+		 * stranded at its last `translateX(dx)` offset. Clear the drag flag and
+		 * spring the photo back to center so a cancelled gesture never commits
+		 * navigation or leaves the photo off-center.
+		 */
+		lightboxTouchCancel() {
+			if (!lightboxDragging) {
 				return;
 			}
-			const { actions } = store('pixfete');
-			if (dx < 0) {
-				actions.nextPhoto();
-			} else {
-				actions.prevPhoto();
+			lightboxDragging = false;
+			const image = document.querySelector('.pixfete-lightbox-image');
+			if (!image) {
+				return;
 			}
+			if (!prefersReducedMotion()) {
+				image.style.transition = SLIDE_TRANSITION;
+			}
+			image.style.transform = 'translateX(0)';
 		},
 
 		/**
@@ -1812,6 +1938,51 @@ const { state } = store('pixfete', {
 						focusables[0].focus();
 					}
 				}
+			});
+		},
+
+		/**
+		 * Slide the photo in whenever the displayed lightbox photo changes.
+		 *
+		 * Wired via data-wp-watch on the image, so every navigation path
+		 * (swipe, arrow buttons, keyboard) animates the same way — they all
+		 * mutate state.lightboxIndex, which is this watch's reactive
+		 * dependency. The incoming photo starts off-screen on the side it is
+		 * "coming from" (right when advancing, left when going back) and
+		 * slides to center on the next frame.
+		 *
+		 * The skip condition gates on the *photo's id*, not the index delta:
+		 * showNewPhotos prepends photos and bumps lightboxIndex to keep the
+		 * SAME photo on screen, so an index-only check would play a spurious
+		 * slide on a photo that never actually changed. Comparing ids skips
+		 * those corrections while still animating genuine navigation. Also
+		 * skips opening/closing (no current photo) and reduced-motion users,
+		 * leaving today's instant swap in place.
+		 */
+		animateLightboxSlide() {
+			const newIndex = state.lightboxIndex;
+			const newId = state.photos[newIndex]?.id ?? null;
+			const prevIndex = lightboxPrevIndex;
+			const prevId = lightboxPrevId;
+			lightboxPrevIndex = newIndex;
+			lightboxPrevId = newId;
+			// Animate only on genuine navigation to a different photo. Skip
+			// opening/closing (no current photo), index-only shifts that keep
+			// the same photo on screen (e.g. showNewPhotos), and reduced motion.
+			if (prevIndex < 0 || newIndex < 0 || newId === prevId || prefersReducedMotion()) {
+				return;
+			}
+			const image = document.querySelector('.pixfete-lightbox-image');
+			if (!image) {
+				return;
+			}
+			const width = image.clientWidth || 0;
+			const fromX = newIndex > prevIndex ? width : -width;
+			image.style.transition = 'none';
+			image.style.transform = `translateX(${fromX}px)`;
+			window.requestAnimationFrame(() => {
+				image.style.transition = SLIDE_TRANSITION;
+				image.style.transform = 'translateX(0px)';
 			});
 		},
 	},

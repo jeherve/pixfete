@@ -430,7 +430,9 @@ if ( $pixfete_is_moderator ) {
 			class="pixfete-lightbox"
 			data-wp-on--click="actions.closeLightbox"
 			data-wp-on--touchstart="actions.lightboxTouchStart"
+			data-wp-on--touchmove="actions.lightboxTouchMove"
 			data-wp-on--touchend="actions.lightboxTouchEnd"
+			data-wp-on--touchcancel="actions.lightboxTouchCancel"
 			data-wp-init="callbacks.initLightboxKeyboard"
 		>
 			<button class="pixfete-lightbox-close" aria-label="<?php esc_attr_e( 'Close', 'pixfete' ); ?>">&times;</button>
@@ -447,6 +449,7 @@ if ( $pixfete_is_moderator ) {
 				class="pixfete-lightbox-image"
 				data-wp-bind--src="state.lightboxPhoto.full"
 				data-wp-bind--alt="state.lightboxPhoto.guest_name"
+				data-wp-watch="callbacks.animateLightboxSlide"
 			/>
 
 			<button
