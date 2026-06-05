@@ -186,12 +186,13 @@ describe('Service Worker drainQueue', () => {
 		warnSpy.mockRestore();
 	});
 
-	test('a network throw leaves the record pending for the next sync, not failed', async () => {
+	test('a network throw rejects the sync drain and leaves the record pending', async () => {
 		// Background Sync exists to retry uploads when connectivity returns. If
 		// the network drops again mid-drain, marking the record 'failed' would
 		// make the drain skip it forever (the loop ignores failed records) —
 		// defeating the recovery the SW is there to provide. The record must
-		// stay 'pending' so the next `sync` event retries it.
+		// stay 'pending', and the drain promise must reject so event.waitUntil()
+		// tells the browser this sync attempt still needs retrying.
 		await enqueue({
 			pageId: 7,
 			blob: new Blob(['x'], { type: 'image/jpeg' }),
@@ -200,7 +201,7 @@ describe('Service Worker drainQueue', () => {
 		});
 		global.fetch.mockRejectedValueOnce(new Error('network down'));
 
-		await drainQueue();
+		await expect(drainQueue()).rejects.toThrow('network down');
 
 		const remaining = await listPending(7);
 		expect(remaining).toHaveLength(1);

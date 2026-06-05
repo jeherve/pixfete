@@ -68,17 +68,15 @@ export async function drainQueue() {
 					credentials: 'same-origin',
 					body: formData,
 				});
-			} catch {
+			} catch (err) {
 				// Network-layer failure — the request never reached the server,
 				// so the upload is genuinely unfinished. Release the claim and
 				// leave the record 'pending' (don't mark it 'failed') so the
-				// next `sync` event retries it: this loop skips 'failed'
-				// records, so failing it here would make Background Sync abandon
-				// the very upload it exists to recover. Stop draining this page;
-				// the browser fires `sync` again on its own schedule once
-				// connectivity returns.
+				// next `sync` event retries it. Reject the drain after cleanup:
+				// Background Sync only knows to schedule another attempt when
+				// the promise passed to event.waitUntil() fails.
 				await releaseClaim(item.id);
-				break;
+				throw err;
 			}
 			if (!response.ok) {
 				await markFailed(item.id, 'http');
