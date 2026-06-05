@@ -157,6 +157,20 @@ test.describe('Pixfête - Happy Path', () => {
 		// Verify transition to gallery view by checking the upload FAB is visible.
 		await expect(page.locator('.pixfete-fab-container')).toBeVisible();
 
+		// --- Regression: upload progress banner is pinned to the viewport ---
+		// On mobile the upload FAB is fixed bottom-right, so a guest who has
+		// scrolled down the album taps it and the upload starts — but the
+		// progress banner used to live in document flow near the top of the
+		// album, off-screen, so the guest saw no confirmation. At the mobile
+		// breakpoint the banner must be `position: fixed` (pinned to the top)
+		// rather than `relative`, which is what kept it off-screen.
+		const bannerPosition = await page.locator('.pixfete-upload-progress').evaluate((el) => {
+			const style = window.getComputedStyle(el);
+			return { position: style.position, top: style.top };
+		});
+		expect(bannerPosition.position).toBe('fixed');
+		expect(bannerPosition.top).toBe('0px');
+
 		// --- Step 4: Upload a photo ---
 		const fileInput = page.locator('#pixfete-file-gallery');
 		await fileInput.setInputFiles(path.join(__dirname, 'fixtures', 'test-photo.jpg'));

@@ -350,6 +350,28 @@
 		font-weight: 600;
 		position: relative;
 		overflow: hidden;
+
+		// Pin the banner to the viewport on mobile. The upload FAB is
+		// mobile-only and fixed bottom-right, so a guest who has scrolled
+		// down the album taps it, picks a photo, and the upload starts —
+		// but this banner (and the queued placeholders) live in flow near
+		// the top of the album, off-screen, leaving the guest with no
+		// confirmation anything happened. Pinning it to the viewport top
+		// keeps the "uploading" feedback visible regardless of scroll
+		// position. The wrapper uses `overflow-x: clip` (not a scroll
+		// container) precisely so fixed descendants anchor to the visual
+		// viewport — the same reason the FAB stays put. The z-index sits
+		// above the grid but below the FAB scrim (99998) and the lightbox
+		// (100000) so an upload finishing while the lightbox is open can't
+		// punch through it.
+		@media (max-width: 600px) {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 99997;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+		}
 	}
 
 	.pixfete-upload-progress-bar {
