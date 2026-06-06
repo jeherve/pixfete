@@ -130,6 +130,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 **Fixed**
 
 * When you start uploading a photo from your phone after scrolling down the album, the "uploading" indicator now stays in view at the top of the screen, so you can see right away that your photo is on its way.
+* Submitting the event password (or your name) without filling it in now shows a clear on-screen message instead of leaving guests with no feedback, especially on phones.
 
 = 1.3.3 - 2026-06-05 =
 

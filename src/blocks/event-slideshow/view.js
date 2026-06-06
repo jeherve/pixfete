@@ -235,8 +235,16 @@ const { state } = store('pixfete/slideshow', {
 			event.preventDefault();
 			const ctx = getContext();
 
-			state.isSubmitting = true;
 			state.errorMessage = '';
+
+			// Validate before hitting the server so an empty submission gets a
+			// precise message instead of a misleading "password is incorrect".
+			if (!state.passwordInput.trim()) {
+				state.errorMessage = ctx.i18n.passwordRequired;
+				return;
+			}
+
+			state.isSubmitting = true;
 
 			try {
 				// Two attempts: if the first fails with an invalid-nonce
