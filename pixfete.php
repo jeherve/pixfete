@@ -31,7 +31,6 @@ require_once PIXFETE_PLUGIN_DIR . 'src/class-archive.php';
 require_once PIXFETE_PLUGIN_DIR . 'src/class-cleanup.php';
 require_once PIXFETE_PLUGIN_DIR . 'src/class-slideshow.php';
 require_once PIXFETE_PLUGIN_DIR . 'src/class-moderator.php';
-require_once PIXFETE_PLUGIN_DIR . 'src/class-pwa.php';
 
 add_action( 'init', array( \Jeherve\Pixfete\Block::class, 'register' ) );
 add_action( 'init', array( \Jeherve\Pixfete\Slideshow::class, 'register' ) );
@@ -40,16 +39,6 @@ add_action( 'admin_menu', array( \Jeherve\Pixfete\Admin::class, 'register_menu' 
 add_action( 'admin_enqueue_scripts', array( \Jeherve\Pixfete\Admin::class, 'enqueue_scripts' ) );
 add_action( \Jeherve\Pixfete\Archive::DAILY_HOOK, array( \Jeherve\Pixfete\Archive::class, 'check_events' ) );
 add_action( \Jeherve\Pixfete\Archive::BATCH_HOOK, array( \Jeherve\Pixfete\Archive::class, 'process_batch' ) );
-
-add_action( 'template_redirect', array( \Jeherve\Pixfete\PWA::class, 'maybe_serve' ) );
-
-add_action(
-	'after_setup_theme',
-	static function (): void {
-		add_image_size( 'pixfete-pwa-192', 192, 192, true );
-		add_image_size( 'pixfete-pwa-512', 512, 512, true );
-	}
-);
 
 register_activation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'schedule_cron' ) );
 register_deactivation_hook( __FILE__, array( \Jeherve\Pixfete\Archive::class, 'unschedule_cron' ) );

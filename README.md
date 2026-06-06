@@ -84,12 +84,9 @@ The plugin registers two blocks and a REST API under the `pixfete/v1` namespace:
 | `src/class-cleanup.php` | Permanent deletion of all event data (page, photos, archive, slideshow pages) |
 | `src/class-moderator.php` | Custom moderator role, dashboard lockout, and per-event moderator assignment checks |
 | `src/class-slideshow.php` | Live Photo Wall block registration and page template |
-| `src/class-pwa.php` | PWA hub: serves the Service Worker (`/pixfete-sw`) for upload queue draining and the dynamic per-event Web App Manifest (`/pixfete-<post-id>.webmanifest`) that powers installable event albums |
 | `src/blocks/event-album/` | Event Photo Album block assets (edit.js, view.js, render.php, block.json, styles) |
-| `src/blocks/event-album/install-prompt.js` | Captures `beforeinstallprompt`, gates the install offer on mobile + first upload + dismissal cookie, and triggers the browser's native install prompt |
 | `src/blocks/event-slideshow/` | Live Photo Wall block assets (edit.js, view.js, render.php, block.json, styles) |
 | `src/admin/` | React app for the admin page (QR code generator, archive status, event cleanup, components, utilities, styles) |
-| `assets/pwa/` | Bundled Pixfête-branded icons used as the manifest fallback when an event has no featured image |
 | `templates/page-event-album.html` | Full-screen page template for the event album (site logo + content) |
 | `templates/page-event-slideshow.html` | Full-screen page template for the photo wall (content only, black background) |
 
@@ -197,13 +194,11 @@ The Live Photo Wall block is designed for projecting photos onto a big screen du
 | `interval` | integer | `5` | Seconds per photo (min: 2, max: 30) |
 | `eventPageId` | integer | `0` | ID of the event page whose photos to display |
 
-### Upload reliability
+### Uploads
 
-Photo uploads are queued in IndexedDB before they hit the network, so files survive a dropped connection, page reload, or accidental tab close. Failed uploads stay in the queue and surface a "Retry uploads" affordance when they can't be recovered automatically.
+When a guest picks photos, each one is held in memory as an "Uploading…" placeholder and POSTed to the gallery endpoint in order. A successful upload prepends the new photo to the gallery immediately; a failure (network error or a non-2xx response) marks just that placeholder as failed and surfaces a "Retry uploads" affordance, while the rest of the batch continues. A `200` response with a non-JSON body (a caching plugin or CDN intercepting the POST) is treated as success — the photo is already stored, so polling surfaces it on the next tick rather than re-POSTing and creating a duplicate.
 
-A Service Worker drains the queue via the Background Sync API where it's available (Chrome, Edge, Android). Browsers without Background Sync — notably iOS Safari — fall back to in-page retry while the album page is open.
-
-The Service Worker is served from `/pixfete-sw` (no extension — managed hosts including WordPress.com Atomic intercept `*.js` requests with an nginx static handler before WordPress's front controller can respond) with the `Service-Worker-Allowed: /` header so it can claim album pages anywhere on the site. Registration and routing are handled in `src/class-pwa.php`.
+The gallery `GET` responses are sent with `Cache-Control: no-store` (see `REST::add_nocache_headers()`), and the client gallery fetches use `cache: 'no-store'`. Guests authenticate with a custom HMAC cookie rather than a WordPress login, so WordPress core does not add no-cache headers automatically; without this, an edge cache / CDN (e.g. WordPress.com Atomic) can serve a stale gallery snapshot, making a just-uploaded photo look missing and older photos appear to come and go across refreshes.
 
 ### Event Photo Album block attributes
 
@@ -269,7 +264,6 @@ Guest photo attachments store the following metadata:
 | `pixfete_photo_response` | Photo data array | Individual photo data in gallery API responses |
 | `pixfete_archive_batch_size` | `50` | Number of attachments processed per ZIP generation batch |
 | `pixfete_archive_directory` | `{uploads_basedir}/pixfete-archives` | Absolute path to the ZIP archive storage directory |
-| `pixfete_serve_service_worker` | `true` | Whether Pixfête should manage its own Service Worker. Return `false` to let another PWA plugin (Super PWA, OneSignal, Jetpack Boost, etc.) own the origin scope; uploads still queue and drain via the in-page loop, just without Background Sync recovery after tab close |
 
 ### Actions
 

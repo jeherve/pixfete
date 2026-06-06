@@ -3,7 +3,6 @@ const path = require('path');
 
 const extraScriptEntries = {
 	admin: path.resolve(__dirname, 'src/admin/index.js'),
-	sw: path.resolve(__dirname, 'src/sw.js'),
 };
 
 // With --experimental-modules, defaultConfig is an array [scriptConfig, moduleConfig].
