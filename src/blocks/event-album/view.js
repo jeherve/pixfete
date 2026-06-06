@@ -306,7 +306,7 @@ const { state } = store('pixfete', {
 		lightboxIndex: -1,
 		fabOpen: false,
 		latestUploadedAt: 0,
-		/** Mirror of the IndexedDB upload queue for this page, freshest first. */
+		/** In-memory placeholders for uploads in progress this page session, in selection order. */
 		pendingUploads: [],
 		pollingId: 0,
 
@@ -592,7 +592,10 @@ const { state } = store('pixfete', {
 
 			// Pending uploads live only for the lifetime of the page now, so
 			// every fresh load (or retry of init) starts with an empty list.
+			// Drop any orphaned blobs too, so a retried init doesn't leave
+			// Files referenced by ids no placeholder points at anymore.
 			state.pendingUploads = [];
+			pendingBlobs.clear();
 
 			// Read URL parameters before cleaning. Stash on state so a
 			// retry (which runs after URL params have been cleaned) still
