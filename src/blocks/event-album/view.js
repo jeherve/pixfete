@@ -93,6 +93,24 @@ let nextPendingId = 1;
 const pendingBlobs = new Map();
 
 /**
+ * Whether an `uploadPending` drain is currently running.
+ *
+ * Both `handleFileSelect` and `retryUploads` kick off `uploadPending`,
+ * and the drain selects work by scanning `state.pendingUploads` for the
+ * next 'pending' item. Without this guard a second invocation — a guest
+ * selecting another batch mid-upload, or tapping "Retry uploads" while an
+ * earlier upload is still awaiting `fetch` — would start a parallel loop,
+ * find the same still-'pending' item, and POST it twice (a duplicate
+ * photo). The old IndexedDB queue prevented this with per-record claims;
+ * an in-memory flag is enough now that everything runs in one realm. The
+ * already-running loop re-scans state every iteration, so any items the
+ * skipped call would have handled are picked up by the active drain.
+ *
+ * @type {boolean}
+ */
+let uploadInFlight = false;
+
+/**
  * Number of photos to load per page.
  *
  * @type {number}
@@ -1158,63 +1176,78 @@ const { state } = store('pixfete', {
 		 * re-POSTing would duplicate it. The placeholder is cleared and the next
 		 * poll surfaces the real photo.
 		 *
+		 * Re-entrant calls bail immediately (see `uploadInFlight`): a single
+		 * drain owns the queue at a time, so a file can never be POSTed twice
+		 * by two overlapping loops. Items added while a drain is running are
+		 * still handled, because the loop re-scans `state.pendingUploads` on
+		 * every iteration.
+		 *
 		 * @return {Promise<void>}
 		 */
 		async uploadPending() {
+			if (uploadInFlight) {
+				return;
+			}
+			uploadInFlight = true;
+
 			const ctx = getContext();
 
-			let next;
-			while ((next = state.pendingUploads.find((item) => item.status === 'pending'))) {
-				const { id } = next;
-				const blob = pendingBlobs.get(id);
+			try {
+				let next;
+				while ((next = state.pendingUploads.find((item) => item.status === 'pending'))) {
+					const { id } = next;
+					const blob = pendingBlobs.get(id);
 
-				let ok = false;
-				let photo = null;
-				try {
-					const formData = new FormData();
-					formData.append('photo', blob, next.name);
+					let ok = false;
+					let photo = null;
+					try {
+						const formData = new FormData();
+						formData.append('photo', blob, next.name);
 
-					const response = await fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
-						method: 'POST',
-						credentials: 'same-origin',
-						body: formData,
-					});
-					ok = response.ok;
-					if (ok) {
-						try {
-							photo = await response.json();
-						} catch (err) {
-							// 200 OK but the body wasn't JSON — most often a caching
-							// plugin or CDN intercepting the response. The upload
-							// itself succeeded, so we clear the placeholder (a retry
-							// would duplicate the photo) and let polling surface the
-							// real photo on its next tick.
-							// eslint-disable-next-line no-console -- aids debugging cache/CDN interference.
-							console.warn('Pixfête: upload succeeded but response was not JSON.', err);
+						const response = await fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
+							method: 'POST',
+							credentials: 'same-origin',
+							body: formData,
+						});
+						ok = response.ok;
+						if (ok) {
+							try {
+								photo = await response.json();
+							} catch (err) {
+								// 200 OK but the body wasn't JSON — most often a caching
+								// plugin or CDN intercepting the response. The upload
+								// itself succeeded, so we clear the placeholder (a retry
+								// would duplicate the photo) and let polling surface the
+								// real photo on its next tick.
+								// eslint-disable-next-line no-console -- aids debugging cache/CDN interference.
+								console.warn('Pixfête: upload succeeded but response was not JSON.', err);
+							}
+						}
+					} catch {
+						// Network-layer failure — the request never reached the server.
+						ok = false;
+					}
+
+					if (!ok) {
+						state.pendingUploads = state.pendingUploads.map((item) =>
+							item.id === id ? decoratePendingItem({ ...item, status: 'failed' }, ctx.i18n) : item
+						);
+						continue;
+					}
+
+					// Success: drop the placeholder and its blob, then show the photo.
+					state.pendingUploads = state.pendingUploads.filter((item) => item.id !== id);
+					pendingBlobs.delete(id);
+
+					if (photo) {
+						state.photos = [photo, ...state.photos];
+						if (photo.uploaded_at && photo.uploaded_at > state.latestUploadedAt) {
+							state.latestUploadedAt = photo.uploaded_at;
 						}
 					}
-				} catch {
-					// Network-layer failure — the request never reached the server.
-					ok = false;
 				}
-
-				if (!ok) {
-					state.pendingUploads = state.pendingUploads.map((item) =>
-						item.id === id ? decoratePendingItem({ ...item, status: 'failed' }, ctx.i18n) : item
-					);
-					continue;
-				}
-
-				// Success: drop the placeholder and its blob, then show the photo.
-				state.pendingUploads = state.pendingUploads.filter((item) => item.id !== id);
-				pendingBlobs.delete(id);
-
-				if (photo) {
-					state.photos = [photo, ...state.photos];
-					if (photo.uploaded_at && photo.uploaded_at > state.latestUploadedAt) {
-						state.latestUploadedAt = photo.uploaded_at;
-					}
-				}
+			} finally {
+				uploadInFlight = false;
 			}
 		},
 

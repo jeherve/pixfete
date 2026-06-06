@@ -193,3 +193,37 @@ describe('retryUploads re-attempts only failed placeholders', () => {
 		expect(def.state.photos[0].id).toBe(7);
 	});
 });
+
+describe('uploadPending is single-flight', () => {
+	test('a concurrent call does not re-POST a file already being uploaded', async () => {
+		// Regression: dropping the IndexedDB queue removed the per-record
+		// claim that stopped a file being POSTed twice. uploadPending picks
+		// work by scanning shared state for the next 'pending' item, so a
+		// second call kicked off while the first is still awaiting fetch (a
+		// guest selecting another batch, or tapping "Retry uploads" mid-upload)
+		// would find the same item and upload it again — a duplicate photo.
+		const def = loadStore();
+
+		// Hold the first upload open at the fetch await so a second drain can
+		// observe the still-'pending' item before it resolves.
+		let resolveFetch;
+		global.fetch.mockReturnValueOnce(
+			new Promise((resolve) => {
+				resolveFetch = resolve;
+			})
+		);
+
+		const first = def.actions.handleFileSelect({ target: { files: makeFileList(1), value: '' } });
+
+		// A second drain while the first is in flight must bail, not re-POST.
+		await def.actions.uploadPending();
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+
+		resolveFetch(okPhoto({ id: 5, uploaded_at: 5 }));
+		await first;
+
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+		expect(def.state.pendingUploads).toEqual([]);
+		expect(def.state.photos[0].id).toBe(5);
+	});
+});
