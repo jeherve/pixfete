@@ -4,8 +4,6 @@
  */
 /* eslint-enable jsdoc/check-tag-names */
 
-import 'fake-indexeddb/auto';
-
 const i18nFixture = require('../__fixtures__/i18n');
 
 let registeredStore = {};

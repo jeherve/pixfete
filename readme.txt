@@ -127,6 +127,14 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 * Swiping between photos in the full-screen photo viewer now follows your finger and animates smoothly, with a gentle bounce when you reach the first or last photo.
 
+**Changed**
+
+* Photos no longer disappear when you refresh the album, and a photo you just uploaded now shows up right away. The album was sometimes displaying an out-of-date copy of the gallery served from a cache, so recently added photos appeared to come and go even though they were always safely saved.
+
+**Removed**
+
+* The option to install an event album as an app on your phone ("add to home screen") has been removed, along with its background upload handling. Guests open the album in their browser just as before, and sharing and viewing photos is unchanged.
+
 **Fixed**
 
 * When you start uploading a photo from your phone after scrolling down the album, the "uploading" indicator now stays in view at the top of the screen, so you can see right away that your photo is on its way.

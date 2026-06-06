@@ -899,6 +899,41 @@ class RestPhotosTest extends TestCase {
 	}
 
 	/**
+	 * Gallery responses must be non-cacheable.
+	 *
+	 * Regression: guests are authenticated by a custom cookie, not a
+	 * WordPress login, so WordPress core does not add no-cache headers to
+	 * this REST response. Without an explicit `Cache-Control: no-store`,
+	 * an edge cache / CDN (e.g. WordPress.com Atomic) keys the gallery GET
+	 * by URL and serves stale snapshots — so a guest's freshly uploaded
+	 * photo is missing and older photos appear and disappear across
+	 * refreshes even though they are safely stored in the media library.
+	 */
+	public function test_gallery_response_is_not_cacheable(): void {
+		$this->stub_valid_page();
+
+		$payload = $this->make_cookie_payload( 42, 1, true );
+		$this->set_cookie( $payload );
+
+		$wp_query_mock                    = new \stdClass();
+		$wp_query_mock->posts             = array();
+		$wp_query_mock->found_posts       = 0;
+		$wp_query_mock->max_num_pages     = 0;
+		$GLOBALS['pixfete_wp_query_mock'] = $wp_query_mock;
+
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		$request  = $this->make_request( array( 'page_id' => 42 ) );
+		$response = REST::handle_gallery( $request );
+
+		unset( $GLOBALS['pixfete_wp_query_mock'] );
+
+		$headers = $response->get_headers();
+		$this->assertArrayHasKey( 'Cache-Control', $headers );
+		$this->assertStringContainsString( 'no-store', (string) $headers['Cache-Control'] );
+	}
+
+	/**
 	 * Test gallery 'since' parameter returns only newer photos.
 	 */
 	public function test_gallery_since_parameter_filters_newer_photos(): void {

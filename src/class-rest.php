@@ -1103,8 +1103,33 @@ class REST extends WP_REST_Controller {
 		$response = new WP_REST_Response( $photos );
 		$response->header( 'X-WP-Total', $query->found_posts );
 		$response->header( 'X-WP-TotalPages', $query->max_num_pages );
+		self::add_nocache_headers( $response );
 
 		return $response;
+	}
+
+	/**
+	 * Mark a REST response as non-cacheable.
+	 *
+	 * Guests authenticate with a custom HMAC cookie rather than a WordPress
+	 * login, so WordPress core never adds no-cache headers to these
+	 * responses. On managed hosts that front WordPress with an edge cache /
+	 * CDN (e.g. WordPress.com Atomic), the gallery GET — a plain URL with a
+	 * cookie the cache ignores — gets cached and served stale. The result is
+	 * a guest's freshly uploaded photo appearing "missing" and older photos
+	 * flickering in and out across refreshes, even though every photo is
+	 * safely stored in the media library. Sending an explicit
+	 * `Cache-Control: no-store` (mirroring WordPress's own nocache header
+	 * set) tells both the browser and well-behaved edge caches to always
+	 * revalidate against the live gallery.
+	 *
+	 * @param WP_REST_Response $response Response to mark uncacheable.
+	 * @return void
+	 */
+	private static function add_nocache_headers( WP_REST_Response $response ): void {
+		$response->header( 'Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0' );
+		$response->header( 'Pragma', 'no-cache' );
+		$response->header( 'Expires', 'Wed, 11 Jan 1984 05:00:00 GMT' );
 	}
 
 	// ─── Shared permission helpers ───────────────────────────────────

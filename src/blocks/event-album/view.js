@@ -10,17 +10,6 @@
 import './view.scss';
 
 import { store, getContext } from '@wordpress/interactivity';
-import {
-	enqueue,
-	listPending,
-	markDone,
-	markFailed,
-	requeueFailed,
-	claimNext,
-	releaseClaim,
-	CLAIM_LEASE_MS,
-} from './upload-queue';
-import { initInstallPrompt } from './install-prompt';
 
 /**
  * Interpolate the `%d` placeholder in a translation template.
@@ -78,186 +67,30 @@ function decoratePendingItem(item, i18n) {
 }
 
 /**
- * Decorate every item in a list — see {@link decoratePendingItem}.
+ * Track the next local id to hand out to a pending-upload placeholder.
  *
- * @param {Array<Object>} items Raw queue records.
- * @param {Object}        i18n  Server-rendered translations.
- * @return {Array<Object>} Decorated records.
+ * Uploads are no longer persisted to IndexedDB (that existed only to
+ * coordinate the in-page drain with the Service Worker's Background Sync
+ * drain, both of which are gone). Placeholders now live purely in memory
+ * for the lifetime of the page, so a simple incrementing counter is
+ * enough to give each one a stable key for the `data-wp-each` template.
+ *
+ * @type {number}
  */
-function decoratePending(items, i18n) {
-	return items.map((item) => decoratePendingItem(item, i18n));
-}
+let nextPendingId = 1;
 
 /**
- * Register the Pixfête Service Worker if the platform supports it.
+ * In-memory map of pending-upload id → the File the guest selected.
  *
- * Steps aside cleanly when another SW already owns our scope (Super
- * PWA, OneSignal, Jetpack Boost, host offline plugins): trying to
- * register on top of them would either fail with `SecurityError` or
- * succeed but leave the other SW as the controller. Either way the
- * page falls back to the in-page drain — uploads still work, just
- * without Background Sync recovery.
+ * The raw File is kept out of Interactivity state (which only needs the
+ * id, name, and status to render the placeholder) so we don't proxy a
+ * large binary through the reactive store. Entries are removed as soon as
+ * their upload succeeds; a failed entry is retained so "Retry uploads"
+ * can re-POST the same File.
  *
- * Failures are otherwise non-fatal but logged so site owners debugging
- * "why doesn't Background Sync work" can see what happened.
- *
- * @param {string} url   SW URL passed in from the server-rendered context.
- *                       Empty string means PHP disabled the SW via the
- *                       `pixfete_serve_service_worker` filter.
- * @param {string} scope Scope to register the SW with — matches the site's
- *                       home URL path so subdirectory and subdir-multisite
- *                       installs don't collide on the same origin.
- * @return {Promise<ServiceWorkerRegistration|null>} Resolved registration or null.
+ * @type {Map<number, File>}
  */
-async function registerServiceWorker(url, scope) {
-	if (!url) {
-		return null;
-	}
-	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-		return null;
-	}
-	try {
-		const existing = await navigator.serviceWorker.getRegistration(scope || '/');
-		if (existing && existing.active && existing.active.scriptURL !== url) {
-			// 1.3.0 served the SW at `/pixfete-sw.js`; 1.3.1 moved it to
-			// `/pixfete-sw` because nginx-fronted hosts (WordPress.com
-			// Atomic) 404 `*.js` requests before PHP runs. Browsers cache
-			// the prior registration, so without an explicit upgrade
-			// step the guard below would mistake our own stale SW for a
-			// third-party SW and skip — leaving the user stuck on a
-			// dead 1.3.0 worker that can never update (its script URL
-			// 404s now). Detect the legacy `.js` path, unregister it,
-			// and fall through to install the new SW.
-			const isPixfeteLegacySw =
-				existing.active.scriptURL.endsWith('/pixfete-sw.js') ||
-				existing.active.scriptURL.includes('/pixfete-sw.js?');
-			if (isPixfeteLegacySw) {
-				await existing.unregister();
-			} else {
-				// eslint-disable-next-line no-console -- visibility for site owners running another SW plugin.
-				console.warn(
-					'Pixfête: another Service Worker owns this scope (' +
-						existing.active.scriptURL +
-						'); skipping Pixfête SW registration. Set the `pixfete_serve_service_worker` filter to false to silence this.'
-				);
-				return null;
-			}
-		}
-		const options = scope ? { scope } : undefined;
-		return await navigator.serviceWorker.register(url, options);
-	} catch (err) {
-		// eslint-disable-next-line no-console -- visibility for HTTPS/proxy/scope failures.
-		console.warn('Pixfête: Service Worker registration failed', err);
-		return null;
-	}
-}
-
-/**
- * Ask the Service Worker to drain via the Background Sync API.
- *
- * Returning `true` means the SW will retry the queue on its own schedule
- * once connectivity returns — the recovery net for records the foreground
- * drain couldn't finish. The foreground drain still runs regardless (see
- * `drainThenSync`); the two no longer need to be mutually exclusive
- * because each claims a record before POSTing it (see `claimNext`), so
- * they can't both upload the same blob. Returning `false` means the
- * platform didn't accept the registration (no SW, no Background Sync,
- * permission denied, etc.) and there is no recovery net, so the caller
- * marks the leftovers failed for manual retry instead.
- *
- * @return {Promise<boolean>} True when Background Sync will retry the queue.
- */
-async function tryRegisterBackgroundSync() {
-	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-		return false;
-	}
-	try {
-		// `navigator.serviceWorker.ready` never resolves until a SW with a
-		// matching scope is active — and never rejects. On sites where
-		// Pixfête's SW is filtered off (`pixfete_serve_service_worker` →
-		// false) and no other plugin owns the scope, awaiting it would
-		// hang `handleFileSelect` and the consent-restore branch of
-		// `init()` indefinitely. Probe `getRegistration()` first so we
-		// can return false promptly and let the in-page drain take over.
-		const existing = await navigator.serviceWorker.getRegistration();
-		if (!existing) {
-			return false;
-		}
-		const reg = await navigator.serviceWorker.ready;
-		if (!reg || !('sync' in reg)) {
-			return false;
-		}
-		await reg.sync.register('pixfete-upload-queue');
-		return true;
-	} catch (err) {
-		// eslint-disable-next-line no-console -- visibility for Permissions-Policy / quota / no-SyncManager failures.
-		console.warn('Pixfête: Background Sync registration failed; falling back to in-page drain.', err);
-		return false;
-	}
-}
-
-/**
- * Wire up the message listener that lets the SW push upload results back.
- *
- * Mutates store state directly so the UI updates without a poll round-trip.
- * Captures pageId and i18n at setup time because the listener fires
- * outside any directive event, where `getContext()` no longer resolves.
- *
- * Messages from other pageIds are ignored — guests can have multiple
- * event-album pages open in different tabs, and the SW broadcasts to
- * every controlled client. Without the filter an upload for event A
- * would unconditionally prepend a photo to event B's gallery.
- *
- * The opaque-done event (sent when the upload succeeded but the JSON
- * body couldn't be parsed) clears the queue placeholder without
- * inserting a fabricated photo — polling will surface the real photo
- * on its next tick.
- *
- * @param {number} pageId Event-album page this listener belongs to.
- * @param {Object} i18n   Server-rendered translations used to relabel decorated items.
- * @return {void}
- */
-function listenForSwMessages(pageId, i18n) {
-	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-		return;
-	}
-	navigator.serviceWorker.addEventListener('message', (event) => {
-		const data = event.data;
-		if (!data || typeof data !== 'object') {
-			return;
-		}
-		if (data.pageId !== pageId) {
-			return;
-		}
-		if (data.type === 'pixfete:upload-success') {
-			state.pendingUploads = state.pendingUploads.filter((i) => i.id !== data.queueId);
-			if (data.photo) {
-				state.photos = [data.photo, ...state.photos];
-				if (data.photo.uploaded_at && data.photo.uploaded_at > state.latestUploadedAt) {
-					state.latestUploadedAt = data.photo.uploaded_at;
-				}
-			}
-			if (!firstUploadDone) {
-				firstUploadDone = true;
-			}
-			if (installPromptApi) {
-				installPromptApi.maybeShowPrompt();
-			}
-		} else if (data.type === 'pixfete:upload-done-opaque') {
-			state.pendingUploads = state.pendingUploads.filter((i) => i.id !== data.queueId);
-			if (!firstUploadDone) {
-				firstUploadDone = true;
-			}
-			if (installPromptApi) {
-				installPromptApi.maybeShowPrompt();
-			}
-		} else if (data.type === 'pixfete:upload-failed') {
-			state.pendingUploads = state.pendingUploads.map((i) =>
-				i.id === data.queueId ? decoratePendingItem({ ...i, status: 'failed' }, i18n) : i
-			);
-		}
-	});
-}
+const pendingBlobs = new Map();
 
 /**
  * Number of photos to load per page.
@@ -337,26 +170,6 @@ function prefersReducedMotion() {
  * to the thumbnail they came from instead of being dropped on the body.
  */
 let lightboxOpener = null;
-
-/**
- * Whether the current guest has completed at least one photo upload
- * in this page session. Module-scoped because the install-prompt
- * module reads it via a getter passed at init; we never want this
- * to be reactive Interactivity-API state.
- *
- * @type {boolean}
- */
-let firstUploadDone = false;
-
-/**
- * Public API returned by `initInstallPrompt`. Holds the
- * `maybeShowPrompt` function we call after each successful upload.
- * Stays `null` when the manifest is disabled (empty `ctx.manifestUrl`),
- * which is why every success-path call site guards on it.
- *
- * @type {{ maybeShowPrompt: () => Promise<void> } | null}
- */
-let installPromptApi = null;
 
 /**
  * Restore focus to the element that opened the lightbox, if it is still in
@@ -759,24 +572,9 @@ const { state } = store('pixfete', {
 		*init() {
 			state.errorMessage = '';
 
-			// Restore any uploads queued on a previous visit so the user
-			// can see (and we can resume) their pending work. A failure
-			// here would silently strand previously-queued items: log so
-			// admins can spot private-browsing/quota issues. Skip the
-			// call entirely if IndexedDB isn't available at all — that's
-			// a known fallback, not a failure mode worth warning about.
-			if (typeof globalThis.indexedDB === 'undefined') {
-				state.pendingUploads = [];
-			} else {
-				try {
-					const restored = yield listPending(getContext().pageId);
-					state.pendingUploads = decoratePending(restored, getContext().i18n);
-				} catch (err) {
-					// eslint-disable-next-line no-console -- visibility for IDB open failures (corrupted, quota).
-					console.warn('Pixfête: could not restore pending uploads.', err);
-					state.pendingUploads = [];
-				}
-			}
+			// Pending uploads live only for the lifetime of the page now, so
+			// every fresh load (or retry of init) starts with an empty list.
+			state.pendingUploads = [];
 
 			// Read URL parameters before cleaning. Stash on state so a
 			// retry (which runs after URL params have been cleaned) still
@@ -807,21 +605,6 @@ const { state } = store('pixfete', {
 
 			const ctx = getContext();
 
-			registerServiceWorker(ctx.swUrl, ctx.swScope);
-			listenForSwMessages(ctx.pageId, ctx.i18n);
-
-			// Wire the install-prompt module once per page when the
-			// manifest is enabled. The module captures
-			// `beforeinstallprompt` immediately so we can trigger
-			// `prompt()` later, after the guest's first upload.
-			if (ctx.manifestUrl && !installPromptApi) {
-				installPromptApi = initInstallPrompt({
-					getFirstUploadDone: () => firstUploadDone,
-					postId: ctx.pageId,
-					cookiePath: ctx.cookiePath || '/',
-				});
-			}
-
 			// Sync moderator status from server-rendered context into
 			// global state so data-wp-bind directives can read it.
 			state.isModerator = ctx.isModerator ?? false;
@@ -834,9 +617,6 @@ const { state } = store('pixfete', {
 			if (cookie && cookie.consent === true) {
 				state.currentView = 'gallery';
 				const { actions } = store('pixfete');
-				if (state.pendingUploads.length) {
-					yield actions.drainThenSync();
-				}
 				actions.loadPhotos();
 				actions.startPolling();
 				return;
@@ -1090,9 +870,6 @@ const { state } = store('pixfete', {
 
 					const { actions } = store('pixfete');
 					actions.loadPhotos();
-					if (state.pendingUploads.length) {
-						yield actions.drainThenSync();
-					}
 					actions.startPolling();
 					return;
 				}
@@ -1152,8 +929,13 @@ const { state } = store('pixfete', {
 				url.searchParams.set('per_page', String(PER_PAGE));
 				url.searchParams.set('page', String(state.currentPage));
 
+				// `cache: 'no-store'` keeps the browser HTTP cache from
+				// returning a stale gallery (the server also sends no-cache
+				// headers); together they stop a guest's just-uploaded photo
+				// from appearing "missing" behind a cached snapshot.
 				const response = yield fetch(url.toString(), {
 					credentials: 'same-origin',
+					cache: 'no-store',
 				});
 
 				if (!response.ok) {
@@ -1235,6 +1017,7 @@ const { state } = store('pixfete', {
 
 					const response = await fetch(url.toString(), {
 						credentials: 'same-origin',
+						cache: 'no-store',
 					});
 
 					if (!response.ok) {
@@ -1303,240 +1086,135 @@ const { state } = store('pixfete', {
 		},
 
 		/**
-		 * Persist selected files to the IndexedDB queue and kick off the drain.
+		 * Queue the selected files as in-memory placeholders, then upload them.
 		 *
-		 * Selection used to upload inline; if the page closed mid-batch or
-		 * the network blipped, photos were lost. Now we persist first and
-		 * upload from the queue, so recovery is automatic and the
-		 * Background Sync handler in sw.js can also pick up stragglers
-		 * after the tab closes.
+		 * Each file gets a placeholder in `state.pendingUploads` (so the grid
+		 * shows an "Uploading…" tile right away) and its File is stashed in
+		 * `pendingBlobs` keyed by the placeholder id. We then POST them one at
+		 * a time via `uploadPending`.
 		 *
-		 * `restBase` is stashed on each queue record so the SW (in a
-		 * separate JS realm with no access to `ctx`) can POST to the
-		 * right REST URL on subdirectory and subdir-multisite installs.
+		 * Uploads are no longer persisted to IndexedDB — that store existed
+		 * only to coordinate the in-page drain with the Service Worker's
+		 * Background Sync drain, both of which have been removed — so a
+		 * placeholder lives only until its upload succeeds or fails.
 		 *
 		 * @param {Event} event The change event from the file input.
+		 * @return {Promise<void>}
 		 */
-		*handleFileSelect(event) {
+		async handleFileSelect(event) {
 			const files = event.target.files;
 			if (!files || files.length === 0) {
 				return;
 			}
 			const ctx = getContext();
 
+			const placeholders = [];
 			for (const file of files) {
-				try {
-					yield enqueue({
-						pageId: ctx.pageId,
-						blob: file,
-						name: file.name,
-						restBase: ctx.restBase,
-					});
-				} catch (err) {
-					// QuotaExceeded / private browsing / corrupted store — surface
-					// a user-visible error rather than silently dropping the file.
-					// eslint-disable-next-line no-console -- IDB-level detail belongs in console.
-					console.warn('Pixfête: could not queue upload.', err);
-					state.errorMessage = ctx.i18n.uploadFailed;
-				}
+				const id = nextPendingId++;
+				pendingBlobs.set(id, file);
+				placeholders.push(decoratePendingItem({ id, name: file.name, status: 'pending' }, ctx.i18n));
 			}
-
-			const queued = yield listPending(ctx.pageId);
-			state.pendingUploads = decoratePending(queued, ctx.i18n);
+			state.pendingUploads = [...state.pendingUploads, ...placeholders];
 
 			// Reset the input so the same file can be selected again later.
 			event.target.value = '';
 
-			// Upload immediately in the foreground so the guest sees their
-			// photo right away; Background Sync only recovers what the drain
-			// couldn't finish. See drainThenSync.
 			const { actions } = store('pixfete');
-			yield actions.drainThenSync();
+			await actions.uploadPending();
 		},
 
 		/**
 		 * Manually retry uploads that have hit a permanent failure.
 		 *
-		 * Clears the 'failed' status on every queued item via
-		 * `requeueFailed` and triggers a drain. The drain itself skips
-		 * `failed` records, so permanent failures only get re-attempted
-		 * after this deliberate user action — guests aren't trapped in a
-		 * silent retry loop, and the UI's "Retry uploads" affordance has
-		 * the same meaning on Chrome (where the SW owns the drain) and
-		 * on Safari/Firefox (where the in-page loop owns it).
+		 * Flips every 'failed' placeholder back to 'pending' (its File is still
+		 * held in `pendingBlobs` — we only release blobs on success) and re-runs
+		 * the upload loop. Keeping retry behind a deliberate tap means guests
+		 * aren't trapped in a silent retry loop.
 		 *
 		 * @return {Promise<void>}
 		 */
 		async retryUploads() {
 			const ctx = getContext();
-			await requeueFailed(ctx.pageId);
-			const pending = await listPending(ctx.pageId);
-			state.pendingUploads = decoratePending(pending, ctx.i18n);
-
-			// Same foreground-first rule as handleFileSelect: upload now,
-			// register Background Sync only for whatever can't be reached.
-			const { actions } = store('pixfete');
-			await actions.drainThenSync();
-		},
-
-		/**
-		 * Upload queued photos now, then hand any unfinished ones to Background Sync.
-		 *
-		 * The single entry point every upload trigger funnels through
-		 * (handleFileSelect, the init/consent resume paths, and the manual
-		 * retry). The in-page drain runs *first* so an online guest sees their
-		 * own photo immediately and the polling watermark advances — deferring
-		 * an online upload to the browser's `sync` event was exactly what left
-		 * guests staring at a gallery that never showed their photo until
-		 * Background Sync eventually fired (often after they'd closed the tab).
-		 *
-		 * Background Sync is demoted to a recovery net: it's only registered
-		 * for records the foreground drain left 'pending' (i.e. the network was
-		 * down), so it finishes those once connectivity returns, even if the
-		 * tab closes first. The two drainers no longer need to be mutually
-		 * exclusive: each claims a record (see `claimNext`) before POSTing it,
-		 * so even if the SW's `sync` fires while this foreground drain is
-		 * running they can't grab the same record and double-POST it.
-		 *
-		 * When Background Sync is unavailable (iOS Safari, Firefox, or a site
-		 * that filtered the SW off) there is nothing to recover the leftovers:
-		 * they would sit 'pending' forever — the "Uploading…" placeholder
-		 * never clears and the "Retry uploads" button (which only shows for
-		 * 'failed' records) never appears. So in that case we mark them failed,
-		 * restoring the manual recovery path that existed before Background
-		 * Sync was introduced.
-		 *
-		 * @return {Promise<void>}
-		 */
-		async drainThenSync() {
-			const ctx = getContext();
-			const { actions } = store('pixfete');
-
-			await actions.drainQueue();
-
-			// Anything still pending after the foreground drain couldn't reach
-			// the server. Failed records are excluded — those wait on the
-			// manual "Retry uploads" button, and Background Sync skips them.
-			//
-			// Records still carrying a *fresh* claim are excluded too: another
-			// tab (a separate JS realm over the same queue) has claimed and is
-			// actively uploading them, so our drain skipped them rather than
-			// double-POSTing. Failing those would surface a bogus "Retry
-			// uploads" button here and leave stale state once the other tab
-			// finishes and deletes the record. Our own network-failed leftovers
-			// were released (claimedAt = null) by drainQueue, so they still
-			// qualify; only a genuinely dead drainer's stale lease is reclaimed.
-			const now = Date.now();
-			const stillQueued = (await listPending(ctx.pageId)).filter(
-				(item) => item.status !== 'failed' && (!item.claimedAt || now - item.claimedAt > CLAIM_LEASE_MS)
+			state.pendingUploads = state.pendingUploads.map((item) =>
+				item.status === 'failed' ? decoratePendingItem({ ...item, status: 'pending' }, ctx.i18n) : item
 			);
-			if (!stillQueued.length) {
-				return;
-			}
 
-			const registered = await tryRegisterBackgroundSync();
-			if (!registered) {
-				// No Background Sync to finish these. Surface them as failures
-				// so the guest gets the "Retry uploads" affordance instead of a
-				// placeholder stuck on "Uploading…" indefinitely.
-				for (const item of stillQueued) {
-					await markFailed(item.id, 'network');
-				}
-				state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
-			}
+			const { actions } = store('pixfete');
+			await actions.uploadPending();
 		},
 
 		/**
-		 * Sequentially upload pending queue items to the REST endpoint.
+		 * Upload every pending placeholder to the REST endpoint, in order.
 		 *
-		 * Skips records already in `failed` state so the manual "Retry
-		 * uploads" button is the single user-visible affordance for
-		 * re-attempting permanent failures — mirroring the SW's drain
-		 * loop (sw.js) so behavior is identical across browsers.
+		 * Walks `state.pendingUploads` one 'pending' item at a time. On success
+		 * the placeholder is dropped and the real photo is prepended to the
+		 * gallery so the guest sees it immediately. A failure (network error or
+		 * a non-2xx response) marks that one placeholder 'failed' — surfacing
+		 * the "Retry uploads" affordance — and the loop moves on to the next, so
+		 * one bad file doesn't block the rest of the batch.
 		 *
-		 * Stops on the first failure rather than draining-around it: if
-		 * one upload is failing we'd rather surface that quickly than
-		 * burn the remaining files into the same failure mode. The SW
-		 * retry path picks up where this one left off when available.
-		 *
-		 * Network errors (fetch rejection) release the claim and leave the
-		 * record 'pending' to retry later; post-success bookkeeping errors
-		 * (e.g. a CDN returning HTML instead of JSON for a 200 response) clear
-		 * the record without re-attempting, since the server accepted the
-		 * upload and a retry would duplicate the photo.
-		 *
-		 * Each record is claimed (see `claimNext`) before its POST so this
-		 * loop and the Service Worker's `sync` drain can't both pick up the
-		 * same record and upload it twice.
+		 * A 200 with a non-JSON body (a caching plugin or CDN intercepting the
+		 * POST response) counts as success: the server stored the photo, so
+		 * re-POSTing would duplicate it. The placeholder is cleared and the next
+		 * poll surfaces the real photo.
 		 *
 		 * @return {Promise<void>}
 		 */
-		async drainQueue() {
+		async uploadPending() {
 			const ctx = getContext();
-			let item = await claimNext(ctx.pageId);
 
-			while (item) {
-				let response;
+			let next;
+			while ((next = state.pendingUploads.find((item) => item.status === 'pending'))) {
+				const { id } = next;
+				const blob = pendingBlobs.get(id);
+
+				let ok = false;
+				let photo = null;
 				try {
 					const formData = new FormData();
-					formData.append('photo', item.blob, item.name);
+					formData.append('photo', blob, next.name);
 
-					response = await fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
+					const response = await fetch(`${ctx.restBase}/photos/${ctx.pageId}`, {
 						method: 'POST',
 						credentials: 'same-origin',
 						body: formData,
 					});
+					ok = response.ok;
+					if (ok) {
+						try {
+							photo = await response.json();
+						} catch (err) {
+							// 200 OK but the body wasn't JSON — most often a caching
+							// plugin or CDN intercepting the response. The upload
+							// itself succeeded, so we clear the placeholder (a retry
+							// would duplicate the photo) and let polling surface the
+							// real photo on its next tick.
+							// eslint-disable-next-line no-console -- aids debugging cache/CDN interference.
+							console.warn('Pixfête: upload succeeded but response was not JSON.', err);
+						}
+					}
 				} catch {
-					// Network-layer failure — the request never reached the
-					// server, so the upload is simply unfinished, not rejected.
-					// Release the claim and leave the record 'pending' (rather
-					// than marking it 'failed') so Background Sync — whose drain
-					// skips 'failed' records — can still complete it on
-					// reconnect, and so a transient blip doesn't push the guest
-					// behind the manual "Retry uploads" gate. Stop draining; the
-					// caller registers Background Sync for whatever is still
-					// queued (or fails it when Background Sync is unavailable).
-					await releaseClaim(item.id);
-					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
-					return;
+					// Network-layer failure — the request never reached the server.
+					ok = false;
 				}
 
-				if (!response.ok) {
-					await markFailed(item.id, 'http');
-					state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
-					return;
+				if (!ok) {
+					state.pendingUploads = state.pendingUploads.map((item) =>
+						item.id === id ? decoratePendingItem({ ...item, status: 'failed' }, ctx.i18n) : item
+					);
+					continue;
 				}
 
-				let photo = null;
-				try {
-					photo = await response.json();
-				} catch (err) {
-					// 200 OK but the body wasn't JSON — most often a caching
-					// plugin or CDN intercepting the response. The upload
-					// itself succeeded, so we delete the queue record
-					// (avoids duplicate-upload on retry) and let polling
-					// pick up the real photo on its next tick.
-					// eslint-disable-next-line no-console -- aids debugging cache/CDN interference.
-					console.warn('Pixfête: upload succeeded but response was not JSON.', err);
-				}
+				// Success: drop the placeholder and its blob, then show the photo.
+				state.pendingUploads = state.pendingUploads.filter((item) => item.id !== id);
+				pendingBlobs.delete(id);
 
-				await markDone(item.id);
 				if (photo) {
 					state.photos = [photo, ...state.photos];
 					if (photo.uploaded_at && photo.uploaded_at > state.latestUploadedAt) {
 						state.latestUploadedAt = photo.uploaded_at;
 					}
 				}
-
-				if (!firstUploadDone) {
-					firstUploadDone = true;
-				}
-				if (installPromptApi) {
-					installPromptApi.maybeShowPrompt();
-				}
-
-				state.pendingUploads = decoratePending(await listPending(ctx.pageId), ctx.i18n);
-				item = await claimNext(ctx.pageId);
 			}
 		},
 

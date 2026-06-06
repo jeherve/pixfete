@@ -15,6 +15,5 @@ module.exports = {
 		'^@wordpress/i18n$': '<rootDir>/tests/jest-stubs/wordpress-i18n.js',
 		'^@wordpress/components$': '<rootDir>/tests/jest-stubs/wordpress-components.js',
 	},
-	setupFiles: [...(defaultConfig.setupFiles || []), '<rootDir>/tests/jest-setup/structured-clone-polyfill.js'],
 	setupFilesAfterEnv: [...(defaultConfig.setupFilesAfterEnv || []), '@testing-library/jest-dom'],
 };
