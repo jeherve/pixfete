@@ -1,7 +1,7 @@
 === Pixfête ===
 Contributors: jeherve
 Tags: photo album, event, guest photos, sharing, wedding
-Stable tag: 1.3.3
+Stable tag: 1.3.4
 Requires at least: 6.9
 Requires PHP: 8.3
 Tested up to: 7.0
@@ -121,7 +121,7 @@ Not by default, but developers can use the `pixfete_max_uploads_per_guest` filte
 
 == Changelog ==
 
-= Unreleased =
+= 1.3.4 - 2026-06-06 =
 
 **Added**
 
