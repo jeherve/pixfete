@@ -164,7 +164,7 @@ const SWIPE_THRESHOLD = 50;
  * snap-back (cancelled swipe) and the slide-in (completed navigation) so the
  * two timing/easing values stay in lockstep.
  */
-const SLIDE_TRANSITION = 'transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1)';
+const SLIDE_TRANSITION = 'transform 0.45s cubic-bezier(0.33, 0, 0.2, 1)';
 
 /**
  * Whether the visitor has asked the OS to minimize motion. When true we keep
